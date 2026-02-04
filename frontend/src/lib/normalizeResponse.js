@@ -6,7 +6,14 @@ export const normalizeListResponse = (response, fallbackKey) => {
     return [];
   }
 
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
   const root = response?.data ?? response;
+  if (Array.isArray(root)) {
+    return root;
+  }
   const candidate = root?.[fallbackKey]
     ?? root?.data
     ?? root?.items
