@@ -1,0 +1,107 @@
+import React, { useState, useEffect } from 'react';
+import { apiClient } from '@/api/client';
+import { createPageUrl } from '@/utils';
+import { Store, ChevronRight, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { toast } from 'sonner';
+
+import { useBusiness } from '../components/pos/BusinessContext';
+
+export default function BusinessSelect() {
+  const { selectBusiness, setBusinesses } = useBusiness();
+  const [businesses, setLocalBusinesses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const response = await apiClient.get('/protected/businesses');
+      const list = Array.isArray(response)
+        ? response
+        : response?.businesses || response?.data || [];
+      setLocalBusinesses(list);
+      setBusinesses(list);
+      
+      // If only one business, auto-select
+      if (list.length === 1) {
+        handleSelectBusiness(list[0]);
+      }
+    } catch (error) {
+      toast.error('Failed to load businesses');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectBusiness = async (business) => {
+    try {
+      await apiClient.post('/protected/businesses/select', { business_id: business.id });
+      selectBusiness({
+        ...business,
+        business_id: business.business_id ?? business.id
+      });
+      window.location.href = createPageUrl('POS');
+    } catch (error) {
+      toast.error('Failed to select business');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Store className="w-8 h-8 text-white" />
+          </div>
+          <CardTitle className="text-2xl">Select Business</CardTitle>
+          <CardDescription>
+            Choose a business to continue
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {businesses.length === 0 ? (
+            <div className="text-center py-6">
+              <p className="text-slate-500">No businesses available</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {businesses.map((business) => (
+                  <button
+                    key={business.id}
+                    onClick={() => handleSelectBusiness(business)}
+                    className="w-full p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-between transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Store className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-slate-900">{business.name}</p>
+                        {business.address && (
+                          <p className="text-sm text-slate-500">{business.address}</p>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

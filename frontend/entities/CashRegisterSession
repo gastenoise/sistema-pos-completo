@@ -1,0 +1,68 @@
+{
+  "name": "CashRegisterSession",
+  "type": "object",
+  "properties": {
+    "business_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "closed"
+      ],
+      "default": "open"
+    },
+    "opening_cash_amount": {
+      "type": "number",
+      "default": 0
+    },
+    "expected_cash": {
+      "type": "number",
+      "default": 0
+    },
+    "real_cash": {
+      "type": "number"
+    },
+    "cash_difference": {
+      "type": "number"
+    },
+    "total_sales": {
+      "type": "number",
+      "default": 0
+    },
+    "total_cash_sales": {
+      "type": "number",
+      "default": 0
+    },
+    "total_debit_sales": {
+      "type": "number",
+      "default": 0
+    },
+    "total_mercado_pago_sales": {
+      "type": "number",
+      "default": 0
+    },
+    "sales_count": {
+      "type": "number",
+      "default": 0
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "opened_by": {
+      "type": "string"
+    },
+    "closed_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "business_id"
+  ]
+}

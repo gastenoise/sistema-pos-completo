@@ -1,0 +1,1584 @@
+{
+  "info": {
+    "name": "API Protegida - Sistema de Ventas",
+    "description": "Colección Postman para consumir la API protegida. Usa el login para obtener el token y envía el header X-Business-Id en todos los requests autenticados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "business_id",
+      "value": "",
+      "type": "string",
+      "description": "ID del negocio que debe enviarse en el header X-Business-Id."
+    },
+    {
+      "key": "api_key",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "category_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payment_method_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "item_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "session_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sale_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "sale_item_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.token) {",
+                  "  pm.collectionVariables.set('auth_token', json.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"usuario@ejemplo.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nuevo Usuario\",\n  \"email\": \"nuevo@ejemplo.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "auth",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Me",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Usuario Actualizado\",\n  \"phone\": \"+54 11 1234-5678\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "auth",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change Email",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nuevo-email@ejemplo.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/auth/change-email",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "auth",
+                "change-email"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"password123\",\n  \"new_password\": \"password1234\",\n  \"new_password_confirmation\": \"password1234\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/auth/change-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "auth",
+                "change-password"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "MercadoPago",
+      "item": [
+        {
+          "name": "Test Config",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/protected/mercadopago/test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "mercadopago",
+                "test"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear Preferencia",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"title\": \"Producto Demo\",\n      \"quantity\": 1,\n      \"unit_price\": 1200\n    }\n  ],\n  \"external_reference\": \"VENTA-123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/mercadopago/preferencia",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "mercadopago",
+                "preferencia"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Businesses",
+      "item": [
+        {
+          "name": "List Businesses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/businesses",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "businesses"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Select Business",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_id\": {{business_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/businesses/select",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "businesses",
+                "select"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Info",
+      "item": [
+        {
+          "name": "Colors",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/info/colors",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "info",
+                "colors"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payment Methods",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/info/payment-methods",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "info",
+                "payment-methods"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Methods",
+      "item": [
+        {
+          "name": "List All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/payment-methods/all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "payment-methods",
+                "all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List For Business",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/payment-methods",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "payment-methods"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bulk Toggle",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"methods\": {\n    \"1\": true,\n    \"2\": false\n  },\n  \"preferred_payment_method_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/payment-methods",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "payment-methods"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Toggle",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": true,\n  \"preferred\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/payment-methods/{{payment_method_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "payment-methods",
+                "{{payment_method_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Business",
+      "item": [
+        {
+          "name": "Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mi Negocio\",\n  \"address\": \"Calle Principal 123\",\n  \"phone\": \"+54 11 5555 5555\",\n  \"email\": \"contacto@negocio.com\",\n  \"preferred_payment_method_id\": {{payment_method_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/business",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "business"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get SMTP Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/business/smtp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "business",
+                "smtp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update SMTP Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"host\": \"smtp.example.com\",\n  \"port\": 587,\n  \"username\": \"smtp-user\",\n  \"password\": \"smtp-pass\",\n  \"encryption\": \"tls\",\n  \"from_email\": \"no-reply@example.com\",\n  \"from_name\": \"Sistema de Ventas\",\n  \"active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/business/smtp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "business",
+                "smtp"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Api Keys",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/api-keys",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "api-keys"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Integración Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/api-keys",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "api-keys"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/api-keys/{{api_key}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "api-keys",
+                "{{api_key}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "categories"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Categoría Nueva\",\n  \"color\": \"66\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "categories"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/categories/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "categories",
+                "{{category_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Categoría Actualizada\",\n  \"description\": \"Descripción actualizada\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/categories/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "categories",
+                "{{category_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/categories/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "categories",
+                "{{category_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Banks",
+      "item": [
+        {
+          "name": "Get",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/banks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "banks"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"alias\": \"nuevo.alias.bancario\",\n  \"bank_name\": \"Banco Provincia\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/banks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "banks"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Items",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "items"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Producto 1\",\n  \"price\": 10.99,\n  \"sku\": \"SKU001\",\n  \"type\": \"product\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "items"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/items/{{item_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "items",
+                "{{item_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Producto actualizado\",\n  \"price\": 12.99\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/items/{{item_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "items",
+                "{{item_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/items/{{item_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "items",
+                "{{item_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Navigation Events",
+      "item": [
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"path\": \"/dashboard\",\n  \"screen\": \"Dashboard\",\n  \"metadata\": {\n    \"referrer\": \"/login\",\n    \"duration_ms\": 1200\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/navigation-events",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "navigation-events"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Items Import",
+      "item": [
+        {
+          "name": "Preview",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/items-import/preview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "items-import",
+                "preview"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Confirm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"name\": \"Producto 1\",\n      \"price\": 10.99,\n      \"sku\": \"SKU001\",\n      \"type\": \"product\"\n    }\n  ],\n  \"sync_by_sku\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/items-import/confirm",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "items-import",
+                "confirm"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cash Register",
+      "item": [
+        {
+          "name": "Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/cash-register/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "cash-register",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Open",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/cash-register/open",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "cash-register",
+                "open"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Close",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"real_cash\": 1250.5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/cash-register/close",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "cash-register",
+                "close"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Closed Sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/cash-register/sessions/closed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "cash-register",
+                "sessions",
+                "closed"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Expected Totals",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/cash-register/{{session_id}}/expected-totals",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "cash-register",
+                "{{session_id}}",
+                "expected-totals"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_name\": \"Cliente Ejemplo\",\n  \"customer_email\": \"cliente@example.com\",\n  \"items\": [\n    {\n      \"item_id\": 1,\n      \"quantity\": 2,\n      \"unit_price\": 99.99\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/sales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "sales"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/sales/{{sale_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "sales",
+                "{{sale_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Items",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"item_id\": 1,\n  \"quantity\": 1,\n  \"unit_price\": 49.99\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/sales/{{sale_id}}/items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "sales",
+                "{{sale_id}}",
+                "items"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/sales/{{sale_id}}/items/{{sale_item_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "sales",
+                "{{sale_id}}",
+                "items",
+                "{{sale_item_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Payments",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 199.98,\n  \"payment_method\": \"cash\",\n  \"reference\": \"PAGO-001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/sales/{{sale_id}}/payments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "sales",
+                "{{sale_id}}",
+                "payments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get QR",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/sales/{{sale_id}}/qr",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "sales",
+                "{{sale_id}}",
+                "qr"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Close",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Venta completada\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/sales/{{sale_id}}/close",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "sales",
+                "{{sale_id}}",
+                "close"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Void",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Error en la venta\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/sales/{{sale_id}}/void",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "sales",
+                "{{sale_id}}",
+                "void"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Daily Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/reports/daily-summary?date=2024-01-15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "reports",
+                "daily-summary"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2024-01-15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/reports/export?start_date=2024-01-01&end_date=2024-01-31&type=sales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "reports",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2024-01-31"
+                },
+                {
+                  "key": "type",
+                  "value": "sales"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

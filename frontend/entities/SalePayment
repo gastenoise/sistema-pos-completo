@@ -1,0 +1,41 @@
+{
+  "name": "SalePayment",
+  "type": "object",
+  "properties": {
+    "sale_id": {
+      "type": "string",
+      "description": "Associated sale ID"
+    },
+    "payment_method_id": {
+      "type": "string",
+      "description": "Payment method used"
+    },
+    "payment_method_type": {
+      "type": "string",
+      "description": "Type of payment method"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Amount paid with this method"
+    },
+    "payment_reference": {
+      "type": "string",
+      "description": "Reference or transaction ID"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Payment status"
+    }
+  },
+  "required": [
+    "sale_id",
+    "payment_method_id",
+    "amount"
+  ]
+}

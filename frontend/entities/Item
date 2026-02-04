@@ -1,0 +1,57 @@
+{
+  "name": "Item",
+  "type": "object",
+  "properties": {
+    "business_id": {
+      "type": "string",
+      "description": "Associated business ID"
+    },
+    "name": {
+      "type": "string"
+    },
+    "sku": {
+      "type": "string",
+      "description": "Stock keeping unit"
+    },
+    "barcode": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "product",
+        "service",
+        "fee"
+      ],
+      "default": "product"
+    },
+    "category_id": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number",
+      "description": "Unit price"
+    },
+    "cost": {
+      "type": "number",
+      "description": "Cost price for profit calculation"
+    },
+    "stock_quantity": {
+      "type": "number",
+      "default": 0
+    },
+    "track_stock": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "business_id",
+    "name",
+    "price"
+  ]
+}

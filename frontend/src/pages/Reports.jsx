@@ -1,0 +1,532 @@
+import React, { useState } from 'react';
+import { apiClient } from '@/api/client';
+import { useQuery } from '@tanstack/react-query';
+import { format, startOfMonth, endOfMonth, subDays } from 'date-fns';
+import {
+  DollarSign,
+  Calendar, Loader2, FileText, Ban, CreditCard, Eye
+} from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { toast } from 'sonner';
+
+import { useBusiness } from '../components/pos/BusinessContext';
+import { useAuth } from '../lib/AuthContext';
+import TopNav from '../components/pos/TopNav';
+import CsvExportButton from '../components/pos/CsvExportButton';
+
+export default function Reports() {
+  const { businessId } = useBusiness();
+  const { user, logout } = useAuth();
+
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const [dateFrom, setDateFrom] = useState(today);
+  const [dateTo, setDateTo] = useState(today);
+  const [dateMode, setDateMode] = useState('today'); // 'today', 'week', 'month', 'custom'
+  const [tempDateFrom, setTempDateFrom] = useState(today);
+  const [tempDateTo, setTempDateTo] = useState(today);
+  const [selectedSale, setSelectedSale] = useState(null);
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+  const [includeVoided, setIncludeVoided] = useState(false);
+
+  const paymentMethodColors = {
+    cash: '#10B981',
+    debit: '#3B82F6',
+    credit: '#8B5CF6',
+    mercado_pago: '#0EA5E9',
+    transfer: '#F59E0B',
+    other: '#6B7280'
+  };
+
+  // Fetch sales
+  const { data: sales = [], isLoading: loadingSales } = useQuery({
+    queryKey: ['sales', businessId, dateFrom, dateTo, includeVoided],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const response = await apiClient.get(`/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales`);
+      const normalized = Array.isArray(response)
+        ? response
+        : response?.data || response?.sales || response?.items || [];
+      return normalized.filter((sale) => includeVoided || sale.status !== 'voided');
+    },
+    enabled: !!businessId
+  });
+
+  // Fetch payment methods
+  const { data: paymentMethods = [] } = useQuery({
+    queryKey: ['paymentMethods', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const response = await apiClient.get('/protected/payment-methods');
+      const methods = Array.isArray(response)
+        ? response
+        : response?.payment_methods || response?.data || [];
+      return methods;
+    },
+    enabled: !!businessId
+  });
+
+  // Filter sales
+  const filteredSales = sales.filter(sale => {
+    const methodMatch = paymentMethodFilter === 'all' || sale.payment_method_type === paymentMethodFilter;
+    // Category filter would require checking item categories
+    return methodMatch;
+  });
+
+  // Calculate totals
+  const closedSales = filteredSales.filter(s => s.status === 'closed');
+  const totalSales = closedSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+
+  // Calculate by payment method dynamically
+  const paymentTotals = paymentMethods.reduce((acc, method) => {
+    acc[method.type] = closedSales
+      .filter(s => s.payment_method_type === method.type)
+      .reduce((sum, s) => sum + (s.total || 0), 0);
+    return acc;
+  }, {});
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS'
+    }).format(price);
+  };
+
+  const handleExportCsv = async () => {
+    const headers = ['Date', 'Sale ID', 'Status', 'Items', 'Subtotal', 'Total', 'Payment Method', 'Customer'];
+    const rows = filteredSales.map(sale => [
+      format(new Date(sale.closed_at || sale.created_date), 'yyyy-MM-dd HH:mm'),
+      sale.id,
+      sale.status,
+      sale.items?.length || 0,
+      sale.subtotal,
+      sale.total,
+      sale.payment_method_type || 'N/A',
+      sale.customer_name || ''
+    ]);
+
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sales-report-${dateFrom}-to-${dateTo}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Report exported');
+  };
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  const setQuickDate = (preset) => {
+    const now = new Date();
+    setDateMode(preset);
+    switch (preset) {
+      case 'today': {
+        const todayStr = format(now, 'yyyy-MM-dd');
+        setDateFrom(todayStr);
+        setDateTo(todayStr);
+        setTempDateFrom(todayStr);
+        setTempDateTo(todayStr);
+        break;
+      }
+      case 'week': {
+        const weekStart = format(subDays(now, 7), 'yyyy-MM-dd');
+        const weekEnd = format(now, 'yyyy-MM-dd');
+        setDateFrom(weekStart);
+        setDateTo(weekEnd);
+        setTempDateFrom(weekStart);
+        setTempDateTo(weekEnd);
+        break;
+      }
+      case 'month': {
+        const monthStart = format(startOfMonth(now), 'yyyy-MM-dd');
+        const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd');
+        setDateFrom(monthStart);
+        setDateTo(monthEnd);
+        setTempDateFrom(monthStart);
+        setTempDateTo(monthEnd);
+        break;
+      }
+      case 'custom': {
+        setTempDateFrom(dateFrom);
+        setTempDateTo(dateTo);
+        break;
+      }
+    }
+  };
+
+  const handleApplyCustomDates = () => {
+    setDateFrom(tempDateFrom);
+    setDateTo(tempDateTo);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <TopNav user={user} onLogout={handleLogout} currentPage="Reports" />
+
+      <div className="max-w-7xl mx-auto p-4 lg:p-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Sales Reports</h1>
+            <p className="text-slate-500">View and export your sales data</p>
+          </div>
+          <CsvExportButton onExport={handleExportCsv} />
+        </div>
+
+        {/* Summary Card */}
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {/* Top Row: Transactions and Total Sales */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Transactions */}
+                <div className="flex items-center gap-4 p-4 bg-amber-50 rounded-lg">
+                  <div className="p-3 bg-amber-100 rounded-lg">
+                    <FileText className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-amber-600 font-medium">Transactions</p>
+                    <p className="text-2xl font-bold text-amber-900">{closedSales.length}</p>
+                  </div>
+                </div>
+
+                {/* Total Sales */}
+                <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg">
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <DollarSign className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-600 font-medium">Total Sales</p>
+                    <p className="text-2xl font-bold text-blue-900">{formatPrice(totalSales)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Row: Payment Methods */}
+              <div className="grid grid-cols-4 gap-4">
+                {paymentMethods.filter(m => (m.is_active ?? m.active)).slice(0, 4).map((method) => (
+                  <div key={method.id} className="flex flex-col gap-2 p-4 rounded-lg border-2" style={{
+                    borderColor: (method.color || paymentMethodColors[method.type]) + '40',
+                    backgroundColor: (method.color || paymentMethodColors[method.type]) + '10'
+                  }}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="p-2 rounded-lg"
+                        style={{ backgroundColor: (method.color || paymentMethodColors[method.type]) + '30' }}
+                      >
+                        <CreditCard
+                          className="w-4 h-4"
+                          style={{ color: method.color || paymentMethodColors[method.type] }}
+                        />
+                      </div>
+                      <p className="text-xs font-medium" style={{ color: method.color || paymentMethodColors[method.type] }}>
+                        {method.name}
+                      </p>
+                    </div>
+                    <p className="text-xl font-bold text-slate-900">
+                      {formatPrice(paymentTotals[method.type] || 0)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant={dateMode === 'today' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setQuickDate('today')}
+                >
+                  <Calendar className="w-4 h-4 mr-1" />
+                  Today
+                </Button>
+                <Button
+                  variant={dateMode === 'week' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setQuickDate('week')}
+                >
+                  Last 7 days
+                </Button>
+                <Button
+                  variant={dateMode === 'month' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setQuickDate('month')}
+                >
+                  This month
+                </Button>
+                <Button
+                  variant={dateMode === 'custom' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setQuickDate('custom')}
+                >
+                  Custom
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div>
+                  <Label className="text-xs">From</Label>
+                  <Input
+                    type="date"
+                    value={dateMode === 'custom' ? tempDateFrom : dateFrom}
+                    onChange={(e) => setTempDateFrom(e.target.value)}
+                    className="w-36"
+                    disabled={dateMode !== 'custom'}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">To</Label>
+                  <Input
+                    type="date"
+                    value={dateMode === 'custom' ? tempDateTo : dateTo}
+                    onChange={(e) => setTempDateTo(e.target.value)}
+                    className="w-36"
+                    disabled={dateMode !== 'custom'}
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleApplyCustomDates}
+                  disabled={dateMode !== 'custom'}
+                  className="mt-5"
+                >
+                  Apply
+                </Button>
+              </div>
+
+              <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Payment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Methods</SelectItem>
+                  {paymentMethods.filter(m => m.is_active).map(m => (
+                    <SelectItem key={m.id} value={m.type}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="include-voided"
+                  checked={includeVoided}
+                  onCheckedChange={setIncludeVoided}
+                />
+                <Label htmlFor="include-voided" className="text-sm cursor-pointer">
+                  Include voided
+                </Label>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sales Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Sales</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {loadingSales ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              </div>
+            ) : filteredSales.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                <FileText className="w-12 h-12 mb-3" />
+                <p className="text-lg font-medium">No sales found</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSales.map((sale) => (
+                      <TableRow key={sale.id}>
+                        <TableCell>
+                          {format(new Date(sale.closed_at || sale.created_date), 'MMM d, HH:mm')}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={sale.status === 'closed' ? 'default' : 'secondary'}
+                            className={
+                              sale.status === 'closed' ? 'bg-green-100 text-green-800' :
+                              sale.status === 'voided' ? 'bg-red-100 text-red-800' :
+                              'bg-amber-100 text-amber-800'
+                            }
+                          >
+                            {sale.status === 'voided' && <Ban className="w-3 h-3 mr-1" />}
+                            {sale.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {sale.items?.length || 0} items
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: paymentMethodColors[sale.payment_method_type] || '#6B7280' }}
+                            />
+                            <span className="capitalize">{sale.payment_method_type || '—'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatPrice(sale.total || 0)}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSelectedSale(sale)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Sale Detail Dialog */}
+      <Dialog open={!!selectedSale} onOpenChange={() => setSelectedSale(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Sale Details</DialogTitle>
+          </DialogHeader>
+          {selectedSale && (
+            <div className="space-y-6">
+              {/* Sale Info */}
+              <div className="grid grid-cols-2 gap-4 pb-4 border-b">
+                <div>
+                  <p className="text-sm text-slate-500">Date</p>
+                  <p className="font-medium">{format(new Date(selectedSale.closed_at || selectedSale.created_date), 'PPpp')}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Status</p>
+                  <Badge
+                    variant={selectedSale.status === 'closed' ? 'default' : 'secondary'}
+                    className={
+                      selectedSale.status === 'closed' ? 'bg-green-100 text-green-800' :
+                      selectedSale.status === 'voided' ? 'bg-red-100 text-red-800' :
+                      'bg-amber-100 text-amber-800'
+                    }
+                  >
+                    {selectedSale.status}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Items */}
+              <div>
+                <h3 className="font-medium mb-3">Items</h3>
+                <div className="space-y-2">
+                  {selectedSale.items?.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-sm text-slate-500">Qty: {item.quantity} × {formatPrice(item.unit_price)}</p>
+                      </div>
+                      <p className="font-medium">{formatPrice(item.subtotal)}</p>
+                    </div>
+                  )) || <p className="text-slate-400 text-sm">No items</p>}
+                </div>
+              </div>
+
+              {/* Payment Info */}
+              <div className="pt-4 border-t">
+                <h3 className="font-medium mb-3">Payment Details</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Subtotal</span>
+                    <span className="font-medium">{formatPrice(selectedSale.subtotal || 0)}</span>
+                  </div>
+                  {selectedSale.tax > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Tax</span>
+                      <span className="font-medium">{formatPrice(selectedSale.tax)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 border-t">
+                    <span className="font-bold">Total</span>
+                    <span className="font-bold text-lg">{formatPrice(selectedSale.total || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-slate-600">Payment Method</span>
+                    <Badge variant="outline" className="capitalize">
+                      {selectedSale.payment_method_type || 'N/A'}
+                    </Badge>
+                  </div>
+                  {selectedSale.payment_reference && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Reference</span>
+                      <span className="font-mono text-sm">{selectedSale.payment_reference}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {selectedSale.customer_name && (
+                <div className="pt-4 border-t">
+                  <h3 className="font-medium mb-2">Customer</h3>
+                  <p>{selectedSale.customer_name}</p>
+                  {selectedSale.customer_email && (
+                    <p className="text-sm text-slate-500">{selectedSale.customer_email}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

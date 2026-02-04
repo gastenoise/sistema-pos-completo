@@ -1,0 +1,153 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Item;
+use App\Models\Category;
+use App\Models\Import;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use App\Services\BusinessContext;
+
+class ItemController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = Item::query();
+
+        if ($request->has('active')) {
+            $query->where('active', filter_var($request->active, FILTER_VALIDATE_BOOLEAN));
+        }
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->where(function($q) use ($term) {
+                $q->where('name', 'like', "%{$term}%")
+                  ->orWhere('sku', 'like', "%{$term}%");
+            });
+        }
+
+        return response()->json(['success' => true, 'data' => $query->paginate(20)]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'type' => 'required|in:product,service,fee',
+            'category_id' => ['nullable', Rule::exists('categories', 'id')->where('business_id', app(BusinessContext::class)->getBusinessId())],
+            'sku' => 'nullable|string|max:50',
+        ]);
+
+        $item = Item::create($validated);
+        return response()->json(['success' => true, 'data' => $item], 201);
+    }
+
+    public function show(Item $item)
+    {
+        return response()->json(['success' => true, 'data' => $item]);
+    }
+
+    public function update(Request $request, Item $item)
+    {
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'price' => 'sometimes|numeric|min:0',
+            'active' => 'sometimes|boolean',
+            'category_id' => ['nullable', Rule::exists('categories', 'id')->where('business_id', app(BusinessContext::class)->getBusinessId())],
+        ]);
+
+        $item->update($validated);
+        return response()->json(['success' => true, 'data' => $item]);
+    }
+
+    // --- Import Logic ---
+
+    public function importPreview(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:2048'
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+        
+        $data = array_map('str_getcsv', file($path));
+        $header = array_shift($data); 
+        
+        $preview = array_slice($data, 0, 5);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'headers' => $header,
+                'sample' => $preview,
+                'total_rows' => count($data)
+            ]
+        ]);
+    }
+
+    public function importConfirm(Request $request)
+    {
+        $request->validate([
+            'items' => 'required|array',
+            'items.*.name' => 'required|string',
+            'items.*.price' => 'required|numeric',
+            'sync_by_sku' => 'boolean'
+        ]);
+
+        $items = $request->input('items');
+        $syncBySku = $request->boolean('sync_by_sku');
+        $businessId = app(BusinessContext::class)->getBusinessId();
+        
+        DB::beginTransaction();
+        try {
+            $count = 0;
+            foreach ($items as $row) {
+                if ($syncBySku && !empty($row['sku'])) {
+                    Item::updateOrCreate(
+                        ['business_id' => $businessId, 'sku' => $row['sku']],
+                        [
+                            'name' => $row['name'],
+                            'price' => $row['price'],
+                            'type' => $row['type'] ?? 'product',
+                            'active' => true
+                        ]
+                    );
+                } else {
+                    Item::create([
+                        'business_id' => $businessId,
+                        'name' => $row['name'],
+                        'price' => $row['price'],
+                        'sku' => $row['sku'] ?? null,
+                        'type' => $row['type'] ?? 'product'
+                    ]);
+                }
+                $count++;
+            }
+
+            // Registrar Import
+            Import::create([
+                'business_id' => $businessId,
+                'user_id'     => Auth::id(), // FIX: Usamos la Facade para evitar error de Intelephense
+                'source'      => 'csv',
+                'status'      => 'imported',
+                // FIX: No usamos json_encode porque el modelo Import ya tiene el cast 'array'
+                'summary'     => ['imported_count' => $count] 
+            ]);
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => "$count items processed"]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+}

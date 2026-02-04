@@ -1,0 +1,195 @@
+import React, { useState, useEffect } from 'react';
+import { CreditCard, Plus, Trash2, ArrowRight } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useCart } from './CartContext';
+
+const paymentMethodColors = {
+  cash: '#10B981',
+  debit: '#3B82F6',
+  credit: '#8B5CF6',
+  mercado_pago: '#0EA5E9',
+  transfer: '#F59E0B',
+  other: '#6B7280'
+};
+
+export default function MultiPaymentModal({ 
+  open, 
+  onClose, 
+  paymentMethods = [],
+  onConfirm
+}) {
+  const { getTotal, cartItems } = useCart();
+  const total = getTotal();
+  
+  const [payments, setPayments] = useState([]);
+  const [remaining, setRemaining] = useState(total);
+
+  useEffect(() => {
+    if (open) {
+      // Default: full payment in cash
+      const cashMethod = paymentMethods.find(m => m.type === 'cash');
+      if (cashMethod) {
+        setPayments([{ method: cashMethod, amount: total }]);
+        setRemaining(0);
+      }
+    }
+  }, [open, total, paymentMethods]);
+
+  useEffect(() => {
+    const paid = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+    setRemaining(total - paid);
+  }, [payments, total]);
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS'
+    }).format(price);
+  };
+
+  const handleAddPayment = () => {
+    const availableMethod = paymentMethods.find(m => 
+      !payments.some(p => p.method.id === m.id)
+    ) || paymentMethods[0];
+    
+    setPayments([...payments, { method: availableMethod, amount: remaining }]);
+  };
+
+  const handleUpdatePayment = (index, field, value) => {
+    const updated = [...payments];
+    if (field === 'method') {
+      updated[index].method = value;
+    } else if (field === 'amount') {
+      updated[index].amount = value;
+    }
+    setPayments(updated);
+  };
+
+  const handleRemovePayment = (index) => {
+    setPayments(payments.filter((_, i) => i !== index));
+  };
+
+  const handleConfirm = () => {
+    onConfirm(payments);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Configure Payment</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Total Display */}
+          <div className="bg-slate-100 rounded-xl p-4 text-center">
+            <p className="text-sm text-slate-600 mb-1">Total to Pay</p>
+            <p className="text-3xl font-bold text-slate-900">{formatPrice(total)}</p>
+          </div>
+
+          {/* Payment Methods */}
+          <div className="space-y-3">
+            <Label>Payment Distribution</Label>
+            {payments.map((payment, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <div className="flex-1 grid grid-cols-2 gap-2">
+                  <Select 
+                    value={payment.method.id} 
+                    onValueChange={(id) => {
+                      const method = paymentMethods.find(m => m.id === id);
+                      handleUpdatePayment(index, 'method', method);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentMethods.filter(m => m.is_active).map((method) => (
+                        <SelectItem key={method.id} value={method.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: method.color || paymentMethodColors[method.type] }}
+                            />
+                            {method.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={payment.amount}
+                    onChange={(e) => handleUpdatePayment(index, 'amount', e.target.value)}
+                    placeholder="Amount"
+                  />
+                </div>
+                {payments.length > 1 && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => handleRemovePayment(index)}
+                  >
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </Button>
+                )}
+              </div>
+            ))}
+
+            {payments.length < paymentMethods.filter(m => m.is_active).length && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleAddPayment}
+                className="w-full"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Payment Method
+              </Button>
+            )}
+          </div>
+
+          {/* Remaining Amount */}
+          {remaining !== 0 && (
+            <div className={`p-3 rounded-lg ${remaining > 0 ? 'bg-amber-50 border border-amber-200' : 'bg-red-50 border border-red-200'}`}>
+              <p className={`text-sm font-medium ${remaining > 0 ? 'text-amber-900' : 'text-red-900'}`}>
+                {remaining > 0 ? 'Remaining' : 'Overpayment'}: {formatPrice(Math.abs(remaining))}
+              </p>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            <Button variant="outline" className="flex-1" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button 
+              className="flex-[2] bg-blue-600 hover:bg-blue-700"
+              onClick={handleConfirm}
+              disabled={remaining !== 0}
+            >
+              Process Payment
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
