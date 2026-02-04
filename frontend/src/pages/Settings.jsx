@@ -35,6 +35,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { toast } from 'sonner';
+import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
@@ -148,14 +149,34 @@ export default function Settings() {
     }
   }, [currentBusiness]);
 
-  const normalizeList = (response, fallbackKey) => {
-    if (Array.isArray(response)) return response;
-    if (!response) return [];
-    return response?.[fallbackKey]
-      || response?.data
-      || response?.items
-      || response?.results
-      || [];
+  const updateCategoryCache = (response) => {
+    const list = normalizeListResponse(response, 'categories').map((category) => ({
+      ...category,
+      is_active: category.is_active ?? category.active
+    }));
+    if (list.length > 0) {
+      queryClient.setQueryData(['categories', businessId], list);
+      return true;
+    }
+    const entity = normalizeEntityResponse(response);
+    if (entity?.id) {
+      const normalizedEntity = {
+        ...entity,
+        is_active: entity.is_active ?? entity.active
+      };
+      queryClient.setQueryData(['categories', businessId], (prev = []) => {
+        const safePrev = Array.isArray(prev) ? prev : [];
+        const exists = safePrev.find((category) => category.id === normalizedEntity.id);
+        if (exists) {
+          return safePrev.map((category) => (
+            category.id === normalizedEntity.id ? { ...category, ...normalizedEntity } : category
+          ));
+        }
+        return [normalizedEntity, ...safePrev];
+      });
+      return true;
+    }
+    return false;
   };
 
   // Fetch categories
@@ -164,7 +185,10 @@ export default function Settings() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/categories');
-      return normalizeList(response, 'categories');
+      return normalizeListResponse(response, 'categories').map((category) => ({
+        ...category,
+        is_active: category.is_active ?? category.active
+      }));
     },
     enabled: !!businessId
   });
@@ -175,7 +199,7 @@ export default function Settings() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/payment-methods');
-      return normalizeList(response, 'payment_methods').map((method) => ({
+      return normalizeListResponse(response, 'payment_methods').map((method) => ({
         ...method,
         is_active: method.is_active ?? method.active,
         is_default: method.is_default ?? method.preferred
@@ -190,7 +214,7 @@ export default function Settings() {
     queryFn: async () => {
       if (!businessId) return null;
       const response = await apiClient.get('/protected/banks');
-      const accounts = normalizeList(response, 'banks');
+      const accounts = normalizeListResponse(response, 'banks');
       return accounts.length > 0 ? accounts[0] : null;
     },
     enabled: !!businessId
@@ -251,7 +275,7 @@ export default function Settings() {
     setSavingBusiness(true);
     try {
       const updated = await apiClient.put('/protected/business', businessData);
-      const updatedBusiness = updated?.data ?? updated;
+      const updatedBusiness = normalizeEntityResponse(updated);
       selectBusiness({ ...currentBusiness, ...updatedBusiness });
       toast.success('Business settings saved');
     } catch (error) {
@@ -265,10 +289,12 @@ export default function Settings() {
     setSavingCategory(true);
     try {
       if (editingCategory) {
-        await apiClient.put(`/protected/categories/${editingCategory.id}`, categoryData);
+        const response = await apiClient.put(`/protected/categories/${editingCategory.id}`, categoryData);
+        updateCategoryCache(response);
         toast.success('Category updated');
       } else {
-        await apiClient.post('/protected/categories', { ...categoryData, is_active: true });
+        const response = await apiClient.post('/protected/categories', { ...categoryData, is_active: true });
+        updateCategoryCache(response);
         toast.success('Category created');
       }
       queryClient.invalidateQueries({ queryKey: ['categories', businessId] });
@@ -284,7 +310,8 @@ export default function Settings() {
 
   const handleDeleteCategory = async (category) => {
     try {
-      await apiClient.delete(`/protected/categories/${category.id}`);
+      const response = await apiClient.delete(`/protected/categories/${category.id}`);
+      updateCategoryCache(response);
       queryClient.invalidateQueries({ queryKey: ['categories', businessId] });
       toast.success('Category deleted');
     } catch (error) {

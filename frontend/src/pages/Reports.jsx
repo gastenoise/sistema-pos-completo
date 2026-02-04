@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
+import { normalizeListResponse } from '@/lib/normalizeResponse';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
@@ -69,9 +70,7 @@ export default function Reports() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get(`/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales`);
-      const normalized = Array.isArray(response)
-        ? response
-        : response?.data || response?.sales || response?.items || [];
+      const normalized = normalizeListResponse(response, 'sales');
       return normalized.filter((sale) => includeVoided || sale.status !== 'voided');
     },
     enabled: !!businessId
@@ -83,10 +82,7 @@ export default function Reports() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/payment-methods');
-      const methods = Array.isArray(response)
-        ? response
-        : response?.payment_methods || response?.data || [];
-      return methods;
+      return normalizeListResponse(response, 'payment_methods');
     },
     enabled: !!businessId
   });

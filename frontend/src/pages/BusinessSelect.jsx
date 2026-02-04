@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { toast } from 'sonner';
 
 import { useBusiness } from '../components/pos/BusinessContext';
+import { normalizeListResponse } from '@/lib/normalizeResponse';
 
 export default function BusinessSelect() {
   const { selectBusiness, setBusinesses } = useBusiness();
@@ -19,9 +20,7 @@ export default function BusinessSelect() {
   const loadData = async () => {
     try {
       const response = await apiClient.get('/protected/businesses');
-      const list = Array.isArray(response)
-        ? response
-        : response?.businesses || response?.data || [];
+      const list = normalizeListResponse(response, 'businesses');
       setLocalBusinesses(list);
       setBusinesses(list);
       
