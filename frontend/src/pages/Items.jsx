@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from 'sonner';
+import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
@@ -49,15 +50,34 @@ export default function Items() {
   const [savingItem, setSavingItem] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
 
-  const normalizeList = (response, fallbackKey) => {
-    if (Array.isArray(response)) return response;
-    if (!response || typeof response !== 'object') return [];
-    const candidate = response?.[fallbackKey]
-      ?? response?.data?.[fallbackKey]
-      ?? response?.data
-      ?? response?.items
-      ?? response?.results;
-    return Array.isArray(candidate) ? candidate : [];
+  const updateItemsCache = (response) => {
+    const list = normalizeListResponse(response, 'items').map((item) => ({
+      ...item,
+      is_active: item.is_active ?? item.active
+    }));
+    if (list.length > 0) {
+      queryClient.setQueryData(['items', businessId], list);
+      return true;
+    }
+
+    const entity = normalizeEntityResponse(response);
+    if (entity?.id) {
+      const normalizedEntity = {
+        ...entity,
+        is_active: entity.is_active ?? entity.active
+      };
+      queryClient.setQueryData(['items', businessId], (prev = []) => {
+        const safePrev = Array.isArray(prev) ? prev : [];
+        const exists = safePrev.find((item) => item.id === normalizedEntity.id);
+        if (exists) {
+          return safePrev.map((item) => (item.id === normalizedEntity.id ? { ...item, ...normalizedEntity } : item));
+        }
+        return [normalizedEntity, ...safePrev];
+      });
+      return true;
+    }
+
+    return false;
   };
 
   // Fetch items
@@ -66,7 +86,10 @@ export default function Items() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/items');
-      return normalizeList(response, 'items');
+      return normalizeListResponse(response, 'items').map((item) => ({
+        ...item,
+        is_active: item.is_active ?? item.active
+      }));
     },
     enabled: !!businessId
   });
@@ -77,7 +100,10 @@ export default function Items() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/categories');
-      const list = normalizeList(response, 'categories');
+      const list = normalizeListResponse(response, 'categories').map((category) => ({
+        ...category,
+        is_active: category.is_active ?? category.active
+      }));
       return list.filter((category) => category.is_active !== false);
     },
     enabled: !!businessId
@@ -105,8 +131,10 @@ export default function Items() {
       }
       return apiClient.post('/protected/items', data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['items', businessId]);
+    onSuccess: (response) => {
+      if (!updateItemsCache(response)) {
+        queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+      }
     }
   });
 
@@ -136,8 +164,10 @@ export default function Items() {
 
   const handleDeactivateItem = async (item) => {
     try {
-      await apiClient.put(`/protected/items/${item.id}`, { is_active: !item.is_active });
-      queryClient.invalidateQueries(['items', businessId]);
+      const response = await apiClient.put(`/protected/items/${item.id}`, { is_active: !item.is_active });
+      if (!updateItemsCache(response)) {
+        queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+      }
       toast.success(`Item ${item.is_active ? 'deactivated' : 'activated'}`);
     } catch (error) {
       toast.error('Failed to update item');
@@ -164,9 +194,10 @@ export default function Items() {
     setBulkLoading(true);
     try {
       for (const itemId of selectedItems) {
-        await apiClient.put(`/protected/items/${itemId}`, { category_id: categoryId || null });
+        const response = await apiClient.put(`/protected/items/${itemId}`, { category_id: categoryId || null });
+        updateItemsCache(response);
       }
-      queryClient.invalidateQueries(['items', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
       toast.success(`Category assigned to ${selectedItems.length} items`);
     } catch (error) {
@@ -182,9 +213,10 @@ export default function Items() {
       const selectedItemsData = allItems.filter(item => selectedItems.includes(item.id));
       for (const item of selectedItemsData) {
         const newPrice = item.price * (1 + percent / 100);
-        await apiClient.put(`/protected/items/${item.id}`, { price: Math.round(newPrice * 100) / 100 });
+        const response = await apiClient.put(`/protected/items/${item.id}`, { price: Math.round(newPrice * 100) / 100 });
+        updateItemsCache(response);
       }
-      queryClient.invalidateQueries(['items', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
       toast.success(`Price increased by ${percent}% for ${selectedItems.length} items`);
     } catch (error) {
@@ -227,7 +259,9 @@ export default function Items() {
         items,
         sync_by_sku: false
       });
-      queryClient.invalidateQueries(['items', businessId]);
+      if (!updateItemsCache(response)) {
+        queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+      }
       const importedCount = response?.imported_count
         || response?.count
         || response?.items?.length

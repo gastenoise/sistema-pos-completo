@@ -5,6 +5,7 @@ import { createPageUrl } from '@/utils';
 import { Store, Loader2 } from 'lucide-react';
 
 import { useBusiness, BusinessProvider } from '../components/pos/BusinessContext';
+import { normalizeListResponse } from '@/lib/normalizeResponse';
 
 function HomeContent() {
   const { currentBusiness, selectBusiness, setBusinesses } = useBusiness();
@@ -25,9 +26,7 @@ function HomeContent() {
       }
 
       const response = await apiClient.get('/protected/businesses');
-      const businesses = Array.isArray(response)
-        ? response
-        : response?.businesses || response?.data || [];
+      const businesses = normalizeListResponse(response, 'businesses');
       
       setBusinesses(businesses);
       const currentBusinessId = currentBusiness?.business_id ?? currentBusiness?.id ?? null;

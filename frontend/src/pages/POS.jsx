@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
+import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useCart, CartProvider } from '../components/pos/CartContext';
@@ -35,31 +36,48 @@ function POSContent() {
   
   const searchInputRef = useRef(null);
 
-  const normalizeList = (response, fallbackKey) => {
-    if (Array.isArray(response)) return response;
-    if (!response) return [];
-    return response?.[fallbackKey]
-      || response?.data
-      || response?.items
-      || response?.results
-      || [];
+  const updateItemsCache = (response) => {
+    const list = normalizeListResponse(response, 'items').map((item) => ({
+      ...item,
+      is_active: item.is_active ?? item.active
+    }));
+    if (list.length > 0) {
+      queryClient.setQueryData(['items', businessId], list);
+      return true;
+    }
+
+    const entity = normalizeEntityResponse(response);
+    if (entity?.id) {
+      const normalizedEntity = {
+        ...entity,
+        is_active: entity.is_active ?? entity.active
+      };
+      queryClient.setQueryData(['items', businessId], (prev = []) => {
+        const safePrev = Array.isArray(prev) ? prev : [];
+        const exists = safePrev.find((item) => item.id === normalizedEntity.id);
+        if (exists) {
+          return safePrev.map((item) => (item.id === normalizedEntity.id ? { ...item, ...normalizedEntity } : item));
+        }
+        return [normalizedEntity, ...safePrev];
+      });
+      return true;
+    }
+
+    return false;
   };
 
   // Fetch items
   const { data: items = [], isLoading: loadingItems } = useQuery({
-    queryKey: ['items', businessId, searchQuery],
+    queryKey: ['items', businessId],
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/items');
-      const all = normalizeList(response, 'items').filter((item) => item.is_active !== false);
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return all.filter(item => 
-          item.name.toLowerCase().includes(q) || 
-          item.sku?.toLowerCase().includes(q)
-        );
-      }
-      return all;
+      return normalizeListResponse(response, 'items')
+        .map((item) => ({
+          ...item,
+          is_active: item.is_active ?? item.active
+        }))
+        .filter((item) => item.is_active !== false);
     },
     enabled: !!businessId
   });
@@ -70,7 +88,10 @@ function POSContent() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/categories');
-      return normalizeList(response, 'categories');
+      return normalizeListResponse(response, 'categories').map((category) => ({
+        ...category,
+        is_active: category.is_active ?? category.active
+      }));
     },
     enabled: !!businessId
   });
@@ -81,7 +102,7 @@ function POSContent() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/payment-methods');
-      const methods = normalizeList(response, 'payment_methods');
+      const methods = normalizeListResponse(response, 'payment_methods');
       return methods.filter((method) => (method.is_active ?? method.active) !== false);
     },
     enabled: !!businessId
@@ -93,7 +114,7 @@ function POSContent() {
     queryFn: async () => {
       if (!businessId) return null;
       const response = await apiClient.get('/protected/banks');
-      const accounts = normalizeList(response, 'banks');
+      const accounts = normalizeListResponse(response, 'banks');
       return accounts.length > 0 ? accounts[0] : null;
     },
     enabled: !!businessId
@@ -290,8 +311,13 @@ function POSContent() {
         ...itemData,
         is_active: true
       });
-      queryClient.invalidateQueries(['items', businessId]);
-      addToCart(newItem);
+      const createdItem = normalizeEntityResponse(newItem);
+      if (!updateItemsCache(newItem)) {
+        queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+      }
+      if (createdItem) {
+        addToCart(createdItem);
+      }
       toast.success(`Created and added ${itemData.name}`);
     } catch (error) {
       toast.error('Failed to create item');
@@ -348,6 +374,13 @@ function POSContent() {
     return { Icon: IconComponent, color: category?.color || '#94a3b8' };
   };
 
+  const filteredItems = searchQuery
+    ? items.filter((item) => {
+        const q = searchQuery.toLowerCase();
+        return item.name.toLowerCase().includes(q) || item.sku?.toLowerCase().includes(q);
+      })
+    : items;
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       <TopNav user={user} onLogout={handleLogout} currentPage="POS" />
@@ -378,15 +411,17 @@ function POSContent() {
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
               </div>
-            ) : items.length === 0 ? (
+            ) : filteredItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                 <Package className="w-12 h-12 mb-3" />
                 <p className="text-lg font-medium">No items found</p>
-                <p className="text-sm">Add items from the Items page</p>
+                <p className="text-sm">
+                  {searchQuery ? 'Try a different search.' : 'Add items from the Items page'}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {items.map((item) => {
+                {filteredItems.map((item) => {
                   const { Icon, color } = getItemIcon(item);
                   return (
                     <button

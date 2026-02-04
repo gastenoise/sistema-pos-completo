@@ -24,6 +24,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from 'sonner';
+import { normalizeListResponse } from '@/lib/normalizeResponse';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
@@ -63,10 +64,7 @@ export default function CashRegister() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/cash-register/sessions/closed');
-      const sessions = Array.isArray(response)
-        ? response
-        : response?.sessions || response?.data || [];
-      return sessions;
+      return normalizeListResponse(response, 'sessions');
     },
     enabled: !!businessId
   });
@@ -77,9 +75,7 @@ export default function CashRegister() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/payment-methods');
-      const methods = Array.isArray(response)
-        ? response
-        : response?.payment_methods || response?.data || [];
+      const methods = normalizeListResponse(response, 'payment_methods');
       return methods.filter((method) => (method.is_active ?? method.active) !== false);
     },
     enabled: !!businessId
@@ -153,7 +149,7 @@ export default function CashRegister() {
       });
       
       await refetchSession();
-      queryClient.invalidateQueries(['recentSessions', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['recentSessions', businessId] });
       setShowCloseDialog(false);
       setRealCash('');
       toast.success('Cash register closed');
