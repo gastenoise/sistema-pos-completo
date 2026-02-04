@@ -314,13 +314,8 @@ export default function Settings() {
   const handleSaveBankData = async () => {
     setSavingBank(true);
     try {
-      if (bankAccount) {
-        await apiClient.put('/protected/banks', bankData);
-        toast.success('Bank account updated');
-      } else {
-        await apiClient.post('/protected/banks', bankData);
-        toast.success('Bank account saved');
-      }
+      await apiClient.put('/protected/banks', bankData);
+      toast.success('Bank account saved');
       queryClient.invalidateQueries(['bankAccount', businessId]);
     } catch (error) {
       toast.error('Failed to save bank account');
