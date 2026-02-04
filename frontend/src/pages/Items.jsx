@@ -106,7 +106,7 @@ export default function Items() {
       return apiClient.post('/protected/items', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['items', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
     }
   });
 
@@ -137,7 +137,7 @@ export default function Items() {
   const handleDeactivateItem = async (item) => {
     try {
       await apiClient.put(`/protected/items/${item.id}`, { is_active: !item.is_active });
-      queryClient.invalidateQueries(['items', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       toast.success(`Item ${item.is_active ? 'deactivated' : 'activated'}`);
     } catch (error) {
       toast.error('Failed to update item');
@@ -166,7 +166,7 @@ export default function Items() {
       for (const itemId of selectedItems) {
         await apiClient.put(`/protected/items/${itemId}`, { category_id: categoryId || null });
       }
-      queryClient.invalidateQueries(['items', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
       toast.success(`Category assigned to ${selectedItems.length} items`);
     } catch (error) {
@@ -184,7 +184,7 @@ export default function Items() {
         const newPrice = item.price * (1 + percent / 100);
         await apiClient.put(`/protected/items/${item.id}`, { price: Math.round(newPrice * 100) / 100 });
       }
-      queryClient.invalidateQueries(['items', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
       toast.success(`Price increased by ${percent}% for ${selectedItems.length} items`);
     } catch (error) {
@@ -227,7 +227,7 @@ export default function Items() {
         items,
         sync_by_sku: false
       });
-      queryClient.invalidateQueries(['items', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       const importedCount = response?.imported_count
         || response?.count
         || response?.items?.length

@@ -153,7 +153,7 @@ export default function CashRegister() {
       });
       
       await refetchSession();
-      queryClient.invalidateQueries(['recentSessions', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['recentSessions', businessId] });
       setShowCloseDialog(false);
       setRealCash('');
       toast.success('Cash register closed');

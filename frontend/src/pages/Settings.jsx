@@ -251,7 +251,8 @@ export default function Settings() {
     setSavingBusiness(true);
     try {
       const updated = await apiClient.put('/protected/business', businessData);
-      selectBusiness({ ...currentBusiness, ...updated });
+      const updatedBusiness = updated?.data ?? updated;
+      selectBusiness({ ...currentBusiness, ...updatedBusiness });
       toast.success('Business settings saved');
     } catch (error) {
       toast.error('Failed to save settings');
@@ -270,7 +271,7 @@ export default function Settings() {
         await apiClient.post('/protected/categories', { ...categoryData, is_active: true });
         toast.success('Category created');
       }
-      queryClient.invalidateQueries(['categories', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['categories', businessId] });
       setShowCategoryModal(false);
       setEditingCategory(null);
       setCategoryData({ name: '', color: '#3B82F6', icon: 'Package' });
@@ -284,7 +285,7 @@ export default function Settings() {
   const handleDeleteCategory = async (category) => {
     try {
       await apiClient.delete(`/protected/categories/${category.id}`);
-      queryClient.invalidateQueries(['categories', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['categories', businessId] });
       toast.success('Category deleted');
     } catch (error) {
       toast.error('Failed to delete category');
@@ -302,7 +303,7 @@ export default function Settings() {
         methods,
         preferred_payment_method_id: defaultPaymentId
       });
-      queryClient.invalidateQueries(['paymentMethods', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['paymentMethods', businessId] });
       toast.success('Payment methods saved');
     } catch (error) {
       toast.error('Failed to save payment methods');
@@ -316,7 +317,7 @@ export default function Settings() {
     try {
       await apiClient.put('/protected/banks', bankData);
       toast.success('Bank account saved');
-      queryClient.invalidateQueries(['bankAccount', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['bankAccount', businessId] });
     } catch (error) {
       toast.error('Failed to save bank account');
     } finally {
@@ -329,7 +330,7 @@ export default function Settings() {
     try {
       await apiClient.put('/protected/business/smtp', smtpData);
       toast.success('SMTP configuration saved');
-      queryClient.invalidateQueries(['smtpConfig', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['smtpConfig', businessId] });
     } catch (error) {
       toast.error('Failed to save SMTP configuration');
     } finally {
