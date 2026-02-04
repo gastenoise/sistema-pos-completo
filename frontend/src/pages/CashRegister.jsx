@@ -62,7 +62,7 @@ export default function CashRegister() {
     queryKey: ['recentSessions', businessId],
     queryFn: async () => {
       if (!businessId) return [];
-      const response = await apiClient.get('/protected/cash-register/closed-sessions');
+      const response = await apiClient.get('/protected/cash-register/sessions/closed');
       const sessions = Array.isArray(response)
         ? response
         : response?.sessions || response?.data || [];
