@@ -74,6 +74,12 @@ class CashRegisterController extends Controller
             ];
         });
 
+        $cashMethod = PaymentMethod::where('code', 'cash')->first();
+        $cashTotal = 0.0;
+        if ($cashMethod) {
+            $cashTotal = (float) ($totals->firstWhere('payment_method_id', $cashMethod->id)?->total ?? 0);
+        }
+
         $salesCount = $session->sales()->where('status', '!=', 'voided')->count();
         $totalSales = $session->sales()->where('status', '!=', 'voided')->sum('total_amount');
 
@@ -83,6 +89,8 @@ class CashRegisterController extends Controller
                 'total_sales' => (float) $totalSales,
                 'sales_count' => $salesCount,
                 'payment_totals' => $paymentTotals,
+                'cash_sales' => $cashTotal,
+                'expected_cash' => (float) ($session->opening_cash_amount + $cashTotal),
                 'breakdown' => $totals,
             ]
         ]);

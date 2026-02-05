@@ -95,6 +95,16 @@ export default function CashRegister() {
     return acc;
   }, {});
 
+  const cashSales = (expectedTotals?.breakdown || []).reduce((acc, total) => {
+    const method = total.payment_method || total.paymentMethod;
+    const code = method?.code?.toLowerCase();
+    const name = method?.name?.toLowerCase();
+    if (code === 'cash' || name?.includes('efectivo')) {
+      return acc + Number(total.total ?? 0);
+    }
+    return acc;
+  }, 0);
+
   const paymentMovements = (expectedTotals?.breakdown || [])
     .map((total) => {
       const method = total.payment_method || total.paymentMethod;
@@ -108,7 +118,9 @@ export default function CashRegister() {
     })
     .filter((method) => method.total !== 0);
 
-  const expectedCash = (currentSession?.opening_cash_amount || 0) + (paymentTotals.cash || 0);
+  const cashSalesTotal = expectedTotals?.cash_sales ?? cashSales;
+  const expectedCash = expectedTotals?.expected_cash
+    ?? (currentSession?.opening_cash_amount || 0) + cashSalesTotal;
 
   const handleOpenRegister = async () => {
     setLoading(true);
@@ -202,7 +214,7 @@ export default function CashRegister() {
               <Card>
                 <CardContent className="p-4">
                   <p className="text-xs text-slate-500 mb-1">Cash Sales</p>
-                  <p className="text-xl font-bold text-green-600">{formatPrice(paymentTotals.cash || 0, currentBusiness)}</p>
+                  <p className="text-xl font-bold text-green-600">{formatPrice(cashSalesTotal, currentBusiness)}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -445,7 +457,7 @@ export default function CashRegister() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-600">Cash Sales</span>
-                <span className="text-green-600">+{formatPrice(paymentTotals.cash || 0, currentBusiness)}</span>
+                <span className="text-green-600">+{formatPrice(cashSalesTotal, currentBusiness)}</span>
               </div>
               <div className="flex justify-between font-medium pt-2 border-t">
                 <span>Expected Cash</span>
