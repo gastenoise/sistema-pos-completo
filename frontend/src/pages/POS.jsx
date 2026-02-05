@@ -103,7 +103,12 @@ function POSContent() {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/payment-methods');
       const methods = normalizeListResponse(response, 'payment_methods');
-      return methods.filter((method) => (method.is_active ?? method.active) !== false);
+      return methods
+        .map((method) => ({
+          ...method,
+          type: method.type || method.code
+        }))
+        .filter((method) => (method.is_active ?? method.active) !== false);
     },
     enabled: !!businessId
   });
@@ -114,8 +119,7 @@ function POSContent() {
     queryFn: async () => {
       if (!businessId) return null;
       const response = await apiClient.get('/protected/banks');
-      const accounts = normalizeListResponse(response, 'banks');
-      return accounts.length > 0 ? accounts[0] : null;
+      return response?.data ?? response;
     },
     enabled: !!businessId
   });
@@ -126,7 +130,8 @@ function POSContent() {
     queryFn: async () => {
       if (!businessId) return null;
       const response = await apiClient.get('/protected/cash-register/status');
-      const status = response?.status || response?.data?.status;
+      const status = response?.status
+        || (response?.data?.is_open ? 'open' : 'closed');
       const session = response?.session || response?.data?.session;
       if (status === 'open' && session) {
         return { status, ...session };
@@ -162,7 +167,7 @@ function POSContent() {
         apiClient.post(`/protected/sales/${saleId}/items`, {
           item_id: item.item_id,
           quantity: item.quantity,
-          unit_price: item.unit_price
+          unit_price_override: item.unit_price
         })
       )
     );
@@ -171,8 +176,8 @@ function POSContent() {
       payments.map((payment) =>
         apiClient.post(`/protected/sales/${saleId}/payments`, {
           amount: payment.amount,
-          payment_method: payment.payment_method_type,
-          ...(payment.payment_reference && { reference: payment.payment_reference })
+          payment_method_id: payment.payment_method_id,
+          ...(payment.payment_reference && { transaction_reference: payment.payment_reference })
         })
       )
     );

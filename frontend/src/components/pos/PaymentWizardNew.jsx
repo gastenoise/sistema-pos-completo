@@ -72,7 +72,7 @@ export default function PaymentWizardNew({
           method: payment.method,
           amount: payment.amount,
           payment_method_id: payment.method.id,
-          payment_method_type: payment.method.type,
+          payment_method_type: payment.method.type || payment.method.code,
           status: 'pending',
           payment_reference: null
         }))

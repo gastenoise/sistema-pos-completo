@@ -31,7 +31,7 @@ export default function Profile() {
     fetchMe().then(u => {
       setUser(u);
       setUserData({
-        full_name: u.full_name || '',
+        full_name: u.name || u.full_name || '',
         email: u.email || '',
         phone: u.phone || ''
       });
@@ -45,10 +45,10 @@ export default function Profile() {
     setSaving(true);
     try {
       await updateMe({ 
-        full_name: userData.full_name,
+        name: userData.full_name,
         phone: userData.phone 
       });
-      setUser({ ...user, full_name: userData.full_name, phone: userData.phone });
+      setUser({ ...user, name: userData.full_name, phone: userData.phone });
       toast.success('Profile updated successfully');
     } catch (error) {
       toast.error('Failed to update profile');
@@ -62,8 +62,8 @@ export default function Profile() {
       toast.error('New passwords do not match');
       return;
     }
-    if (passwordData.new.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (passwordData.new.length < 8) {
+      toast.error('Password must be at least 8 characters');
       return;
     }
     

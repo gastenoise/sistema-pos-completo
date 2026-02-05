@@ -114,7 +114,7 @@ export default function TopNav({ user, onLogout, currentPage }) {
                   <div className="w-7 h-7 bg-slate-200 rounded-full flex items-center justify-center">
                     <User className="w-4 h-4 text-slate-600" />
                   </div>
-                  <span className="hidden sm:block text-sm">{user?.full_name || user?.email}</span>
+                  <span className="hidden sm:block text-sm">{user?.name || user?.full_name || user?.email}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">

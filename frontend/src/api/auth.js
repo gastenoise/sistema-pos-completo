@@ -51,9 +51,15 @@ const authFetch = async (url, options = {}) => {
   return request(url, options);
 };
 
-export const fetchMe = async () => authFetch('/protected/auth/me');
+export const fetchMe = async () => {
+  const response = await authFetch('/protected/auth/me');
+  return response?.data?.user ?? response?.user ?? response;
+};
 
-export const updateMe = async (updates) => authFetch('/protected/auth/me', {
-  method: 'PUT',
-  body: JSON.stringify(updates)
-});
+export const updateMe = async (updates) => {
+  const response = await authFetch('/protected/auth/me', {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  });
+  return response?.data?.user ?? response?.user ?? response;
+};

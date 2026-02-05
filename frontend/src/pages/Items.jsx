@@ -164,7 +164,7 @@ export default function Items() {
 
   const handleDeactivateItem = async (item) => {
     try {
-      const response = await apiClient.put(`/protected/items/${item.id}`, { is_active: !item.is_active });
+      const response = await apiClient.put(`/protected/items/${item.id}`, { active: !item.is_active });
       if (!updateItemsCache(response)) {
         queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       }
@@ -232,7 +232,7 @@ export default function Items() {
       const formData = new FormData();
       formData.append('file', file);
       const response = await apiClient.post('/protected/items-import/preview', formData);
-      setImportPreviewData(response?.preview || response);
+      setImportPreviewData(response?.data || response);
     } catch (error) {
       toast.error('Failed to preview import');
     } finally {
@@ -262,7 +262,8 @@ export default function Items() {
       if (!updateItemsCache(response)) {
         queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       }
-      const importedCount = response?.imported_count
+      const importedCount = response?.data?.imported_count
+        || response?.imported_count
         || response?.count
         || response?.items?.length
         || importPreviewData?.total_rows;
