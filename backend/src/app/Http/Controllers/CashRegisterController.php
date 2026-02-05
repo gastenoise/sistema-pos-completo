@@ -193,6 +193,7 @@ class CashRegisterController extends Controller
                 ->sum('total_amount');
 
             $latestClosure = $session->closures->sortByDesc('created_at')->first();
+            $session->real_cash = (float) ($latestClosure?->real_cash ?? 0);
             $session->cash_difference = (float) ($latestClosure?->difference ?? 0);
 
             return $session;

@@ -303,7 +303,7 @@ export default function CashRegister() {
                                 </p>
                               </div>
                               <div className="text-right">
-                                <p className="font-bold">{formatPrice(session.total_sales || 0, currentBusiness)}</p>
+                                <p className="font-bold">{formatPrice(session.real_cash || 0, currentBusiness)}</p>
                                 <div className="flex items-center gap-1 text-sm">
                                   {session.cash_difference === 0 ? (
                                     <CheckCircle className="w-4 h-4 text-green-500" />
@@ -381,7 +381,7 @@ export default function CashRegister() {
                                 </p>
                               </div>
                               <div className="text-right">
-                                <p className="font-bold">{formatPrice(session.total_sales || 0, currentBusiness)}</p>
+                                <p className="font-bold">{formatPrice(session.real_cash || 0, currentBusiness)}</p>
                                 <div className="flex items-center gap-1 text-sm">
                                   {session.cash_difference === 0 ? (
                                     <CheckCircle className="w-4 h-4 text-green-500" />
