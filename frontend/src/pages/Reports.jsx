@@ -495,15 +495,21 @@ export default function Reports() {
               <div>
                 <h3 className="font-medium mb-3">Items</h3>
                 <div className="space-y-2">
-                  {selectedSale.items?.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-slate-500">Qty: {item.quantity} × {formatPrice(item.unit_price, currentBusiness)}</p>
+                  {selectedSale.items?.map((item, idx) => {
+                    const quantity = item.quantity ?? 0;
+                    const unitPrice = item.unit_price ?? item.unit_price_snapshot ?? item.price ?? 0;
+                    const subtotal = item.subtotal ?? item.total ?? (quantity * unitPrice);
+                    const name = item.name ?? item.item_name_snapshot ?? item.item?.name ?? 'Item';
+                    return (
+                      <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                        <div>
+                          <p className="font-medium">{name}</p>
+                          <p className="text-sm text-slate-500">Qty: {quantity} × {formatPrice(unitPrice, currentBusiness)}</p>
+                        </div>
+                        <p className="font-medium">{formatPrice(subtotal, currentBusiness)}</p>
                       </div>
-                      <p className="font-medium">{formatPrice(item.subtotal, currentBusiness)}</p>
-                    </div>
-                  )) || <p className="text-slate-400 text-sm">No items</p>}
+                    );
+                  }) || <p className="text-slate-400 text-sm">No items</p>}
                 </div>
               </div>
 
