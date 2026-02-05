@@ -342,6 +342,14 @@ export default function Settings() {
     }
   };
 
+  const handleSetDefaultPayment = (paymentMethodId) => {
+    setDefaultPaymentId(paymentMethodId);
+    setPaymentStates((prev) => ({
+      ...prev,
+      [paymentMethodId]: true
+    }));
+  };
+
   const handleSaveBankData = async () => {
     setSavingBank(true);
     try {
@@ -582,6 +590,9 @@ export default function Settings() {
                     <div className="space-y-2">
                       {paymentMethods.map((method) => {
                         const IconComponent = paymentMethodIcons[method.type] || Wallet;
+                        const isDefaultPayment = method.id === defaultPaymentId
+                          || method.is_default
+                          || method.preferred;
                         return (
                           <div key={method.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                             <div className="flex items-center gap-3">
@@ -601,7 +612,7 @@ export default function Settings() {
                             </div>
                             <div className="flex items-center gap-3">
                               <button
-                                onClick={() => setDefaultPaymentId(method.id)}
+                                onClick={() => handleSetDefaultPayment(method.id)}
                                 className={`p-2 rounded transition-colors ${
                                   defaultPaymentId === method.id 
                                     ? 'text-yellow-500 hover:text-yellow-600' 
@@ -612,7 +623,8 @@ export default function Settings() {
                                 <Star className="w-5 h-5" fill={defaultPaymentId === method.id ? 'currentColor' : 'none'} />
                               </button>
                               <Switch
-                                checked={paymentStates[method.id] || false}
+                                checked={isDefaultPayment || paymentStates[method.id] || false}
+                                disabled={isDefaultPayment}
                                 onCheckedChange={(checked) => 
                                   setPaymentStates(prev => ({ ...prev, [method.id]: checked }))
                                 }
