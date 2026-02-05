@@ -96,6 +96,7 @@ export default function Settings() {
     account_holder_name: ''
   });
   const [savingBank, setSavingBank] = useState(false);
+  const [cbuTooLong, setCbuTooLong] = useState(false);
   
   const [smtpData, setSmtpData] = useState({
     host: '',
@@ -675,9 +676,21 @@ export default function Settings() {
                     <Label>CBU</Label>
                     <Input
                       value={bankData.cbu}
-                      onChange={(e) => setBankData({ ...bankData, cbu: e.target.value })}
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value.replace(/\D/g, '');
+                        setCbuTooLong(digitsOnly.length > 22);
+                        setBankData({ ...bankData, cbu: digitsOnly.slice(0, 22) });
+                      }}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={22}
                       placeholder="0123456789012345678901"
                     />
+                    {cbuTooLong && (
+                      <p className="mt-1 text-xs text-red-600">
+                        The CBU must be 22 digits or fewer.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label>Alias</Label>
