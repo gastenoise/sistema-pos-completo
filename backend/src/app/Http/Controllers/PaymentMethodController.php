@@ -100,6 +100,13 @@ class PaymentMethodController extends Controller
             ], 404);
         }
 
+        if ($method->code === 'cash' && !$active) {
+            return response()->json([
+                'error' => 'El método de pago en efectivo no se puede desactivar.',
+                'code' => 'CASH_METHOD_CANNOT_BE_DEACTIVATED'
+            ], 422);
+        }
+
         $business = Business::find($businessId);
         if (!$business) {
             return response()->json([
@@ -234,6 +241,22 @@ class PaymentMethodController extends Controller
                 return response()->json([
                     'error' => 'El método preferido debe estar activo para seleccionarlo.',
                     'code' => 'PREFERRED_METHOD_MUST_BE_ACTIVE'
+                ], 422);
+            }
+        }
+
+        $cashMethod = PaymentMethod::where('code', 'cash')->first();
+        if ($cashMethod && array_key_exists((string) $cashMethod->id, $methodsData)) {
+            $cashActiveValue = filter_var(
+                $methodsData[(string) $cashMethod->id],
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            );
+
+            if ($cashActiveValue === false) {
+                return response()->json([
+                    'error' => 'El método de pago en efectivo no se puede desactivar.',
+                    'code' => 'CASH_METHOD_CANNOT_BE_DEACTIVATED'
                 ], 422);
             }
         }
@@ -375,7 +398,8 @@ class PaymentMethodController extends Controller
             return $preferredId;
         }
 
-        $newPreferred = $activeMethods->first();
+        $cashMethod = $activeMethods->firstWhere('code', 'cash');
+        $newPreferred = $cashMethod ?: $activeMethods->first();
 
         if ($newPreferred) {
             $business->preferred_payment_method_id = $newPreferred->id;

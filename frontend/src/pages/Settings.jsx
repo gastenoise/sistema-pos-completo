@@ -234,11 +234,13 @@ export default function Settings() {
     if (paymentMethods.length > 0) {
       const states = {};
       paymentMethods.forEach(m => {
-        states[m.id] = m.is_active;
+        const isCash = (m.type || m.code) === 'cash';
+        states[m.id] = isCash ? true : m.is_active;
       });
       setPaymentStates(states);
       
-      const defaultMethod = paymentMethods.find(m => m.is_default);
+      const defaultMethod = paymentMethods.find(m => m.is_default)
+        || paymentMethods.find(m => (m.type || m.code) === 'cash');
       setDefaultPaymentId(defaultMethod?.id || null);
     }
   }, [paymentMethods]);
@@ -587,6 +589,7 @@ export default function Settings() {
                     <div className="space-y-2">
                       {paymentMethods.map((method) => {
                         const IconComponent = getPaymentMethodIcon(method.icon);
+                        const isCash = (method.type || method.code) === 'cash';
                         const isDefaultPayment = method.id === defaultPaymentId
                           || method.is_default
                           || method.preferred;
@@ -620,8 +623,8 @@ export default function Settings() {
                                 <Star className="w-5 h-5" fill={defaultPaymentId === method.id ? 'currentColor' : 'none'} />
                               </button>
                               <Switch
-                                checked={isDefaultPayment || paymentStates[method.id] || false}
-                                disabled={isDefaultPayment}
+                                checked={isCash || isDefaultPayment || paymentStates[method.id] || false}
+                                disabled={isCash || isDefaultPayment}
                                 onCheckedChange={(checked) => 
                                   setPaymentStates(prev => ({ ...prev, [method.id]: checked }))
                                 }
