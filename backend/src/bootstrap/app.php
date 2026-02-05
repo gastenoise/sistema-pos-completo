@@ -19,7 +19,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(HandleCors::class);
-        $middleware->append(ResolveBusiness::class);
         //
         $middleware->alias([
             'resolve.business' => \App\Http\Middleware\ResolveBusiness::class,
