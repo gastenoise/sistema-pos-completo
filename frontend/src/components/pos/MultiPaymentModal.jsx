@@ -18,15 +18,6 @@ import {
 } from "@/components/ui/select";
 import { useCart } from './CartContext';
 
-const paymentMethodColors = {
-  cash: '#10B981',
-  debit: '#3B82F6',
-  credit: '#8B5CF6',
-  mercado_pago: '#0EA5E9',
-  transfer: '#F59E0B',
-  other: '#6B7280'
-};
-
 export default function MultiPaymentModal({ 
   open, 
   onClose, 
@@ -124,7 +115,7 @@ export default function MultiPaymentModal({
                           <div className="flex items-center gap-2">
                             <div 
                               className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: method.color || paymentMethodColors[method.type || method.code] }}
+                              style={{ backgroundColor: method.color || '#6B7280' }}
                             />
                             {method.name}
                           </div>

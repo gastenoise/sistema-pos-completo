@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  CreditCard, Banknote, Smartphone, Loader2, 
-  QrCode, Send, Check, AlertCircle 
+  Loader2, 
+  QrCode, Send, Check
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,14 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useCart } from './CartContext';
-
-const paymentMethodIcons = {
-  cash: Banknote,
-  debit: CreditCard,
-  credit: CreditCard,
-  mercado_pago: Smartphone,
-  transfer: Smartphone
-};
+import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 
 export default function PaymentConfirmModal({ 
   open, 
@@ -105,7 +98,7 @@ export default function PaymentConfirmModal({
             <Label>Payment Method</Label>
             <div className="grid grid-cols-2 gap-2">
               {paymentMethods.filter(m => m.is_active).map((method) => {
-                const Icon = paymentMethodIcons[method.type] || CreditCard;
+                const Icon = getPaymentMethodIcon(method.icon);
                 return (
                   <button
                     key={method.id}

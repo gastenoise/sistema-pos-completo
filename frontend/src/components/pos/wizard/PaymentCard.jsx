@@ -19,15 +19,6 @@ export default function PaymentCard({
     }).format(price);
   };
 
-  const paymentMethodColors = {
-    cash: '#10B981',
-    debit: '#3B82F6',
-    credit: '#8B5CF6',
-    mercado_pago: '#0EA5E9',
-    transfer: '#F59E0B',
-    other: '#6B7280'
-  };
-
   const statusConfig = {
     pending: { icon: Clock, color: 'bg-amber-100 text-amber-800', label: 'Pending' },
     processing: { icon: Loader2, color: 'bg-blue-100 text-blue-800', label: 'Processing' },
@@ -36,7 +27,7 @@ export default function PaymentCard({
   };
 
   const status = statusConfig[payment.status] || statusConfig.pending;
-  const color = payment.method?.color || paymentMethodColors[payment.payment_method_type];
+  const color = payment.method?.color || '#6B7280';
   const Icon = status.icon;
 
   const handleConfirmCash = () => {

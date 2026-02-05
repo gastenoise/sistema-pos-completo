@@ -26,17 +26,7 @@ export default function PaymentCardDraft({
     }).format(price);
   };
 
-  const paymentMethodColors = {
-    cash: '#10B981',
-    debit: '#3B82F6',
-    credit: '#8B5CF6',
-    mercado_pago: '#0EA5E9',
-    transfer: '#F59E0B',
-    other: '#6B7280'
-  };
-
-  const methodKey = payment.method.type || payment.method.code;
-  const color = payment.method.color || paymentMethodColors[methodKey];
+  const color = payment.method.color || '#6B7280';
 
   return (
     <div 

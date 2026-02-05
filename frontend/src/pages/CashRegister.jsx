@@ -87,15 +87,6 @@ export default function CashRegister() {
     enabled: !!businessId
   });
 
-  const paymentMethodColors = {
-    cash: '#10B981',
-    debit: '#3B82F6',
-    credit: '#8B5CF6',
-    mercado_pago: '#0EA5E9',
-    transfer: '#F59E0B',
-    other: '#6B7280'
-  };
-
   // Fetch sales for current session
   const { data: expectedTotals } = useQuery({
     queryKey: ['expectedTotals', currentSession?.id],
@@ -250,7 +241,7 @@ export default function CashRegister() {
                       <div className="flex items-center gap-2">
                         <div 
                           className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: method.color || paymentMethodColors[method.type || method.code] }}
+                          style={{ backgroundColor: method.color || '#6B7280' }}
                         />
                         <span className="text-slate-600">{method.name}</span>
                       </div>

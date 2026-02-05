@@ -13,6 +13,7 @@ class PaymentMethod extends Model
     protected $fillable = [
         'code', // e.g., 'cash', 'debit', 'mp'
         'name',
+        'icon',
         'color', // integer, as per migration
     ];
 
