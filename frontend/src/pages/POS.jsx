@@ -173,14 +173,32 @@ function POSContent() {
       )
     );
 
-    await Promise.all(
-      payments.map((payment) =>
-        apiClient.post(`/protected/sales/${saleId}/payments`, {
+    const createdPayments = await Promise.all(
+      payments.map(async (payment) => {
+        const response = await apiClient.post(`/protected/sales/${saleId}/payments`, {
           amount: payment.amount,
           payment_method_id: payment.payment_method_id,
           ...(payment.payment_reference && { transaction_reference: payment.payment_reference })
+        });
+        return { payment, response };
+      })
+    );
+
+    await Promise.all(
+      createdPayments
+        .filter(({ payment }) => payment.status === 'confirmed')
+        .map(({ payment, response }) => {
+          const createdPayment = normalizeEntityResponse(response);
+          if (!createdPayment?.id) {
+            throw new Error('Payment ID missing from response');
+          }
+          return apiClient.post(
+            `/protected/sales/${saleId}/payments/${createdPayment.id}/confirm`,
+            {
+              ...(payment.payment_reference && { transaction_reference: payment.payment_reference })
+            }
+          );
         })
-      )
     );
 
     await apiClient.post(`/protected/sales/${saleId}/close`, {
