@@ -68,6 +68,16 @@ const parseResponse = async (response) => {
     ? await response.json().catch(() => null)
     : await response.text().catch(() => null);
 
+  if (response.ok && !isJson && typeof data === 'string') {
+    const looksLikeHtml = /<!doctype html|<html|<head|<body|<div id="root">/i.test(data);
+    if (looksLikeHtml) {
+      const error = new Error('Unexpected HTML response. Check VITE_API_BASE_URL.');
+      error.status = response.status;
+      error.data = data;
+      throw error;
+    }
+  }
+
   if (!response.ok) {
     const message = typeof data === 'string'
       ? data

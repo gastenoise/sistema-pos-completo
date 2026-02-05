@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,6 +18,7 @@ import {
 
 export default function QuickAddForm({ onAdd, loading = false }) {
   const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -27,15 +29,24 @@ export default function QuickAddForm({ onAdd, loading = false }) {
     e.preventDefault();
     if (!formData.name || !formData.price) return;
     
-    await onAdd({
-      name: formData.name,
-      price: parseFloat(formData.price),
-      type: formData.type
-    });
-    
-    setFormData({ name: '', price: '', type: 'product' });
-    setOpen(false);
+    setIsLoading(true);
+    try {
+      await onAdd({
+        name: formData.name,
+        price: parseFloat(formData.price),
+        type: formData.type
+      });
+      toast.success('Item agregado');
+      setFormData({ name: '', price: '', type: 'product' });
+      setOpen(false);
+    } catch (error) {
+      toast.error('No se pudo agregar el item');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const isSubmitting = loading || isLoading;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -79,8 +90,8 @@ export default function QuickAddForm({ onAdd, loading = false }) {
             </SelectContent>
           </Select>
           
-          <Button type="submit" className="w-full" disabled={loading || !formData.name || !formData.price}>
-            {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+          <Button type="submit" className="w-full" disabled={isSubmitting || !formData.name || !formData.price}>
+            {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Add & Add to Cart
           </Button>
         </form>
