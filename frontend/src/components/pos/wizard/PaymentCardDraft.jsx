@@ -9,6 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useBusiness } from '../BusinessContext';
+import { formatPrice } from '@/lib/formatPrice';
 
 export default function PaymentCardDraft({
   payment,
@@ -19,12 +21,7 @@ export default function PaymentCardDraft({
   onRemove,
   canRemove
 }) {
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
+  const { currentBusiness } = useBusiness();
 
   const color = payment.method.color || '#6B7280';
 
@@ -74,7 +71,7 @@ export default function PaymentCardDraft({
             />
           ) : (
             <p className="text-xl font-bold" style={{ color }}>
-              {formatPrice(payment.amount)}
+              {formatPrice(payment.amount, currentBusiness)}
             </p>
           )}
         </div>

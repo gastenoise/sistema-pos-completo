@@ -492,7 +492,6 @@ export default function Settings() {
                       <SelectContent>
                         <SelectItem value="ARS">ARS - Argentine Peso</SelectItem>
                         <SelectItem value="USD">USD - US Dollar</SelectItem>
-                        <SelectItem value="EUR">EUR - Euro</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

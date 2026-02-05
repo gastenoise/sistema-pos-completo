@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { useCart } from './CartContext';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
+import { useBusiness } from './BusinessContext';
+import { formatPrice } from '@/lib/formatPrice';
 
 export default function PaymentConfirmModal({ 
   open, 
@@ -26,6 +28,7 @@ export default function PaymentConfirmModal({
   loadingQR = false
 }) {
   const { getTotal, cartItems } = useCart();
+  const { currentBusiness } = useBusiness();
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [paymentReference, setPaymentReference] = useState('');
   
@@ -46,13 +49,6 @@ export default function PaymentConfirmModal({
     }
   }, [selectedMethod]);
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
-
   const handleConfirm = () => {
     onConfirm({
       payment_method_id: selectedMethod?.id,
@@ -70,9 +66,9 @@ export default function PaymentConfirmModal({
   const handleSendQR = (type) => {
     // In a real app, this would open WhatsApp or email
     if (type === 'whatsapp' && qrData) {
-      window.open(`https://wa.me/?text=${encodeURIComponent(`Pay ${formatPrice(total)}: ${qrData}`)}`, '_blank');
+      window.open(`https://wa.me/?text=${encodeURIComponent(`Pay ${formatPrice(total, currentBusiness)}: ${qrData}`)}`, '_blank');
     } else if (type === 'email') {
-      window.open(`mailto:?subject=Payment Request&body=${encodeURIComponent(`Pay ${formatPrice(total)}: ${qrData}`)}`, '_blank');
+      window.open(`mailto:?subject=Payment Request&body=${encodeURIComponent(`Pay ${formatPrice(total, currentBusiness)}: ${qrData}`)}`, '_blank');
     }
   };
 
@@ -87,7 +83,7 @@ export default function PaymentConfirmModal({
           {/* Total Display */}
           <div className="bg-slate-100 rounded-xl p-6 text-center">
             <p className="text-sm text-slate-600 mb-1">Total to Pay</p>
-            <p className="text-4xl font-bold text-slate-900">{formatPrice(total)}</p>
+            <p className="text-4xl font-bold text-slate-900">{formatPrice(total, currentBusiness)}</p>
             <p className="text-sm text-slate-500 mt-2">
               {cartItems.length} item{cartItems.length !== 1 ? 's' : ''}
             </p>

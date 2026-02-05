@@ -14,6 +14,8 @@ class Business extends Model
         'address',
         'phone',
         'email',
+        'currency',
+        'tax_id',
         'preferred_payment_method_id',
     ];
 

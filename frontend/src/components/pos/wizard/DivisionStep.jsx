@@ -8,6 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useBusiness } from '../BusinessContext';
+import { formatPrice } from '@/lib/formatPrice';
 
 export default function DivisionStep({
   total,
@@ -18,12 +20,7 @@ export default function DivisionStep({
   onChangeMethod,
   onChangeAmount
 }) {
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
+  const { currentBusiness } = useBusiness();
 
   const totalDraft = paymentsDraft.reduce((sum, p) => sum + (p.amount || 0), 0);
   const remaining = total - totalDraft;
@@ -38,7 +35,7 @@ export default function DivisionStep({
       {/* Total Display */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
         <p className="text-sm text-blue-600 mb-1">Total to collect</p>
-        <p className="text-3xl font-bold text-blue-900">{formatPrice(total)}</p>
+        <p className="text-3xl font-bold text-blue-900">{formatPrice(total, currentBusiness)}</p>
       </div>
 
       {/* Payment Cards */}
@@ -84,12 +81,12 @@ export default function DivisionStep({
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-slate-600">Subtotal:</span>
-            <span className="font-medium">{formatPrice(totalDraft)}</span>
+            <span className="font-medium">{formatPrice(totalDraft, currentBusiness)}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-slate-600">Remaining:</span>
             <span className={`font-medium ${remaining < 0 ? 'text-red-600' : remaining > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-              {formatPrice(Math.abs(remaining))}
+              {formatPrice(Math.abs(remaining), currentBusiness)}
             </span>
           </div>
           {Math.abs(remaining) > 0.01 && (

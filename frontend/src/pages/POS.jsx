@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
 import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
+import { formatPrice } from '@/lib/formatPrice';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useCart, CartProvider } from '../components/pos/CartContext';
@@ -359,13 +360,6 @@ function POSContent() {
     logout();
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
-
   const getItemIcon = (item) => {
     const category = categories.find(c => c.id === item.category_id);
     const iconName = category?.icon || 'Package';
@@ -441,7 +435,7 @@ function POSContent() {
                         <Icon className="w-7 h-7" style={{ color: color }} />
                       </div>
                       <p className="font-medium text-slate-900 truncate text-sm">{item.name}</p>
-                      <p className="text-base font-bold text-blue-600">{formatPrice(item.price)}</p>
+                      <p className="text-base font-bold text-blue-600">{formatPrice(item.price, currentBusiness)}</p>
                       {item.sku && (
                         <p className="text-xs text-slate-400 mt-0.5">{item.sku}</p>
                       )}

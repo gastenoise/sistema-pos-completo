@@ -3,6 +3,8 @@ import { CheckCircle2, Clock, Loader2, XCircle, Banknote, CreditCard, Building, 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import QrModal from './QrModal';
+import { useBusiness } from '../BusinessContext';
+import { formatPrice } from '@/lib/formatPrice';
 
 export default function PaymentCard({
   payment,
@@ -11,13 +13,7 @@ export default function PaymentCard({
   onUpdateStatus
 }) {
   const [showQrModal, setShowQrModal] = useState(false);
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
+  const { currentBusiness } = useBusiness();
 
   const statusConfig = {
     pending: { icon: Clock, color: 'bg-amber-100 text-amber-800', label: 'Pending' },
@@ -152,7 +148,7 @@ export default function PaymentCard({
             <div>
               <p className="font-medium capitalize">{payment.method?.name || payment.payment_method_type}</p>
               <p className="text-2xl font-bold" style={{ color }}>
-                {formatPrice(payment.amount)}
+                {formatPrice(payment.amount, currentBusiness)}
               </p>
             </div>
           </div>
