@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import {
   DollarSign,
-  Calendar, Loader2, FileText, Ban, CreditCard, Eye
+  Calendar, Loader2, FileText, Ban, Eye
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { normalizeListResponse } from '@/lib/normalizeResponse';
 import { formatPrice } from '@/lib/formatPrice';
+import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
@@ -236,30 +237,33 @@ export default function Reports() {
 
               {/* Bottom Row: Payment Methods */}
               <div className="grid grid-cols-4 gap-4">
-                {paymentMethods.filter(m => (m.is_active ?? m.active)).slice(0, 4).map((method) => (
-                  <div key={method.id} className="flex flex-col gap-2 p-4 rounded-lg border-2" style={{
-                    borderColor: (method.color || '#6B7280') + '40',
-                    backgroundColor: (method.color || '#6B7280') + '10'
-                  }}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="p-2 rounded-lg"
-                        style={{ backgroundColor: (method.color || '#6B7280') + '30' }}
-                      >
-                        <CreditCard
-                          className="w-4 h-4"
-                          style={{ color: method.color || '#6B7280' }}
-                        />
+                {paymentMethods.filter(m => (m.is_active ?? m.active)).slice(0, 4).map((method) => {
+                  const MethodIcon = getPaymentMethodIcon(method.icon);
+                  return (
+                    <div key={method.id} className="flex flex-col gap-2 p-4 rounded-lg border-2" style={{
+                      borderColor: (method.color || '#6B7280') + '40',
+                      backgroundColor: (method.color || '#6B7280') + '10'
+                    }}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="p-2 rounded-lg"
+                          style={{ backgroundColor: (method.color || '#6B7280') + '30' }}
+                        >
+                          <MethodIcon
+                            className="w-4 h-4"
+                            style={{ color: method.color || '#6B7280' }}
+                          />
+                        </div>
+                        <p className="text-xs font-medium" style={{ color: method.color || '#6B7280' }}>
+                          {method.name}
+                        </p>
                       </div>
-                      <p className="text-xs font-medium" style={{ color: method.color || '#6B7280' }}>
-                        {method.name}
+                      <p className="text-xl font-bold text-slate-900">
+                        {formatPrice(paymentTotals[method.type] || 0, currentBusiness)}
                       </p>
                     </div>
-                    <p className="text-xl font-bold text-slate-900">
-                      {formatPrice(paymentTotals[method.type] || 0, currentBusiness)}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </CardContent>

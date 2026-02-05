@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Clock, Loader2, XCircle, Banknote, CreditCard, Building, QrCode } from 'lucide-react';
+import { CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import QrModal from './QrModal';
 import { useBusiness } from '../BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
+import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 
 export default function PaymentCard({
   payment,
@@ -25,6 +26,7 @@ export default function PaymentCard({
   const status = statusConfig[payment.status] || statusConfig.pending;
   const color = payment.method?.color || '#6B7280';
   const Icon = status.icon;
+  const MethodIcon = getPaymentMethodIcon(payment.method?.icon);
 
   const handleConfirmCash = () => {
     onUpdateStatus(payment.id, 'confirmed');
@@ -56,7 +58,7 @@ export default function PaymentCard({
             onClick={handleConfirmCash}
             className="bg-green-600 hover:bg-green-700"
           >
-            <Banknote className="w-4 h-4 mr-2" />
+            <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
             Confirm Cash Received
           </Button>
         );
@@ -69,7 +71,7 @@ export default function PaymentCard({
               variant="outline"
               onClick={() => setShowQrModal(true)}
             >
-              <QrCode className="w-4 h-4 mr-2" />
+              <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
               View QR Code
             </Button>
           );
@@ -80,7 +82,7 @@ export default function PaymentCard({
             onClick={handleStartMercadoPago}
             className="bg-sky-600 hover:bg-sky-700"
           >
-            <QrCode className="w-4 h-4 mr-2" />
+            <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
             Generate QR Code
           </Button>
         );
@@ -100,7 +102,7 @@ export default function PaymentCard({
               onClick={handleConfirmTransfer}
               className="bg-amber-600 hover:bg-amber-700 w-full"
             >
-              <Building className="w-4 h-4 mr-2" />
+              <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
               Confirm Transfer Received
             </Button>
           </div>
@@ -114,7 +116,7 @@ export default function PaymentCard({
             onClick={handleConfirmCard}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            <CreditCard className="w-4 h-4 mr-2" />
+            <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
             Confirm Card Payment
           </Button>
         );
@@ -143,7 +145,7 @@ export default function PaymentCard({
               className="p-2 rounded-lg"
               style={{ backgroundColor: color + '20' }}
             >
-              <CreditCard className="w-5 h-5" style={{ color }} />
+              <MethodIcon className="w-5 h-5" style={{ color }} />
             </div>
             <div>
               <p className="font-medium capitalize">{payment.method?.name || payment.payment_method_type}</p>

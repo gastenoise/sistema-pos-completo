@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, CreditCard } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { useBusiness } from '../BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
+import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 
 export default function PaymentCardDraft({
   payment,
@@ -24,6 +25,7 @@ export default function PaymentCardDraft({
   const { currentBusiness } = useBusiness();
 
   const color = payment.method.color || '#6B7280';
+  const MethodIcon = getPaymentMethodIcon(payment.method.icon);
 
   return (
     <div 
@@ -35,7 +37,7 @@ export default function PaymentCardDraft({
           className="p-2 rounded-lg"
           style={{ backgroundColor: color + '20' }}
         >
-          <CreditCard className="w-5 h-5" style={{ color }} />
+          <MethodIcon className="w-5 h-5" style={{ color }} />
         </div>
 
         <div className="flex-1 space-y-2">
