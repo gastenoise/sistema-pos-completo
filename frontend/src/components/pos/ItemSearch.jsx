@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Package, Loader2 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
+import { useBusiness } from './BusinessContext';
+import { formatPrice } from '@/lib/formatPrice';
 
 export default function ItemSearch({ 
   items = [], 
@@ -13,6 +15,7 @@ export default function ItemSearch({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef(null);
   const resultsRef = useRef(null);
+  const { currentBusiness } = useBusiness();
 
   const filteredItems = items.filter(item => {
     if (!query) return false;
@@ -61,13 +64,6 @@ export default function ItemSearch({
     inputRef.current?.focus();
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
-
   return (
     <div className="relative">
       <div className="relative">
@@ -114,7 +110,7 @@ export default function ItemSearch({
                   <p className="text-xs text-slate-500">SKU: {item.sku}</p>
                 )}
               </div>
-              <span className="font-bold text-blue-600">{formatPrice(item.price)}</span>
+              <span className="font-bold text-blue-600">{formatPrice(item.price, currentBusiness)}</span>
             </button>
           ))}
         </div>

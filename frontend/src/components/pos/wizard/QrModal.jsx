@@ -8,14 +8,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from 'sonner';
+import { useBusiness } from '../BusinessContext';
+import { formatPrice } from '@/lib/formatPrice';
 
 export default function QrModal({ open, onClose, amount, onConfirm }) {
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
+  const { currentBusiness } = useBusiness();
 
   const handleCopy = () => {
     navigator.clipboard.writeText('https://mercadopago.com/example-qr');
@@ -23,11 +20,11 @@ export default function QrModal({ open, onClose, amount, onConfirm }) {
   };
 
   const handleWhatsApp = () => {
-    window.open(`https://wa.me/?text=Pay ${formatPrice(amount)} via MercadoPago`, '_blank');
+    window.open(`https://wa.me/?text=Pay ${formatPrice(amount, currentBusiness)} via MercadoPago`, '_blank');
   };
 
   const handleEmail = () => {
-    window.open(`mailto:?subject=Payment Request&body=Pay ${formatPrice(amount)}`, '_blank');
+    window.open(`mailto:?subject=Payment Request&body=Pay ${formatPrice(amount, currentBusiness)}`, '_blank');
   };
 
   return (
@@ -44,7 +41,7 @@ export default function QrModal({ open, onClose, amount, onConfirm }) {
               <QrCode className="w-32 h-32 text-slate-400" />
             </div>
             <p className="text-center mt-3 font-medium">
-              Scan to pay {formatPrice(amount)}
+              Scan to pay {formatPrice(amount, currentBusiness)}
             </p>
           </div>
 

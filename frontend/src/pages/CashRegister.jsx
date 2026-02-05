@@ -25,13 +25,14 @@ import {
 } from "@/components/ui/collapsible";
 import { toast } from 'sonner';
 import { normalizeListResponse } from '@/lib/normalizeResponse';
+import { formatPrice } from '@/lib/formatPrice';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
 import TopNav from '../components/pos/TopNav';
 
 export default function CashRegister() {
-  const { businessId } = useBusiness();
+  const { businessId, currentBusiness } = useBusiness();
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
   
@@ -111,13 +112,6 @@ export default function CashRegister() {
   });
 
   const expectedCash = (currentSession?.opening_cash_amount || 0) + (paymentTotals.cash || 0);
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
 
   const handleOpenRegister = async () => {
     setLoading(true);
@@ -205,25 +199,25 @@ export default function CashRegister() {
               <Card>
                 <CardContent className="p-4">
                   <p className="text-xs text-slate-500 mb-1">Opening Cash</p>
-                  <p className="text-xl font-bold">{formatPrice(currentSession.opening_cash_amount || 0)}</p>
+                  <p className="text-xl font-bold">{formatPrice(currentSession.opening_cash_amount || 0, currentBusiness)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
                   <p className="text-xs text-slate-500 mb-1">Cash Sales</p>
-                  <p className="text-xl font-bold text-green-600">{formatPrice(paymentTotals.cash || 0)}</p>
+                  <p className="text-xl font-bold text-green-600">{formatPrice(paymentTotals.cash || 0, currentBusiness)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
                   <p className="text-xs text-slate-500 mb-1">Expected Cash</p>
-                  <p className="text-xl font-bold text-blue-600">{formatPrice(expectedCash)}</p>
+                  <p className="text-xl font-bold text-blue-600">{formatPrice(expectedCash, currentBusiness)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
                   <p className="text-xs text-slate-500 mb-1">Total Sales</p>
-                  <p className="text-xl font-bold">{formatPrice(sessionTotals.total)}</p>
+                  <p className="text-xl font-bold">{formatPrice(sessionTotals.total, currentBusiness)}</p>
                   <p className="text-xs text-slate-400">{sessionTotals.count} transactions</p>
                 </CardContent>
               </Card>
@@ -245,12 +239,12 @@ export default function CashRegister() {
                         />
                         <span className="text-slate-600">{method.name}</span>
                       </div>
-                      <span className="font-medium">{formatPrice(paymentTotals[method.code || method.type] || 0)}</span>
+                      <span className="font-medium">{formatPrice(paymentTotals[method.code || method.type] || 0, currentBusiness)}</span>
                     </div>
                   ))}
                   <div className="flex items-center justify-between py-2 font-bold pt-2">
                     <span>Total</span>
-                    <span>{formatPrice(sessionTotals.total)}</span>
+                    <span>{formatPrice(sessionTotals.total, currentBusiness)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -294,7 +288,7 @@ export default function CashRegister() {
                                 </p>
                               </div>
                               <div className="text-right">
-                                <p className="font-bold">{formatPrice(session.total_sales || 0)}</p>
+                                <p className="font-bold">{formatPrice(session.total_sales || 0, currentBusiness)}</p>
                                 <div className="flex items-center gap-1 text-sm">
                                   {session.cash_difference === 0 ? (
                                     <CheckCircle className="w-4 h-4 text-green-500" />
@@ -302,7 +296,7 @@ export default function CashRegister() {
                                     <AlertCircle className={`w-4 h-4 ${session.cash_difference > 0 ? 'text-green-500' : 'text-red-500'}`} />
                                   )}
                                   <span className={session.cash_difference >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                    {session.cash_difference >= 0 ? '+' : ''}{formatPrice(session.cash_difference || 0)}
+                                    {session.cash_difference >= 0 ? '+' : ''}{formatPrice(session.cash_difference || 0, currentBusiness)}
                                   </span>
                                 </div>
                               </div>
@@ -372,7 +366,7 @@ export default function CashRegister() {
                                 </p>
                               </div>
                               <div className="text-right">
-                                <p className="font-bold">{formatPrice(session.total_sales || 0)}</p>
+                                <p className="font-bold">{formatPrice(session.total_sales || 0, currentBusiness)}</p>
                                 <div className="flex items-center gap-1 text-sm">
                                   {session.cash_difference === 0 ? (
                                     <CheckCircle className="w-4 h-4 text-green-500" />
@@ -380,7 +374,7 @@ export default function CashRegister() {
                                     <AlertCircle className={`w-4 h-4 ${session.cash_difference > 0 ? 'text-green-500' : 'text-red-500'}`} />
                                   )}
                                   <span className={session.cash_difference >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                    {session.cash_difference >= 0 ? '+' : ''}{formatPrice(session.cash_difference || 0)}
+                                    {session.cash_difference >= 0 ? '+' : ''}{formatPrice(session.cash_difference || 0, currentBusiness)}
                                   </span>
                                 </div>
                               </div>
@@ -444,15 +438,15 @@ export default function CashRegister() {
             <div className="bg-slate-100 rounded-lg p-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-600">Opening Cash</span>
-                <span>{formatPrice(currentSession?.opening_cash_amount || 0)}</span>
+                <span>{formatPrice(currentSession?.opening_cash_amount || 0, currentBusiness)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-600">Cash Sales</span>
-                <span className="text-green-600">+{formatPrice(paymentTotals.cash || 0)}</span>
+                <span className="text-green-600">+{formatPrice(paymentTotals.cash || 0, currentBusiness)}</span>
               </div>
               <div className="flex justify-between font-medium pt-2 border-t">
                 <span>Expected Cash</span>
-                <span>{formatPrice(expectedCash)}</span>
+                <span>{formatPrice(expectedCash, currentBusiness)}</span>
               </div>
             </div>
             
@@ -470,7 +464,7 @@ export default function CashRegister() {
                 <p className={`text-sm mt-1 ${
                   parseFloat(realCash) >= expectedCash ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  Difference: {parseFloat(realCash) >= expectedCash ? '+' : ''}{formatPrice((parseFloat(realCash) || 0) - expectedCash)}
+                  Difference: {parseFloat(realCash) >= expectedCash ? '+' : ''}{formatPrice((parseFloat(realCash) || 0) - expectedCash, currentBusiness)}
                 </p>
               )}
             </div>

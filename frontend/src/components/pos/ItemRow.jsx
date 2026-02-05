@@ -7,6 +7,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { useBusiness } from './BusinessContext';
+import { formatPrice } from '@/lib/formatPrice';
 
 const typeColors = {
   product: 'bg-blue-100 text-blue-800',
@@ -23,12 +25,7 @@ export default function ItemRow({
   onDeactivate,
   showCheckbox = true 
 }) {
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
+  const { currentBusiness } = useBusiness();
 
   const getItemIcon = () => {
     const category = categories.find(c => c.id === item.category_id);
@@ -85,7 +82,7 @@ export default function ItemRow({
         )}
       </td>
       <td className="px-4 py-3 text-right font-medium text-slate-900">
-        {formatPrice(item.price)}
+        {formatPrice(item.price, currentBusiness)}
       </td>
       <td className="px-4 py-3 text-center">
         {item.track_stock ? (

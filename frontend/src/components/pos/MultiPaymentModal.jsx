@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCart } from './CartContext';
+import { useBusiness } from './BusinessContext';
+import { formatPrice } from '@/lib/formatPrice';
 
 export default function MultiPaymentModal({ 
   open, 
@@ -25,6 +27,7 @@ export default function MultiPaymentModal({
   onConfirm
 }) {
   const { getTotal, cartItems } = useCart();
+  const { currentBusiness } = useBusiness();
   const total = getTotal();
   
   const [payments, setPayments] = useState([]);
@@ -45,13 +48,6 @@ export default function MultiPaymentModal({
     const paid = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
     setRemaining(total - paid);
   }, [payments, total]);
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
 
   const handleAddPayment = () => {
     const availableMethod = paymentMethods.find(m => 
@@ -90,7 +86,7 @@ export default function MultiPaymentModal({
           {/* Total Display */}
           <div className="bg-slate-100 rounded-xl p-4 text-center">
             <p className="text-sm text-slate-600 mb-1">Total to Pay</p>
-            <p className="text-3xl font-bold text-slate-900">{formatPrice(total)}</p>
+            <p className="text-3xl font-bold text-slate-900">{formatPrice(total, currentBusiness)}</p>
           </div>
 
           {/* Payment Methods */}
@@ -160,7 +156,7 @@ export default function MultiPaymentModal({
           {remaining !== 0 && (
             <div className={`p-3 rounded-lg ${remaining > 0 ? 'bg-amber-50 border border-amber-200' : 'bg-red-50 border border-red-200'}`}>
               <p className={`text-sm font-medium ${remaining > 0 ? 'text-amber-900' : 'text-red-900'}`}>
-                {remaining > 0 ? 'Remaining' : 'Overpayment'}: {formatPrice(Math.abs(remaining))}
+                {remaining > 0 ? 'Remaining' : 'Overpayment'}: {formatPrice(Math.abs(remaining), currentBusiness)}
               </p>
             </div>
           )}

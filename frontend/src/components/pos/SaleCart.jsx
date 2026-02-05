@@ -2,16 +2,12 @@ import React from 'react';
 import { Minus, Plus, Trash2, ShoppingCart } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useCart } from './CartContext';
+import { useBusiness } from './BusinessContext';
+import { formatPrice } from '@/lib/formatPrice';
 
 export default function SaleCart({ onCharge }) {
   const { cartItems, updateQuantity, removeFromCart, getTotal, clearCart } = useCart();
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
+  const { currentBusiness } = useBusiness();
 
   const total = getTotal();
 
@@ -37,7 +33,7 @@ export default function SaleCart({ onCharge }) {
             <div className="flex justify-between items-start mb-2">
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-900 truncate">{item.name}</p>
-                <p className="text-sm text-slate-500">{formatPrice(item.unit_price)} c/u</p>
+                <p className="text-sm text-slate-500">{formatPrice(item.unit_price, currentBusiness)} c/u</p>
               </div>
               <Button 
                 variant="ghost" 
@@ -68,7 +64,7 @@ export default function SaleCart({ onCharge }) {
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
-              <span className="font-bold text-slate-900">{formatPrice(item.subtotal)}</span>
+              <span className="font-bold text-slate-900">{formatPrice(item.subtotal, currentBusiness)}</span>
             </div>
           </div>
         ))}
@@ -78,7 +74,7 @@ export default function SaleCart({ onCharge }) {
       <div className="border-t border-slate-200 p-4 bg-white sticky bottom-0 shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <span className="text-lg font-medium text-slate-700">Total</span>
-          <span className="text-2xl font-bold text-slate-900">{formatPrice(total)}</span>
+          <span className="text-2xl font-bold text-slate-900">{formatPrice(total, currentBusiness)}</span>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -92,7 +88,7 @@ export default function SaleCart({ onCharge }) {
             className="flex-[2] bg-green-600 hover:bg-green-700 text-lg py-6"
             onClick={onCharge}
           >
-            Charge {formatPrice(total)}
+            Charge {formatPrice(total, currentBusiness)}
           </Button>
         </div>
       </div>

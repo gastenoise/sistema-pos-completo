@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
+import { useBusiness } from './BusinessContext';
+import { formatPrice } from '@/lib/formatPrice';
 
 export default function PaymentWizard({ 
   open, 
@@ -24,19 +26,13 @@ export default function PaymentWizard({
   const [confirmedSteps, setConfirmedSteps] = useState([]);
   const [processing, setProcessing] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const { currentBusiness } = useBusiness();
 
   if (!payments || payments.length === 0) return null;
 
   const currentPayment = payments[currentStep];
   const totalSteps = payments.length;
   const progress = ((currentStep + (confirmedSteps.includes(currentStep) ? 1 : 0)) / totalSteps) * 100;
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
 
   const handleConfirmStep = async () => {
     setConfirmedSteps([...confirmedSteps, currentStep]);
@@ -62,7 +58,7 @@ export default function PaymentWizard({
     <div className="space-y-4">
       <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
         <Banknote className="w-16 h-16 mx-auto mb-3 text-green-600" />
-        <p className="text-2xl font-bold text-green-900 mb-1">{formatPrice(currentPayment.amount)}</p>
+        <p className="text-2xl font-bold text-green-900 mb-1">{formatPrice(currentPayment.amount, currentBusiness)}</p>
         <p className="text-sm text-green-700">Cash Payment</p>
       </div>
 
@@ -98,7 +94,7 @@ export default function PaymentWizard({
           <div className="w-48 h-48 mx-auto bg-slate-200 rounded-lg flex items-center justify-center">
             <QrCode className="w-24 h-24 text-slate-400" />
           </div>
-          <p className="text-xs text-slate-500 mt-2">Scan to pay {formatPrice(currentPayment.amount)}</p>
+          <p className="text-xs text-slate-500 mt-2">Scan to pay {formatPrice(currentPayment.amount, currentBusiness)}</p>
         </div>
 
         <div className="flex gap-2">
@@ -106,7 +102,7 @@ export default function PaymentWizard({
             variant="outline" 
             size="sm" 
             className="flex-1"
-            onClick={() => window.open(`https://wa.me/?text=Pay ${formatPrice(currentPayment.amount)}`, '_blank')}
+            onClick={() => window.open(`https://wa.me/?text=Pay ${formatPrice(currentPayment.amount, currentBusiness)}`, '_blank')}
           >
             <MessageCircle className="w-4 h-4 mr-1" />
             WhatsApp
@@ -115,7 +111,7 @@ export default function PaymentWizard({
             variant="outline" 
             size="sm" 
             className="flex-1"
-            onClick={() => window.open(`mailto:?subject=Payment Request&body=Pay ${formatPrice(currentPayment.amount)}`, '_blank')}
+            onClick={() => window.open(`mailto:?subject=Payment Request&body=Pay ${formatPrice(currentPayment.amount, currentBusiness)}`, '_blank')}
           >
             <Mail className="w-4 h-4 mr-1" />
             Email
@@ -164,7 +160,7 @@ export default function PaymentWizard({
           </div>
           <div className="flex justify-between pt-2 border-t">
             <span className="text-slate-600">Amount:</span>
-            <span className="font-bold text-lg">{formatPrice(currentPayment.amount)}</span>
+            <span className="font-bold text-lg">{formatPrice(currentPayment.amount, currentBusiness)}</span>
           </div>
         </div>
 
@@ -173,7 +169,7 @@ export default function PaymentWizard({
             variant="outline" 
             size="sm" 
             className="flex-1"
-            onClick={() => window.open(`https://wa.me/?text=Transfer ${formatPrice(currentPayment.amount)}`, '_blank')}
+            onClick={() => window.open(`https://wa.me/?text=Transfer ${formatPrice(currentPayment.amount, currentBusiness)}`, '_blank')}
           >
             <MessageCircle className="w-4 h-4 mr-1" />
             WhatsApp
@@ -214,7 +210,7 @@ export default function PaymentWizard({
     <div className="space-y-4">
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
         <CreditCard className="w-16 h-16 mx-auto mb-3 text-blue-600" />
-        <p className="text-2xl font-bold text-blue-900 mb-1">{formatPrice(currentPayment.amount)}</p>
+        <p className="text-2xl font-bold text-blue-900 mb-1">{formatPrice(currentPayment.amount, currentBusiness)}</p>
         <p className="text-sm text-blue-700">{currentPayment.method?.name} Payment</p>
       </div>
 

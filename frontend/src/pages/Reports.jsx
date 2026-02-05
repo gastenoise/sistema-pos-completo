@@ -36,6 +36,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { normalizeListResponse } from '@/lib/normalizeResponse';
+import { formatPrice } from '@/lib/formatPrice';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
@@ -43,7 +44,7 @@ import TopNav from '../components/pos/TopNav';
 import CsvExportButton from '../components/pos/CsvExportButton';
 
 export default function Reports() {
-  const { businessId } = useBusiness();
+  const { businessId, currentBusiness } = useBusiness();
   const { user, logout } = useAuth();
 
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -114,13 +115,6 @@ export default function Reports() {
     acc[method.type] = method.color;
     return acc;
   }, {});
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS'
-    }).format(price);
-  };
 
   const handleExportCsv = async () => {
     try {
@@ -235,7 +229,7 @@ export default function Reports() {
                   </div>
                   <div>
                     <p className="text-sm text-blue-600 font-medium">Total Sales</p>
-                    <p className="text-2xl font-bold text-blue-900">{formatPrice(totalSales)}</p>
+                    <p className="text-2xl font-bold text-blue-900">{formatPrice(totalSales, currentBusiness)}</p>
                   </div>
                 </div>
               </div>
@@ -262,7 +256,7 @@ export default function Reports() {
                       </p>
                     </div>
                     <p className="text-xl font-bold text-slate-900">
-                      {formatPrice(paymentTotals[method.type] || 0)}
+                      {formatPrice(paymentTotals[method.type] || 0, currentBusiness)}
                     </p>
                   </div>
                 ))}
@@ -424,7 +418,7 @@ export default function Reports() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatPrice(sale.total || 0)}
+                          {formatPrice(sale.total || 0, currentBusiness)}
                         </TableCell>
                         <TableCell>
                           <Button
@@ -482,9 +476,9 @@ export default function Reports() {
                     <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                       <div>
                         <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-slate-500">Qty: {item.quantity} × {formatPrice(item.unit_price)}</p>
+                        <p className="text-sm text-slate-500">Qty: {item.quantity} × {formatPrice(item.unit_price, currentBusiness)}</p>
                       </div>
-                      <p className="font-medium">{formatPrice(item.subtotal)}</p>
+                      <p className="font-medium">{formatPrice(item.subtotal, currentBusiness)}</p>
                     </div>
                   )) || <p className="text-slate-400 text-sm">No items</p>}
                 </div>
@@ -496,17 +490,17 @@ export default function Reports() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-slate-600">Subtotal</span>
-                    <span className="font-medium">{formatPrice(selectedSale.subtotal || 0)}</span>
+                    <span className="font-medium">{formatPrice(selectedSale.subtotal || 0, currentBusiness)}</span>
                   </div>
                   {selectedSale.tax > 0 && (
                     <div className="flex justify-between">
                       <span className="text-slate-600">Tax</span>
-                      <span className="font-medium">{formatPrice(selectedSale.tax)}</span>
+                      <span className="font-medium">{formatPrice(selectedSale.tax, currentBusiness)}</span>
                     </div>
                   )}
                   <div className="flex justify-between pt-2 border-t">
                     <span className="font-bold">Total</span>
-                    <span className="font-bold text-lg">{formatPrice(selectedSale.total || 0)}</span>
+                    <span className="font-bold text-lg">{formatPrice(selectedSale.total || 0, currentBusiness)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-slate-600">Payment Method</span>
