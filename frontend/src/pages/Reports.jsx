@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { apiClient } from '@/api/client';
+import { getToken } from '@/api/auth';
 import { useQuery } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import {
@@ -69,9 +70,18 @@ export default function Reports() {
     queryKey: ['sales', businessId, dateFrom, dateTo, includeVoided],
     queryFn: async () => {
       if (!businessId) return [];
-      const response = await apiClient.get(`/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales`);
-      const normalized = normalizeListResponse(response, 'sales');
-      return normalized.filter((sale) => includeVoided || sale.status !== 'voided');
+      try {
+        const response = await apiClient.get(`/protected/reports/sales?start_date=${dateFrom}&end_date=${dateTo}&include_voided=${includeVoided ? '1' : '0'}`);
+        const normalized = normalizeListResponse(response, 'sales');
+        return normalized.filter((sale) => sale.status === 'closed' || (includeVoided && sale.status === 'voided'));
+      } catch (error) {
+        if (error?.status === 404) {
+          const fallback = await apiClient.get(`/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales&format_json=1`);
+          const normalized = normalizeListResponse(fallback, 'sales');
+          return normalized.filter((sale) => sale.status === 'closed' || (includeVoided && sale.status === 'voided'));
+        }
+        throw error;
+      }
     },
     enabled: !!businessId
   });
@@ -82,7 +92,10 @@ export default function Reports() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/payment-methods');
-      return normalizeListResponse(response, 'payment_methods');
+      return normalizeListResponse(response, 'payment_methods').map((method) => ({
+        ...method,
+        type: method.type || method.code
+      }));
     },
     enabled: !!businessId
   });
@@ -96,13 +109,13 @@ export default function Reports() {
 
   // Calculate totals
   const closedSales = filteredSales.filter(s => s.status === 'closed');
-  const totalSales = closedSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+  const totalSales = closedSales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0);
 
   // Calculate by payment method dynamically
   const paymentTotals = paymentMethods.reduce((acc, method) => {
     acc[method.type] = closedSales
       .filter(s => s.payment_method_type === method.type)
-      .reduce((sum, s) => sum + (s.total || 0), 0);
+      .reduce((sum, s) => sum + (s.total_amount || 0), 0);
     return acc;
   }, {});
 
@@ -114,27 +127,31 @@ export default function Reports() {
   };
 
   const handleExportCsv = async () => {
-    const headers = ['Date', 'Sale ID', 'Status', 'Items', 'Subtotal', 'Total', 'Payment Method', 'Customer'];
-    const rows = filteredSales.map(sale => [
-      format(new Date(sale.closed_at || sale.created_date), 'yyyy-MM-dd HH:mm'),
-      sale.id,
-      sale.status,
-      sale.items?.length || 0,
-      sale.subtotal,
-      sale.total,
-      sale.payment_method_type || 'N/A',
-      sale.customer_name || ''
-    ]);
+    try {
+      const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+      const token = getToken();
+      const response = await fetch(`${baseUrl}/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(businessId ? { 'X-Business-Id': businessId } : {})
+        }
+      });
 
-    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sales-report-${dateFrom}-to-${dateTo}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Report exported');
+      if (!response.ok) {
+        throw new Error('Failed to export report');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sales-report-${dateFrom}-to-${dateTo}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Report exported');
+    } catch (error) {
+      toast.error('Failed to export report');
+    }
   };
 
   const handleLogout = () => {

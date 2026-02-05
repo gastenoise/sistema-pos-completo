@@ -42,7 +42,7 @@ export default function MultiPaymentModal({
   useEffect(() => {
     if (open) {
       // Default: full payment in cash
-      const cashMethod = paymentMethods.find(m => m.type === 'cash');
+      const cashMethod = paymentMethods.find(m => (m.type || m.code) === 'cash');
       if (cashMethod) {
         setPayments([{ method: cashMethod, amount: total }]);
         setRemaining(0);
@@ -124,7 +124,7 @@ export default function MultiPaymentModal({
                           <div className="flex items-center gap-2">
                             <div 
                               className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: method.color || paymentMethodColors[method.type] }}
+                              style={{ backgroundColor: method.color || paymentMethodColors[method.type || method.code] }}
                             />
                             {method.name}
                           </div>

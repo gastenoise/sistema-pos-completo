@@ -82,11 +82,15 @@ class ItemController extends Controller
         $header = array_shift($data); 
         
         $preview = array_slice($data, 0, 5);
+        $rows = array_map(function ($row) use ($header) {
+            return array_combine($header, $row);
+        }, $data);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'headers' => $header,
+                'columns' => $header,
+                'rows' => $rows,
                 'sample' => $preview,
                 'total_rows' => count($data)
             ]
@@ -143,7 +147,12 @@ class ItemController extends Controller
             ]);
 
             DB::commit();
-            return response()->json(['success' => true, 'message' => "$count items processed"]);
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'imported_count' => $count
+                ]
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();

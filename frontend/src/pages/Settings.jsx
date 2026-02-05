@@ -108,10 +108,9 @@ export default function Settings() {
   
   const [bankData, setBankData] = useState({
     bank_name: '',
-    account_number: '',
-    cbu_cvu: '',
+    cbu: '',
     alias: '',
-    account_holder: ''
+    account_holder_name: ''
   });
   const [savingBank, setSavingBank] = useState(false);
   
@@ -140,7 +139,7 @@ export default function Settings() {
     if (currentBusiness) {
       setBusinessData({
         name: currentBusiness.name || '',
-        business_email: currentBusiness.business_email || '',
+        business_email: currentBusiness.email || currentBusiness.business_email || '',
         address: currentBusiness.address || '',
         phone: currentBusiness.phone || '',
         tax_id: currentBusiness.tax_id || '',
@@ -201,6 +200,7 @@ export default function Settings() {
       const response = await apiClient.get('/protected/payment-methods');
       return normalizeListResponse(response, 'payment_methods').map((method) => ({
         ...method,
+        type: method.type || method.code,
         is_active: method.is_active ?? method.active,
         is_default: method.is_default ?? method.preferred
       }));
@@ -214,8 +214,7 @@ export default function Settings() {
     queryFn: async () => {
       if (!businessId) return null;
       const response = await apiClient.get('/protected/banks');
-      const accounts = normalizeListResponse(response, 'banks');
-      return accounts.length > 0 ? accounts[0] : null;
+      return response?.data ?? response;
     },
     enabled: !!businessId
   });
@@ -262,10 +261,9 @@ export default function Settings() {
     if (bankAccount) {
       setBankData({
         bank_name: bankAccount.bank_name || '',
-        account_number: bankAccount.account_number || '',
-        cbu_cvu: bankAccount.cbu_cvu || '',
+        cbu: bankAccount.cbu || '',
         alias: bankAccount.alias || '',
-        account_holder: bankAccount.account_holder || ''
+        account_holder_name: bankAccount.account_holder_name || ''
       });
     }
   }, [bankAccount]);
@@ -274,7 +272,12 @@ export default function Settings() {
     if (!currentBusiness) return;
     setSavingBusiness(true);
     try {
-      const updated = await apiClient.put('/protected/business', businessData);
+      const payload = {
+        ...businessData,
+        email: businessData.business_email || undefined
+      };
+      delete payload.business_email;
+      const updated = await apiClient.put('/protected/business', payload);
       const updatedBusiness = normalizeEntityResponse(updated);
       selectBusiness({ ...currentBusiness, ...updatedBusiness });
       toast.success('Business settings saved');
@@ -651,17 +654,17 @@ export default function Settings() {
                   <div className="col-span-2">
                     <Label>Account Holder</Label>
                     <Input
-                      value={bankData.account_holder}
-                      onChange={(e) => setBankData({ ...bankData, account_holder: e.target.value })}
+                      value={bankData.account_holder_name}
+                      onChange={(e) => setBankData({ ...bankData, account_holder_name: e.target.value })}
                       placeholder="Account holder name"
                     />
                   </div>
                   <div>
-                    <Label>Account Number</Label>
+                    <Label>CBU</Label>
                     <Input
-                      value={bankData.account_number}
-                      onChange={(e) => setBankData({ ...bankData, account_number: e.target.value })}
-                      placeholder="1234-5678-9012"
+                      value={bankData.cbu}
+                      onChange={(e) => setBankData({ ...bankData, cbu: e.target.value })}
+                      placeholder="0123456789012345678901"
                     />
                   </div>
                   <div>
@@ -670,14 +673,6 @@ export default function Settings() {
                       value={bankData.alias}
                       onChange={(e) => setBankData({ ...bankData, alias: e.target.value })}
                       placeholder="my.business.alias"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>CBU/CVU</Label>
-                    <Input
-                      value={bankData.cbu_cvu}
-                      onChange={(e) => setBankData({ ...bankData, cbu_cvu: e.target.value })}
-                      placeholder="0123456789012345678901"
                     />
                   </div>
                 </div>

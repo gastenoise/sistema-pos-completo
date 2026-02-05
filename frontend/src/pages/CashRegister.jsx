@@ -48,7 +48,8 @@ export default function CashRegister() {
     queryFn: async () => {
       if (!businessId) return null;
       const response = await apiClient.get('/protected/cash-register/status');
-      const status = response?.status || response?.data?.status;
+      const status = response?.status
+        || (response?.data?.is_open ? 'open' : 'closed');
       const session = response?.session || response?.data?.session;
       if (status === 'open' && session) {
         return { status, ...session };
@@ -76,7 +77,12 @@ export default function CashRegister() {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/payment-methods');
       const methods = normalizeListResponse(response, 'payment_methods');
-      return methods.filter((method) => (method.is_active ?? method.active) !== false);
+      return methods
+        .map((method) => ({
+          ...method,
+          type: method.type || method.code
+        }))
+        .filter((method) => (method.is_active ?? method.active) !== false);
     },
     enabled: !!businessId
   });
@@ -109,7 +115,8 @@ export default function CashRegister() {
 
   const paymentTotals = {};
   paymentMethods.forEach(method => {
-    paymentTotals[method.type] = expectedTotals?.payment_totals?.[method.type] ?? 0;
+    const methodKey = method.code || method.type;
+    paymentTotals[methodKey] = expectedTotals?.payment_totals?.[methodKey] ?? 0;
   });
 
   const expectedCash = (currentSession?.opening_cash_amount || 0) + (paymentTotals.cash || 0);
@@ -243,11 +250,11 @@ export default function CashRegister() {
                       <div className="flex items-center gap-2">
                         <div 
                           className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: method.color || paymentMethodColors[method.type] }}
+                          style={{ backgroundColor: method.color || paymentMethodColors[method.type || method.code] }}
                         />
                         <span className="text-slate-600">{method.name}</span>
                       </div>
-                      <span className="font-medium">{formatPrice(paymentTotals[method.type] || 0)}</span>
+                      <span className="font-medium">{formatPrice(paymentTotals[method.code || method.type] || 0)}</span>
                     </div>
                   ))}
                   <div className="flex items-center justify-between py-2 font-bold pt-2">

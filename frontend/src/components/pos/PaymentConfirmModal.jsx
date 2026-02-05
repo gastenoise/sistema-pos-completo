@@ -41,14 +41,14 @@ export default function PaymentConfirmModal({
   useEffect(() => {
     if (open && paymentMethods.length > 0) {
       // Default to cash
-      const cashMethod = paymentMethods.find(m => m.type === 'cash');
+      const cashMethod = paymentMethods.find(m => (m.type || m.code) === 'cash');
       setSelectedMethod(cashMethod || paymentMethods[0]);
     }
   }, [open, paymentMethods]);
 
   useEffect(() => {
     // Request QR when mercado_pago is selected
-    if (selectedMethod?.type === 'mercado_pago' && !qrData && !loadingQR) {
+    if ((selectedMethod?.type || selectedMethod?.code) === 'mercado_pago' && !qrData && !loadingQR) {
       onRequestQR?.();
     }
   }, [selectedMethod]);
@@ -63,7 +63,7 @@ export default function PaymentConfirmModal({
   const handleConfirm = () => {
     onConfirm({
       payment_method_id: selectedMethod?.id,
-      payment_method_type: selectedMethod?.type,
+      payment_method_type: selectedMethod?.type || selectedMethod?.code,
       payment_reference: paymentReference || undefined
     });
   };
@@ -126,7 +126,7 @@ export default function PaymentConfirmModal({
           </div>
 
           {/* Mercado Pago QR */}
-          {selectedMethod?.type === 'mercado_pago' && (
+          {(selectedMethod?.type || selectedMethod?.code) === 'mercado_pago' && (
             <div className="bg-sky-50 border border-sky-200 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
                 <QrCode className="w-5 h-5 text-sky-600" />

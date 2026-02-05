@@ -104,9 +104,8 @@ export default function PaymentCard({
             {payment.status === 'pending' && (
               <div className="text-xs space-y-1 bg-slate-50 p-2 rounded">
                 <p><strong>Bank:</strong> {bankAccountData?.bank_name || 'Not configured'}</p>
-                <p><strong>Account:</strong> {bankAccountData?.account_number || 'Not configured'}</p>
+                <p><strong>CBU:</strong> {bankAccountData?.cbu || 'Not configured'}</p>
                 {bankAccountData?.alias && <p><strong>Alias:</strong> {bankAccountData.alias}</p>}
-                <p><strong>CBU/CVU:</strong> {bankAccountData?.cbu_cvu || 'Not configured'}</p>
               </div>
             )}
             <Button 

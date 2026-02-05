@@ -10,9 +10,21 @@ export const AuthProvider = ({ children }) => {
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     checkAppState();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleSessionExpired = () => {
+      setSessionExpired(true);
+    };
+    window.addEventListener('session-expired', handleSessionExpired);
+    return () => window.removeEventListener('session-expired', handleSessionExpired);
   }, []);
 
   const checkAppState = async () => {
@@ -97,6 +109,11 @@ export const AuthProvider = ({ children }) => {
     window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
   };
 
+  const acknowledgeSessionExpired = () => {
+    setSessionExpired(false);
+    navigateToLogin();
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -105,10 +122,12 @@ export const AuthProvider = ({ children }) => {
       isLoadingPublicSettings,
       authError,
       appPublicSettings,
+      sessionExpired,
       login,
       updateUser,
       logout,
       navigateToLogin,
+      acknowledgeSessionExpired,
       checkAppState
     }}>
       {children}

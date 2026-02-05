@@ -26,6 +26,7 @@ export default function ItemEditorModal({
   onSave,
   loading = false
 }) {
+  const NO_CATEGORY_VALUE = 'none';
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -46,7 +47,7 @@ export default function ItemEditorModal({
         sku: item.sku || '',
         barcode: item.barcode || '',
         type: item.type || 'product',
-        category_id: item.category_id || '',
+        category_id: item.category_id ? String(item.category_id) : NO_CATEGORY_VALUE,
         price: item.price?.toString() || '',
         cost: item.cost?.toString() || '',
         stock_quantity: item.stock_quantity || 0,
@@ -59,7 +60,7 @@ export default function ItemEditorModal({
         sku: '',
         barcode: '',
         type: 'product',
-        category_id: '',
+        category_id: NO_CATEGORY_VALUE,
         price: '',
         cost: '',
         stock_quantity: 0,
@@ -73,6 +74,9 @@ export default function ItemEditorModal({
     e.preventDefault();
     onSave({
       ...formData,
+      category_id: formData.category_id !== NO_CATEGORY_VALUE
+        ? parseInt(formData.category_id, 10)
+        : null,
       price: parseFloat(formData.price) || 0,
       cost: formData.cost ? parseFloat(formData.cost) : null,
       stock_quantity: parseInt(formData.stock_quantity) || 0
@@ -150,9 +154,9 @@ export default function ItemEditorModal({
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={null}>No category</SelectItem>
+                  <SelectItem value={NO_CATEGORY_VALUE}>No category</SelectItem>
                   {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

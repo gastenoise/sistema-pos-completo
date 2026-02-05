@@ -35,7 +35,8 @@ export default function PaymentCardDraft({
     other: '#6B7280'
   };
 
-  const color = payment.method.color || paymentMethodColors[payment.method.type];
+  const methodKey = payment.method.type || payment.method.code;
+  const color = payment.method.color || paymentMethodColors[methodKey];
 
   return (
     <div 

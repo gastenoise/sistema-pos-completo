@@ -68,7 +68,24 @@ class CashRegisterController extends Controller
             ->with('paymentMethod')
             ->get();
 
-        return response()->json(['success' => true, 'data' => $totals]);
+        $paymentTotals = $totals->mapWithKeys(function ($total) {
+            return [
+                $total->paymentMethod?->code ?? $total->payment_method_id => (float) $total->total
+            ];
+        });
+
+        $salesCount = $session->sales()->where('status', '!=', 'voided')->count();
+        $totalSales = $session->sales()->where('status', '!=', 'voided')->sum('total_amount');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_sales' => (float) $totalSales,
+                'sales_count' => $salesCount,
+                'payment_totals' => $paymentTotals,
+                'breakdown' => $totals,
+            ]
+        ]);
     }
 
     public function close(Request $request)
@@ -156,10 +173,22 @@ class CashRegisterController extends Controller
             ->with([
                 'opener',
                 'closures.creator',
-                'expectedTotals.paymentMethod'
+                'expectedTotals.paymentMethod',
+                'sales'
             ])
             ->orderByDesc('closed_at')
             ->paginate(20);
+
+        $sessions->getCollection()->transform(function (CashRegisterSession $session) {
+            $session->total_sales = (float) $session->sales()
+                ->where('status', '!=', 'voided')
+                ->sum('total_amount');
+
+            $latestClosure = $session->closures->sortByDesc('created_at')->first();
+            $session->cash_difference = (float) ($latestClosure?->difference ?? 0);
+
+            return $session;
+        });
 
         return response()->json(['success' => true, 'data' => $sessions]);
     }

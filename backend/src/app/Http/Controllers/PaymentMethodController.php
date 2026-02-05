@@ -18,7 +18,12 @@ class PaymentMethodController extends Controller
      */
     public function index()
     {
-        $methods = PaymentMethod::all();
+        $methods = PaymentMethod::all()->map(function (PaymentMethod $method) {
+            return array_merge($method->toArray(), [
+                'type' => $method->code,
+                'is_active' => true,
+            ]);
+        });
         return response()->json($methods);
     }
 
@@ -46,6 +51,8 @@ class PaymentMethodController extends Controller
 
         $activeMethods = $activeMethods->map(function (PaymentMethod $method) use ($preferredId) {
             return array_merge($method->toArray(), [
+                'type' => $method->code,
+                'is_active' => true,
                 'preferred' => $method->id === $preferredId,
             ]);
         });

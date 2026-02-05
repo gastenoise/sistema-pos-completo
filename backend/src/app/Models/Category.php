@@ -14,8 +14,24 @@ class Category extends Model
     protected $fillable = [
         'business_id',
         'name',
-        'color', // Agregada para contemplar la columna color
+        'color', // índice legacy para paleta
+        'color_hex',
+        'icon',
     ];
+
+    public function getColorAttribute($value)
+    {
+        if (!empty($this->attributes['color_hex'])) {
+            return $this->attributes['color_hex'];
+        }
+
+        $colors = config('data.colors');
+        $index = (int) ($value ?? 1);
+        if ($index < 1 || $index > count($colors)) {
+            $index = 1;
+        }
+        return $colors[$index - 1];
+    }
 
     /**
      * Relación con los ítems de esta categoría.

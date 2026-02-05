@@ -107,7 +107,8 @@ class SaleController extends Controller
     {
         $request->validate([
             'payment_method_id' => 'required|exists:payment_methods,id',
-            'amount' => 'required|numeric|min:0.01'
+            'amount' => 'required|numeric|min:0.01',
+            'transaction_reference' => 'nullable|string|max:255'
         ]);
 
         if ($sale->status !== 'open') {
@@ -116,7 +117,8 @@ class SaleController extends Controller
 
         $payment = $sale->payments()->create([
             'payment_method_id' => $request->payment_method_id,
-            'amount' => $request->amount
+            'amount' => $request->amount,
+            'transaction_reference' => $request->transaction_reference
         ]);
 
         return response()->json(['success' => true, 'data' => $payment]);
