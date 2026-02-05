@@ -259,13 +259,25 @@ export default function Settings() {
     setSavingBusiness(true);
     try {
       const payload = {
-        ...businessData,
+        name: businessData.name,
+        address: businessData.address,
+        phone: businessData.phone,
+        tax_id: businessData.tax_id,
+        currency: businessData.currency,
         email: businessData.business_email || undefined
       };
-      delete payload.business_email;
       const updated = await apiClient.put('/protected/business', payload);
       const updatedBusiness = normalizeEntityResponse(updated);
-      selectBusiness({ ...currentBusiness, ...updatedBusiness });
+      const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
+      selectBusiness(mergedBusiness);
+      setBusinessData({
+        name: mergedBusiness.name || '',
+        business_email: mergedBusiness.email || mergedBusiness.business_email || '',
+        address: mergedBusiness.address || '',
+        phone: mergedBusiness.phone || '',
+        tax_id: mergedBusiness.tax_id || '',
+        currency: mergedBusiness.currency || 'ARS'
+      });
       toast.success('Business settings saved');
     } catch (error) {
       toast.error('Failed to save settings');
