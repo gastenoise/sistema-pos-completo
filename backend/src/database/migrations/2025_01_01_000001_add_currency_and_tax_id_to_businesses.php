@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::table('businesses', function (Blueprint $table) {
             $table->string('currency', 3)->default('ARS')->after('email');
-            $table->string('tax_id')->nullable()->after('currency');
+            $table->string('tax_id', 20)->nullable()->after('currency');
         });
     }
 

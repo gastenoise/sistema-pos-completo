@@ -144,7 +144,7 @@ class BusinessController extends Controller
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
             'currency' => 'nullable|string|in:ARS,USD',
-            'tax_id' => 'nullable|string|max:255',
+            'tax_id' => 'nullable|string|max:20',
             'preferred_payment_method_id' => 'nullable|integer|exists:payment_methods,id',
         ]);
 
