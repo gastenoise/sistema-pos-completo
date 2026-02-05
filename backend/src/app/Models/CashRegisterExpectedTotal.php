@@ -8,6 +8,8 @@ class CashRegisterExpectedTotal extends Model
 {
     // No usa HasBusiness directamente porque depende de CashRegisterSession 
     // que ya está filtrada por negocio.
+
+    public $timestamps = false;
     
     protected $fillable = [
         'cash_register_session_id',
