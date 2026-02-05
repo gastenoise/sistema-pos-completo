@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import {
   DollarSign,
-  Calendar, Loader2, FileText, Ban, Eye
+  Calendar, Loader2, FileText, Ban, Eye, Trash2
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -94,16 +94,13 @@ export default function Reports() {
   });
 
   const { data: salesSummary = {} } = useQuery({
-    queryKey: ['sales-summary', businessId, dateFrom, dateTo, statusFilters, selectedPaymentMethod],
+    queryKey: ['sales-summary', businessId, dateFrom, dateTo, selectedPaymentMethod],
     queryFn: async () => {
       if (!businessId) return {};
       const params = new URLSearchParams({
         start_date: dateFrom,
         end_date: dateTo
       });
-      if (statusFilters.length > 0) {
-        params.set('statuses', statusFilters.join(','));
-      }
       if (selectedPaymentMethod) {
         params.set('payment_method', selectedPaymentMethod);
       }
@@ -319,8 +316,18 @@ export default function Reports() {
 
         {/* Filters */}
         <Card className="mb-6">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Filters</CardTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear filters
+            </Button>
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="flex flex-wrap items-end gap-4">
@@ -417,14 +424,6 @@ export default function Reports() {
                 })}
               </div>
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-              >
-                Clear filters
-              </Button>
             </div>
           </CardContent>
         </Card>
