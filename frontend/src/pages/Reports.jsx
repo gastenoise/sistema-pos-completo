@@ -57,24 +57,55 @@ export default function Reports() {
   const [selectedSale, setSelectedSale] = useState(null);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [includeVoided, setIncludeVoided] = useState(false);
+  const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
 
   // Fetch sales
   const { data: sales = [], isLoading: loadingSales } = useQuery({
-    queryKey: ['sales', businessId, dateFrom, dateTo, includeVoided],
+    queryKey: ['sales', businessId, dateFrom, dateTo, includeVoided, selectedPaymentMethod],
     queryFn: async () => {
       if (!businessId) return [];
       try {
-        const response = await apiClient.get(`/protected/reports/sales?start_date=${dateFrom}&end_date=${dateTo}&include_voided=${includeVoided ? '1' : '0'}`);
-        const normalized = normalizeListResponse(response, 'sales');
-        return normalized.filter((sale) => sale.status === 'closed' || (includeVoided && sale.status === 'voided'));
+        const params = new URLSearchParams({
+          start_date: dateFrom,
+          end_date: dateTo,
+          include_voided: includeVoided ? '1' : '0'
+        });
+        if (selectedPaymentMethod) {
+          params.set('payment_method', selectedPaymentMethod);
+        }
+        const response = await apiClient.get(`/protected/reports/sales?${params.toString()}`);
+        return normalizeListResponse(response, 'sales');
       } catch (error) {
         if (error?.status === 404) {
-          const fallback = await apiClient.get(`/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales&format_json=1`);
-          const normalized = normalizeListResponse(fallback, 'sales');
-          return normalized.filter((sale) => sale.status === 'closed' || (includeVoided && sale.status === 'voided'));
+          const params = new URLSearchParams({
+            start_date: dateFrom,
+            end_date: dateTo,
+            type: 'sales',
+            format_json: '1'
+          });
+          const fallback = await apiClient.get(`/protected/reports/export?${params.toString()}`);
+          return normalizeListResponse(fallback, 'sales');
         }
         throw error;
       }
+    },
+    enabled: !!businessId
+  });
+
+  const { data: salesSummary = {} } = useQuery({
+    queryKey: ['sales-summary', businessId, dateFrom, dateTo, includeVoided, selectedPaymentMethod],
+    queryFn: async () => {
+      if (!businessId) return {};
+      const params = new URLSearchParams({
+        start_date: dateFrom,
+        end_date: dateTo,
+        include_voided: includeVoided ? '1' : '0'
+      });
+      if (selectedPaymentMethod) {
+        params.set('payment_method', selectedPaymentMethod);
+      }
+      const response = await apiClient.get(`/protected/reports/summary?${params.toString()}`);
+      return response?.data ?? response;
     },
     enabled: !!businessId
   });
@@ -93,22 +124,10 @@ export default function Reports() {
     enabled: !!businessId
   });
 
-  // Filter sales
-  const filteredSales = sales.filter(sale => {
-    const methodMatch = paymentMethodFilter === 'all' || sale.payment_method_type === paymentMethodFilter;
-    // Category filter would require checking item categories
-    return methodMatch;
-  });
-
-  // Calculate totals
-  const closedSales = filteredSales.filter(s => s.status === 'closed');
-  const totalSales = closedSales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0);
-
-  // Calculate by payment method dynamically
-  const paymentTotals = paymentMethods.reduce((acc, method) => {
-    acc[method.type] = closedSales
-      .filter(s => s.payment_method_type === method.type)
-      .reduce((sum, s) => sum + (s.total_amount || 0), 0);
+  const summary = salesSummary?.summary || {};
+  const totalsByPaymentMethod = salesSummary?.totals_by_payment_method || [];
+  const paymentTotals = totalsByPaymentMethod.reduce((acc, method) => {
+    acc[method.code] = parseFloat(method.total_amount) || 0;
     return acc;
   }, {});
 
@@ -219,7 +238,7 @@ export default function Reports() {
                   </div>
                   <div>
                     <p className="text-sm text-amber-600 font-medium">Transactions</p>
-                    <p className="text-2xl font-bold text-amber-900">{closedSales.length}</p>
+                    <p className="text-2xl font-bold text-amber-900">{summary.sales_count ?? 0}</p>
                   </div>
                 </div>
 
@@ -230,7 +249,7 @@ export default function Reports() {
                   </div>
                   <div>
                     <p className="text-sm text-blue-600 font-medium">Total Sales</p>
-                    <p className="text-2xl font-bold text-blue-900">{formatPrice(totalSales, currentBusiness)}</p>
+                    <p className="text-2xl font-bold text-blue-900">{formatPrice(summary.total_sales ?? 0, currentBusiness)}</p>
                   </div>
                 </div>
               </div>
@@ -372,7 +391,7 @@ export default function Reports() {
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
               </div>
-            ) : filteredSales.length === 0 ? (
+            ) : sales.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                 <FileText className="w-12 h-12 mb-3" />
                 <p className="text-lg font-medium">No sales found</p>
@@ -391,10 +410,10 @@ export default function Reports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSales.map((sale) => (
+                    {sales.map((sale) => (
                       <TableRow key={sale.id}>
                         <TableCell>
-                          {format(new Date(sale.closed_at || sale.created_date), 'MMM d, HH:mm')}
+                          {format(new Date(sale.closed_at || sale.created_at), 'MMM d, HH:mm')}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -422,7 +441,7 @@ export default function Reports() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {formatPrice(sale.total || 0, currentBusiness)}
+                          {formatPrice(sale.total_amount ?? sale.total ?? 0, currentBusiness)}
                         </TableCell>
                         <TableCell>
                           <Button
@@ -455,7 +474,7 @@ export default function Reports() {
               <div className="grid grid-cols-2 gap-4 pb-4 border-b">
                 <div>
                   <p className="text-sm text-slate-500">Date</p>
-                  <p className="font-medium">{format(new Date(selectedSale.closed_at || selectedSale.created_date), 'PPpp')}</p>
+                  <p className="font-medium">{format(new Date(selectedSale.closed_at || selectedSale.created_at), 'PPpp')}</p>
                 </div>
                 <div>
                   <p className="text-sm text-slate-500">Status</p>
@@ -494,7 +513,7 @@ export default function Reports() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-slate-600">Subtotal</span>
-                    <span className="font-medium">{formatPrice(selectedSale.subtotal || 0, currentBusiness)}</span>
+                    <span className="font-medium">{formatPrice(selectedSale.subtotal ?? selectedSale.total_amount ?? 0, currentBusiness)}</span>
                   </div>
                   {selectedSale.tax > 0 && (
                     <div className="flex justify-between">
@@ -504,7 +523,7 @@ export default function Reports() {
                   )}
                   <div className="flex justify-between pt-2 border-t">
                     <span className="font-bold">Total</span>
-                    <span className="font-bold text-lg">{formatPrice(selectedSale.total || 0, currentBusiness)}</span>
+                    <span className="font-bold text-lg">{formatPrice(selectedSale.total_amount ?? selectedSale.total ?? 0, currentBusiness)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-slate-600">Payment Method</span>

@@ -24,6 +24,12 @@ class ItemController extends Controller
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
+        }
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
         if ($request->filled('search')) {
             $term = $request->search;
             $query->where(function($q) use ($term) {
@@ -32,7 +38,10 @@ class ItemController extends Controller
             });
         }
 
-        return response()->json(['success' => true, 'data' => $query->paginate(20)]);
+        $perPage = (int) $request->input('per_page', 20);
+        $perPage = $perPage > 0 ? min($perPage, 100) : 20;
+
+        return response()->json(['success' => true, 'data' => $query->paginate($perPage)]);
     }
 
     public function store(Request $request)
