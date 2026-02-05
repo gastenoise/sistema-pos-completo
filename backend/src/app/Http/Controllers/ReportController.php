@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Sale;
 use Illuminate\Http\Request;
 use App\Services\BusinessContext;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
@@ -15,6 +16,7 @@ class ReportController extends Controller
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
         $includeVoided = $request->boolean('include_voided');
+        $paymentMethod = $request->input('payment_method');
 
         $query = Sale::with(['items', 'payments.paymentMethod', 'user'])
             ->where('business_id', $businessId);
@@ -27,6 +29,11 @@ class ReportController extends Controller
         }
         if (!$includeVoided) {
             $query->where('status', '!=', 'voided');
+        }
+        if ($paymentMethod) {
+            $query->whereHas('payments.paymentMethod', function ($paymentQuery) use ($paymentMethod) {
+                $paymentQuery->where('code', $paymentMethod);
+            });
         }
 
         $sales = $query->get()->map(function (Sale $sale) {
@@ -54,6 +61,88 @@ class ReportController extends Controller
         });
 
         return response()->json(['success' => true, 'data' => $sales]);
+    }
+
+    public function salesSummary(Request $request)
+    {
+        $businessId = app(BusinessContext::class)->getBusinessId();
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $includeVoided = $request->boolean('include_voided');
+        $paymentMethod = $request->input('payment_method');
+
+        $salesQuery = Sale::query()
+            ->where('business_id', $businessId);
+
+        if ($startDate) {
+            $salesQuery->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $salesQuery->whereDate('created_at', '<=', $endDate);
+        }
+        if (!$includeVoided) {
+            $salesQuery->where('status', '!=', 'voided');
+        }
+        if ($paymentMethod) {
+            $salesQuery->whereHas('payments.paymentMethod', function ($paymentQuery) use ($paymentMethod) {
+                $paymentQuery->where('code', $paymentMethod);
+            });
+        }
+
+        $sales = $salesQuery->get(['id', 'status', 'total_amount']);
+        $closedSales = $sales->where('status', 'closed');
+
+        $totalsByStatus = $sales
+            ->groupBy('status')
+            ->map(function ($group, $status) {
+                return [
+                    'status' => $status,
+                    'count' => $group->count(),
+                    'total_amount' => $group->sum('total_amount'),
+                ];
+            })
+            ->values();
+
+        $paymentsQuery = DB::table('sale_payments')
+            ->join('sales', 'sale_payments.sale_id', '=', 'sales.id')
+            ->join('payment_methods', 'sale_payments.payment_method_id', '=', 'payment_methods.id')
+            ->where('sales.business_id', $businessId);
+
+        if ($startDate) {
+            $paymentsQuery->whereDate('sales.created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $paymentsQuery->whereDate('sales.created_at', '<=', $endDate);
+        }
+        if (!$includeVoided) {
+            $paymentsQuery->where('sales.status', '!=', 'voided');
+        }
+        if ($paymentMethod) {
+            $paymentsQuery->where('payment_methods.code', $paymentMethod);
+        }
+
+        $totalsByPaymentMethod = $paymentsQuery
+            ->select(
+                'payment_methods.code',
+                'payment_methods.name',
+                DB::raw('SUM(sale_payments.amount) as total_amount'),
+                DB::raw('COUNT(sale_payments.id) as payments_count')
+            )
+            ->groupBy('payment_methods.code', 'payment_methods.name')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'summary' => [
+                    'total_sales' => $closedSales->sum('total_amount'),
+                    'sales_count' => $closedSales->count(),
+                    'voided_count' => $sales->where('status', 'voided')->count(),
+                ],
+                'totals_by_status' => $totalsByStatus,
+                'totals_by_payment_method' => $totalsByPaymentMethod,
+            ],
+        ]);
     }
 
     public function dailySummary(Request $request)

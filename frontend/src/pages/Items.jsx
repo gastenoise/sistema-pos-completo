@@ -57,7 +57,15 @@ export default function Items() {
       category_id: item.category_id ? Number(item.category_id) : null
     }));
     if (list.length > 0) {
-      queryClient.setQueryData(['items', businessId], list);
+      queryClient.setQueriesData({ queryKey: ['items', businessId] }, (prev) => {
+        if (!prev || !Array.isArray(prev.items)) {
+          return prev;
+        }
+        return {
+          ...prev,
+          items: list
+        };
+      });
       return true;
     }
 
@@ -68,13 +76,18 @@ export default function Items() {
         is_active: entity.is_active ?? entity.active,
         category_id: entity.category_id ? Number(entity.category_id) : null
       };
-      queryClient.setQueryData(['items', businessId], (prev = []) => {
-        const safePrev = Array.isArray(prev) ? prev : [];
-        const exists = safePrev.find((item) => item.id === normalizedEntity.id);
-        if (exists) {
-          return safePrev.map((item) => (item.id === normalizedEntity.id ? { ...item, ...normalizedEntity } : item));
+      queryClient.setQueriesData({ queryKey: ['items', businessId] }, (prev) => {
+        if (!prev || !Array.isArray(prev.items)) {
+          return prev;
         }
-        return [normalizedEntity, ...safePrev];
+        const exists = prev.items.find((item) => item.id === normalizedEntity.id);
+        const updatedItems = exists
+          ? prev.items.map((item) => (item.id === normalizedEntity.id ? { ...item, ...normalizedEntity } : item))
+          : [normalizedEntity, ...prev.items];
+        return {
+          ...prev,
+          items: updatedItems
+        };
       });
       return true;
     }
@@ -83,16 +96,40 @@ export default function Items() {
   };
 
   // Fetch items
-  const { data: allItems = [], isLoading: loadingItems } = useQuery({
-    queryKey: ['items', businessId],
+  const { data: itemsResponse = { items: [], pagination: null }, isLoading: loadingItems } = useQuery({
+    queryKey: ['items', businessId, searchQuery, typeFilter, categoryFilter, page],
     queryFn: async () => {
-      if (!businessId) return [];
-      const response = await apiClient.get('/protected/items');
-      return normalizeListResponse(response, 'items').map((item) => ({
+      if (!businessId) return { items: [], pagination: null };
+      const params = new URLSearchParams();
+      if (searchQuery) {
+        params.set('search', searchQuery);
+      }
+      if (typeFilter !== 'all') {
+        params.set('type', typeFilter);
+      }
+      if (categoryFilter !== 'all') {
+        params.set('category', String(categoryFilter));
+      }
+      params.set('page', String(page));
+      params.set('per_page', String(ITEMS_PER_PAGE));
+      const response = await apiClient.get(`/protected/items?${params.toString()}`);
+      const list = normalizeListResponse(response, 'items').map((item) => ({
         ...item,
         is_active: item.is_active ?? item.active,
         category_id: item.category_id ? Number(item.category_id) : null
       }));
+      const paginationSource = response?.data && Array.isArray(response?.data?.data) ? response.data : response;
+      const pagination = paginationSource && Array.isArray(paginationSource?.data)
+        ? {
+            current_page: paginationSource.current_page,
+            last_page: paginationSource.last_page,
+            per_page: paginationSource.per_page,
+            total: paginationSource.total,
+            from: paginationSource.from,
+            to: paginationSource.to
+          }
+        : null;
+      return { items: list, pagination };
     },
     enabled: !!businessId
   });
@@ -112,18 +149,9 @@ export default function Items() {
     enabled: !!businessId
   });
 
-  // Filter and paginate items
-  const filteredItems = allItems.filter(item => {
-    const matchesSearch = !searchQuery || 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.sku?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === 'all' || item.type === typeFilter;
-    const matchesCategory = categoryFilter === 'all' || item.category_id === categoryFilter;
-    return matchesSearch && matchesType && matchesCategory;
-  });
-
-  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
-  const paginatedItems = filteredItems.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const items = itemsResponse?.items ?? [];
+  const pagination = itemsResponse?.pagination;
+  const totalPages = pagination?.last_page ?? Math.ceil(items.length / ITEMS_PER_PAGE);
 
   // Create/Update mutation
   const itemMutation = useMutation({
@@ -187,7 +215,7 @@ export default function Items() {
 
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedItems(paginatedItems.map(item => item.id));
+      setSelectedItems(items.map(item => item.id));
     } else {
       setSelectedItems([]);
     }
@@ -213,7 +241,7 @@ export default function Items() {
   const handleApplyPriceIncrease = async (percent) => {
     setBulkLoading(true);
     try {
-      const selectedItemsData = allItems.filter(item => selectedItems.includes(item.id));
+      const selectedItemsData = items.filter(item => selectedItems.includes(item.id));
       for (const item of selectedItemsData) {
         const newPrice = item.price * (1 + percent / 100);
         const response = await apiClient.put(`/protected/items/${item.id}`, { price: Math.round(newPrice * 100) / 100 });
@@ -370,7 +398,7 @@ export default function Items() {
             <div className="flex items-center justify-center h-64">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             </div>
-          ) : paginatedItems.length === 0 ? (
+          ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-slate-400">
               <Package className="w-12 h-12 mb-3" />
               <p className="text-lg font-medium">No items found</p>
@@ -382,7 +410,7 @@ export default function Items() {
                   <TableRow>
                     <TableHead className="w-12">
                       <Checkbox 
-                        checked={selectedItems.length === paginatedItems.length && paginatedItems.length > 0}
+                        checked={selectedItems.length === items.length && items.length > 0}
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
@@ -396,7 +424,7 @@ export default function Items() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedItems.map((item) => (
+                  {items.map((item) => (
                     <ItemRow
                       key={item.id}
                       item={item}
@@ -416,7 +444,7 @@ export default function Items() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200">
               <p className="text-sm text-slate-500">
-                Showing {(page - 1) * ITEMS_PER_PAGE + 1} - {Math.min(page * ITEMS_PER_PAGE, filteredItems.length)} of {filteredItems.length}
+                Showing {pagination?.from ?? (items.length ? (page - 1) * ITEMS_PER_PAGE + 1 : 0)} - {pagination?.to ?? Math.min(page * ITEMS_PER_PAGE, items.length)} of {pagination?.total ?? items.length}
               </p>
               <div className="flex items-center gap-2">
                 <Button
