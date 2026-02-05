@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use App\Services\BusinessContext;
+use Illuminate\Support\Facades\Schema;
 
 class CategoryController extends Controller
 {
@@ -24,13 +25,21 @@ class CategoryController extends Controller
 
         $colorPayload = $this->resolveColorPayload($validated['color'] ?? null);
 
-        $category = Category::create([
+        $payload = [
             'business_id' => $businessId,
             'name' => $validated['name'],
             'color' => $colorPayload['color_index'],
-            'color_hex' => $colorPayload['color_hex'],
-            'icon' => $validated['icon'] ?? null,
-        ]);
+        ];
+
+        if (Schema::hasColumn('categories', 'color_hex')) {
+            $payload['color_hex'] = $colorPayload['color_hex'];
+        }
+
+        if (Schema::hasColumn('categories', 'icon')) {
+            $payload['icon'] = $validated['icon'] ?? null;
+        }
+
+        $category = Category::create($payload);
 
         return response()->json(['success' => true, 'data' => $category], 201);
     }
@@ -47,7 +56,13 @@ class CategoryController extends Controller
         if (array_key_exists('color', $validated)) {
             $colorPayload = $this->resolveColorPayload($validated['color']);
             $validated['color'] = $colorPayload['color_index'];
-            $validated['color_hex'] = $colorPayload['color_hex'];
+            if (Schema::hasColumn('categories', 'color_hex')) {
+                $validated['color_hex'] = $colorPayload['color_hex'];
+            }
+        }
+
+        if (!Schema::hasColumn('categories', 'icon')) {
+            unset($validated['icon']);
         }
 
         $category->update($validated);
