@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\HasBusiness;
 
 class Sale extends Model
@@ -12,6 +13,7 @@ class Sale extends Model
     
     public function items() { return $this->hasMany(SaleItem::class); }
     public function payments() { return $this->hasMany(SalePayment::class); }
+    public function user(): BelongsTo { return $this->belongsTo(User::class); }
     
     public function calculateTotal(): void
     {

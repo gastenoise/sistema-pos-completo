@@ -5,12 +5,11 @@ import { useQuery } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import {
   DollarSign,
-  Calendar, Loader2, FileText, Ban, Eye
+  Calendar, Loader2, FileText, Ban, Eye, Trash2
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -56,20 +55,22 @@ export default function Reports() {
   const [tempDateTo, setTempDateTo] = useState(today);
   const [selectedSale, setSelectedSale] = useState(null);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
-  const [includeVoided, setIncludeVoided] = useState(false);
+  const [statusFilters, setStatusFilters] = useState(['closed']);
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
 
   // Fetch sales
   const { data: sales = [], isLoading: loadingSales } = useQuery({
-    queryKey: ['sales', businessId, dateFrom, dateTo, includeVoided, selectedPaymentMethod],
+    queryKey: ['sales', businessId, dateFrom, dateTo, statusFilters, selectedPaymentMethod],
     queryFn: async () => {
       if (!businessId) return [];
       try {
         const params = new URLSearchParams({
           start_date: dateFrom,
-          end_date: dateTo,
-          include_voided: includeVoided ? '1' : '0'
+          end_date: dateTo
         });
+        if (statusFilters.length > 0) {
+          params.set('statuses', statusFilters.join(','));
+        }
         if (selectedPaymentMethod) {
           params.set('payment_method', selectedPaymentMethod);
         }
@@ -93,13 +94,12 @@ export default function Reports() {
   });
 
   const { data: salesSummary = {} } = useQuery({
-    queryKey: ['sales-summary', businessId, dateFrom, dateTo, includeVoided, selectedPaymentMethod],
+    queryKey: ['sales-summary', businessId, dateFrom, dateTo, selectedPaymentMethod],
     queryFn: async () => {
       if (!businessId) return {};
       const params = new URLSearchParams({
         start_date: dateFrom,
-        end_date: dateTo,
-        include_voided: includeVoided ? '1' : '0'
+        end_date: dateTo
       });
       if (selectedPaymentMethod) {
         params.set('payment_method', selectedPaymentMethod);
@@ -136,11 +136,35 @@ export default function Reports() {
     return acc;
   }, {});
 
+  const statusOptions = [
+    { value: 'closed', label: 'Closed' },
+    { value: 'open', label: 'Open' },
+    { value: 'voided', label: 'Voided' }
+  ];
+
+  const toggleStatusFilter = (status) => {
+    setStatusFilters((prev) => {
+      const next = prev.includes(status)
+        ? prev.filter((current) => current !== status)
+        : [...prev, status];
+      return next.length === 0 ? prev : next;
+    });
+  };
+
+  const clearFilters = () => {
+    setQuickDate('today');
+    setPaymentMethodFilter('all');
+    setStatusFilters(['closed']);
+  };
+
   const handleExportCsv = async () => {
     try {
       const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
       const token = getToken();
-      const response = await fetch(`${baseUrl}/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales`, {
+      const statusParams = statusFilters.length > 0
+        ? `&statuses=${encodeURIComponent(statusFilters.join(','))}`
+        : '';
+      const response = await fetch(`${baseUrl}/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales${statusParams}`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...(businessId ? { 'X-Business-Id': businessId } : {})
@@ -237,8 +261,9 @@ export default function Reports() {
                     <FileText className="w-6 h-6 text-amber-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-amber-600 font-medium">Transactions</p>
+                    <p className="text-sm text-amber-600 font-medium">Closed Transactions</p>
                     <p className="text-2xl font-bold text-amber-900">{summary.sales_count ?? 0}</p>
+                    <p className="text-xs text-amber-600">Closed sales only</p>
                   </div>
                 </div>
 
@@ -248,8 +273,9 @@ export default function Reports() {
                     <DollarSign className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-blue-600 font-medium">Total Sales</p>
+                    <p className="text-sm text-blue-600 font-medium">Closed Sales Total</p>
                     <p className="text-2xl font-bold text-blue-900">{formatPrice(summary.total_sales ?? 0, currentBusiness)}</p>
+                    <p className="text-xs text-blue-600">Closed sales only</p>
                   </div>
                 </div>
               </div>
@@ -290,7 +316,20 @@ export default function Reports() {
 
         {/* Filters */}
         <Card className="mb-6">
-          <CardContent className="p-4">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg">Filters</CardTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear filters
+            </Button>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
             <div className="flex flex-wrap items-end gap-4">
               <div className="flex gap-2 flex-wrap">
                 <Button
@@ -367,16 +406,24 @@ export default function Reports() {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="include-voided"
-                  checked={includeVoided}
-                  onCheckedChange={setIncludeVoided}
-                />
-                <Label htmlFor="include-voided" className="text-sm cursor-pointer">
-                  Include voided
-                </Label>
+              <div className="flex flex-wrap items-center gap-2">
+                {statusOptions.map((status) => {
+                  const isActive = statusFilters.includes(status.value);
+                  return (
+                    <Button
+                      key={status.value}
+                      type="button"
+                      variant={isActive ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => toggleStatusFilter(status.value)}
+                      className="rounded-full"
+                    >
+                      {status.label}
+                    </Button>
+                  );
+                })}
               </div>
+
             </div>
           </CardContent>
         </Card>
@@ -495,15 +542,21 @@ export default function Reports() {
               <div>
                 <h3 className="font-medium mb-3">Items</h3>
                 <div className="space-y-2">
-                  {selectedSale.items?.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-slate-500">Qty: {item.quantity} × {formatPrice(item.unit_price, currentBusiness)}</p>
+                  {selectedSale.items?.map((item, idx) => {
+                    const quantity = item.quantity ?? 0;
+                    const unitPrice = item.unit_price ?? item.unit_price_snapshot ?? item.price ?? 0;
+                    const subtotal = item.subtotal ?? item.total ?? (quantity * unitPrice);
+                    const name = item.name ?? item.item_name_snapshot ?? item.item?.name ?? 'Item';
+                    return (
+                      <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                        <div>
+                          <p className="font-medium">{name}</p>
+                          <p className="text-sm text-slate-500">Qty: {quantity} × {formatPrice(unitPrice, currentBusiness)}</p>
+                        </div>
+                        <p className="font-medium">{formatPrice(subtotal, currentBusiness)}</p>
                       </div>
-                      <p className="font-medium">{formatPrice(item.subtotal, currentBusiness)}</p>
-                    </div>
-                  )) || <p className="text-slate-400 text-sm">No items</p>}
+                    );
+                  }) || <p className="text-slate-400 text-sm">No items</p>}
                 </div>
               </div>
 
