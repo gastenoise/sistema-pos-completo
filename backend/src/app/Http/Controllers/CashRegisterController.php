@@ -173,10 +173,22 @@ class CashRegisterController extends Controller
             ->with([
                 'opener',
                 'closures.creator',
-                'expectedTotals.paymentMethod'
+                'expectedTotals.paymentMethod',
+                'sales'
             ])
             ->orderByDesc('closed_at')
             ->paginate(20);
+
+        $sessions->getCollection()->transform(function (CashRegisterSession $session) {
+            $session->total_sales = (float) $session->sales()
+                ->where('status', '!=', 'voided')
+                ->sum('total_amount');
+
+            $latestClosure = $session->closures->sortByDesc('created_at')->first();
+            $session->cash_difference = (float) ($latestClosure?->difference ?? 0);
+
+            return $session;
+        });
 
         return response()->json(['success' => true, 'data' => $sessions]);
     }

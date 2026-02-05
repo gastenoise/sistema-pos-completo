@@ -53,7 +53,8 @@ export default function Items() {
   const updateItemsCache = (response) => {
     const list = normalizeListResponse(response, 'items').map((item) => ({
       ...item,
-      is_active: item.is_active ?? item.active
+      is_active: item.is_active ?? item.active,
+      category_id: item.category_id ? Number(item.category_id) : null
     }));
     if (list.length > 0) {
       queryClient.setQueryData(['items', businessId], list);
@@ -64,7 +65,8 @@ export default function Items() {
     if (entity?.id) {
       const normalizedEntity = {
         ...entity,
-        is_active: entity.is_active ?? entity.active
+        is_active: entity.is_active ?? entity.active,
+        category_id: entity.category_id ? Number(entity.category_id) : null
       };
       queryClient.setQueryData(['items', businessId], (prev = []) => {
         const safePrev = Array.isArray(prev) ? prev : [];
@@ -88,7 +90,8 @@ export default function Items() {
       const response = await apiClient.get('/protected/items');
       return normalizeListResponse(response, 'items').map((item) => ({
         ...item,
-        is_active: item.is_active ?? item.active
+        is_active: item.is_active ?? item.active,
+        category_id: item.category_id ? Number(item.category_id) : null
       }));
     },
     enabled: !!businessId
@@ -327,14 +330,20 @@ export default function Items() {
                 <SelectItem value="fee">Fee</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setPage(1); }}>
+            <Select
+              value={String(categoryFilter)}
+              onValueChange={(v) => {
+                setCategoryFilter(v === 'all' ? 'all' : Number(v));
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

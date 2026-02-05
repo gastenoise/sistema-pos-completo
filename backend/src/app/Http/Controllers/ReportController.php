@@ -9,6 +9,53 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
+    public function salesList(Request $request)
+    {
+        $businessId = app(BusinessContext::class)->getBusinessId();
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $includeVoided = $request->boolean('include_voided');
+
+        $query = Sale::with(['items', 'payments.paymentMethod', 'user'])
+            ->where('business_id', $businessId);
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+        if (!$includeVoided) {
+            $query->where('status', '!=', 'voided');
+        }
+
+        $sales = $query->get()->map(function (Sale $sale) {
+            $primaryPayment = $sale->payments->first();
+
+            return [
+                'id' => $sale->id,
+                'status' => $sale->status,
+                'total_amount' => $sale->total_amount,
+                'created_at' => $sale->created_at,
+                'closed_at' => $sale->closed_at,
+                'items' => $sale->items,
+                'payments' => $sale->payments->map(function ($payment) {
+                    return [
+                        'id' => $payment->id,
+                        'amount' => $payment->amount,
+                        'payment_method_id' => $payment->payment_method_id,
+                        'payment_method_code' => $payment->paymentMethod?->code,
+                        'status' => $payment->status,
+                        'transaction_reference' => $payment->transaction_reference,
+                    ];
+                }),
+                'payment_method_type' => $primaryPayment?->paymentMethod?->code,
+            ];
+        });
+
+        return response()->json(['success' => true, 'data' => $sales]);
+    }
+
     public function dailySummary(Request $request)
     {
         $businessId = app(BusinessContext::class)->getBusinessId();

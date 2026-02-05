@@ -19,12 +19,17 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:100|unique:categories,name,NULL,id,business_id,' . $businessId,
             'color' => 'nullable|string', // Accept hex or numeric string
+            'icon' => 'nullable|string|max:100',
         ]);
+
+        $colorPayload = $this->resolveColorPayload($validated['color'] ?? null);
 
         $category = Category::create([
             'business_id' => $businessId,
             'name' => $validated['name'],
-            'color' => $this->resolveColorIndex($validated['color'] ?? null),
+            'color' => $colorPayload['color_index'],
+            'color_hex' => $colorPayload['color_hex'],
+            'icon' => $validated['icon'] ?? null,
         ]);
 
         return response()->json(['success' => true, 'data' => $category], 201);
@@ -36,10 +41,13 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:100|unique:categories,name,' . $category->id . ',id,business_id,' . $businessId,
             'color' => 'nullable|string',
+            'icon' => 'nullable|string|max:100',
         ]);
 
         if (array_key_exists('color', $validated)) {
-            $validated['color'] = $this->resolveColorIndex($validated['color']);
+            $colorPayload = $this->resolveColorPayload($validated['color']);
+            $validated['color'] = $colorPayload['color_index'];
+            $validated['color_hex'] = $colorPayload['color_hex'];
         }
 
         $category->update($validated);
@@ -52,23 +60,38 @@ class CategoryController extends Controller
         return response()->json(['success' => true, 'message' => 'Category deleted']);
     }
 
-    private function resolveColorIndex(?string $color): int
+    private function resolveColorPayload(?string $color): array
     {
         if (!$color) {
-            return 1;
+            return [
+                'color_index' => 1,
+                'color_hex' => null,
+            ];
         }
 
         if (is_numeric($color)) {
             $index = (int) $color;
-            return $index > 0 ? $index : 1;
+            $index = $index > 0 ? $index : 1;
+            $colors = config('data.colors');
+            $hex = $colors[$index - 1] ?? $colors[0] ?? null;
+            return [
+                'color_index' => $index,
+                'color_hex' => $hex,
+            ];
         }
 
         $colors = config('data.colors');
         $matchIndex = array_search(strtoupper($color), array_map('strtoupper', $colors), true);
         if ($matchIndex === false) {
-            return 1;
+            return [
+                'color_index' => 1,
+                'color_hex' => $color,
+            ];
         }
 
-        return $matchIndex + 1;
+        return [
+            'color_index' => $matchIndex + 1,
+            'color_hex' => $color,
+        ];
     }
 }

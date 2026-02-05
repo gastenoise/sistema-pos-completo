@@ -109,6 +109,7 @@ Route::prefix('protected')->group(function () {
 
                 // Reportes
                 Route::get('reports/daily-summary', [ReportController::class, 'dailySummary']);
+                Route::get('reports/sales', [ReportController::class, 'salesList']);
                 Route::get('reports/export', [ReportController::class, 'export']);
             });
         });
@@ -158,5 +159,6 @@ Route::prefix('public')->middleware(['auth.apikey', 'throttle:public-api'])->gro
     });
 
     Route::get('reports/daily-summary', [ReportController::class, 'dailySummary']);
+    Route::get('reports/sales', [ReportController::class, 'salesList']);
     Route::get('reports/export', [ReportController::class, 'export']);
 });
