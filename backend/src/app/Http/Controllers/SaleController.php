@@ -19,11 +19,22 @@ class SaleController extends Controller
      */
     public function store(Request $request)
     {
+        $businessId = app(BusinessContext::class)->getBusinessId();
+
         // Verificar si el usuario tiene una caja abierta en este negocio
-        $session = CashRegisterSession::where('status', 'open')
+        $sessionQuery = CashRegisterSession::where('status', 'open')
             ->where('opened_by', Auth::id())
-            ->latest()
-            ->first();
+            ->where('business_id', $businessId);
+
+        if ($request->filled('cash_register_session_id')) {
+            $session = $sessionQuery
+                ->where('id', $request->input('cash_register_session_id'))
+                ->first();
+        } else {
+            $session = $sessionQuery
+                ->latest()
+                ->first();
+        }
             
         if (!$session) {
             return response()->json([
