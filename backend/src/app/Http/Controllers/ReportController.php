@@ -90,7 +90,6 @@ class ReportController extends Controller
         }
 
         $sales = $salesQuery->get(['id', 'status', 'total_amount']);
-        $closedSales = $sales->where('status', 'closed');
 
         $totalsByStatus = $sales
             ->groupBy('status')
@@ -135,8 +134,8 @@ class ReportController extends Controller
             'success' => true,
             'data' => [
                 'summary' => [
-                    'total_sales' => $closedSales->sum('total_amount'),
-                    'sales_count' => $closedSales->count(),
+                    'total_sales' => $sales->sum('total_amount'),
+                    'sales_count' => $sales->count(),
                     'voided_count' => $sales->where('status', 'voided')->count(),
                 ],
                 'totals_by_status' => $totalsByStatus,
