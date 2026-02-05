@@ -7,14 +7,17 @@ use App\Models\Sale;
 use App\Models\SalePayment;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
+use App\Services\BusinessContext;
 
 class SalePaymentController extends Controller
 {
     // GET /protected/sales/{sale}/payments
     public function index(Request $request, $saleId)
     {
+        $businessId = app(BusinessContext::class)->getBusinessId();
+
         $sale = Sale::where('id', $saleId)
-            ->where('business_id', $request->attributes->get('current_business')->id)
+            ->where('business_id', $businessId)
             ->firstOrFail();
 
         $payments = $sale->payments()->get()->map(function($p) {
@@ -34,8 +37,10 @@ class SalePaymentController extends Controller
     // POST /protected/sales/{sale}/payments/{payment}/confirm
     public function confirm(Request $request, $saleId, $paymentId)
     {
+        $businessId = app(BusinessContext::class)->getBusinessId();
+
         $sale = Sale::where('id', $saleId)
-            ->where('business_id', $request->attributes->get('current_business')->id)
+            ->where('business_id', $businessId)
             ->firstOrFail();
 
         $payment = SalePayment::where('id', $paymentId)->where('sale_id', $sale->id)->firstOrFail();
@@ -61,8 +66,10 @@ class SalePaymentController extends Controller
     // POST /protected/sales/{sale}/payments/{payment}/fail
     public function fail(Request $request, $saleId, $paymentId)
     {
+        $businessId = app(BusinessContext::class)->getBusinessId();
+
         $sale = Sale::where('id', $saleId)
-            ->where('business_id', $request->attributes->get('current_business')->id)
+            ->where('business_id', $businessId)
             ->firstOrFail();
 
         $payment = SalePayment::where('id', $paymentId)->where('sale_id', $sale->id)->firstOrFail();
