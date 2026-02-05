@@ -55,10 +55,10 @@ class DatabaseSeeder extends Seeder
 
         // Métodos de pago por defecto a nivel global (ya no por negocio)
         DB::table('payment_methods')->insert([
-            ['code' => 'cash', 'name' => 'Efectivo', 'color' => 1],                // #1abc9c
-            ['code' => 'debit', 'name' => 'Débito', 'color' => 2],                 // #2ecc71
-            ['code' => 'mercado_pago', 'name' => 'Mercado Pago', 'color' => 3],    // #3498db
-            ['code' => 'bank_transfer', 'name' => 'Transferencia Bancaria', 'color' => 4], // #9b59b6 (el siguiente de la paleta)
+            ['code' => 'cash', 'name' => 'Efectivo', 'icon' => 'Banknote', 'color' => 1],                // #1abc9c
+            ['code' => 'debit', 'name' => 'Débito', 'icon' => 'CreditCard', 'color' => 2],               // #2ecc71
+            ['code' => 'mercado_pago', 'name' => 'Mercado Pago', 'icon' => 'QrCode', 'color' => 3],      // #3498db
+            ['code' => 'bank_transfer', 'name' => 'Transferencia Bancaria', 'icon' => 'ArrowLeftRight', 'color' => 4], // #9b59b6 (el siguiente de la paleta)
             // más si necesitás
         ]);
 

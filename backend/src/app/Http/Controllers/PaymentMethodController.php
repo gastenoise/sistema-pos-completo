@@ -49,15 +49,15 @@ class PaymentMethodController extends Controller
         $activeMethods = PaymentMethod::whereNotIn('id', $hiddenIds)->get();
         $preferredId = $this->resolvePreferredPaymentMethod($business, $activeMethods);
 
-        $activeMethods = $activeMethods->map(function (PaymentMethod $method) use ($preferredId) {
+        $methods = PaymentMethod::all()->map(function (PaymentMethod $method) use ($hiddenIds, $preferredId) {
             return array_merge($method->toArray(), [
                 'type' => $method->code,
-                'is_active' => true,
+                'is_active' => !$hiddenIds->contains($method->id),
                 'preferred' => $method->id === $preferredId,
             ]);
         });
 
-        return response()->json($activeMethods);
+        return response()->json($methods);
     }
 
     /**
@@ -106,6 +106,16 @@ class PaymentMethodController extends Controller
                 'error' => 'Negocio no encontrado',
                 'code' => 'BUSINESS_NOT_FOUND'
             ], 404);
+        }
+
+        if (!$active
+            && $business->preferred_payment_method_id === $method->id
+            && $preferredRequested !== true
+        ) {
+            return response()->json([
+                'error' => 'No se puede ocultar el método preferido actual sin actualizar el preferido.',
+                'code' => 'PREFERRED_METHOD_HIDE_REQUIRES_UPDATE'
+            ], 422);
         }
 
         $response = DB::transaction(function () use ($business, $businessId, $method, $active, $preferredRequested) {
@@ -224,6 +234,25 @@ class PaymentMethodController extends Controller
                 return response()->json([
                     'error' => 'El método preferido debe estar activo para seleccionarlo.',
                     'code' => 'PREFERRED_METHOD_MUST_BE_ACTIVE'
+                ], 422);
+            }
+        }
+
+        $currentPreferredId = $business->preferred_payment_method_id;
+        if ($currentPreferredId !== null && array_key_exists((string) $currentPreferredId, $methodsData)) {
+            $currentPreferredActiveValue = filter_var(
+                $methodsData[(string) $currentPreferredId],
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            );
+
+            if ($currentPreferredActiveValue === false
+                && ($preferredPaymentMethodId === null
+                    || (int) $preferredPaymentMethodId === (int) $currentPreferredId)
+            ) {
+                return response()->json([
+                    'error' => 'No se puede ocultar el método preferido actual sin actualizar el preferido.',
+                    'code' => 'PREFERRED_METHOD_HIDE_REQUIRES_UPDATE'
                 ], 422);
             }
         }

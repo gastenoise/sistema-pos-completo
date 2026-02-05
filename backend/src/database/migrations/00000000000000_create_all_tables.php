@@ -66,6 +66,7 @@ return new class extends Migration {
             $table->id();
             $table->string('code')->unique();
             $table->string('name');
+            $table->string('icon')->nullable();
             $table->unsignedTinyInteger('color')->default(1)->comment('Valor del color asignado al método de pago, por defecto 1');
         });
 
