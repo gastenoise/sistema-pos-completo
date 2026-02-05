@@ -115,8 +115,7 @@ export const request = async (path, options = {}) => {
   if (response.status === 401 && token) {
     clearToken();
     if (typeof window !== 'undefined') {
-      const redirect = `${window.location.pathname}${window.location.search}`;
-      window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
+      window.dispatchEvent(new CustomEvent('session-expired'));
     }
   }
 

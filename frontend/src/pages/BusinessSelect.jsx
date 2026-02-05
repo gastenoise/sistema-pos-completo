@@ -12,6 +12,7 @@ export default function BusinessSelect() {
   const { selectBusiness, setBusinesses } = useBusiness();
   const [businesses, setLocalBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectingId, setSelectingId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -37,6 +38,7 @@ export default function BusinessSelect() {
 
   const handleSelectBusiness = async (business) => {
     try {
+      setSelectingId(business.id);
       await apiClient.post('/protected/businesses/select', { business_id: business.id });
       selectBusiness({
         ...business,
@@ -45,6 +47,7 @@ export default function BusinessSelect() {
       window.location.href = createPageUrl('POS');
     } catch (error) {
       toast.error('Failed to select business');
+      setSelectingId(null);
     }
   };
 
@@ -80,7 +83,8 @@ export default function BusinessSelect() {
                   <button
                     key={business.id}
                     onClick={() => handleSelectBusiness(business)}
-                    className="w-full p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-between transition-colors"
+                    disabled={selectingId !== null}
+                    className="w-full p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-between transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -93,7 +97,11 @@ export default function BusinessSelect() {
                         )}
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                    {selectingId === business.id ? (
+                      <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-slate-400" />
+                    )}
                   </button>
                 ))}
               </div>

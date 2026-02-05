@@ -70,9 +70,18 @@ export default function Reports() {
     queryKey: ['sales', businessId, dateFrom, dateTo, includeVoided],
     queryFn: async () => {
       if (!businessId) return [];
-      const response = await apiClient.get(`/protected/reports/sales?start_date=${dateFrom}&end_date=${dateTo}&include_voided=${includeVoided ? '1' : '0'}`);
-      const normalized = normalizeListResponse(response, 'sales');
-      return normalized.filter((sale) => sale.status === 'closed' || (includeVoided && sale.status === 'voided'));
+      try {
+        const response = await apiClient.get(`/protected/reports/sales?start_date=${dateFrom}&end_date=${dateTo}&include_voided=${includeVoided ? '1' : '0'}`);
+        const normalized = normalizeListResponse(response, 'sales');
+        return normalized.filter((sale) => sale.status === 'closed' || (includeVoided && sale.status === 'voided'));
+      } catch (error) {
+        if (error?.status === 404) {
+          const fallback = await apiClient.get(`/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales&format_json=1`);
+          const normalized = normalizeListResponse(fallback, 'sales');
+          return normalized.filter((sale) => sale.status === 'closed' || (includeVoided && sale.status === 'voided'));
+        }
+        throw error;
+      }
     },
     enabled: !!businessId
   });
