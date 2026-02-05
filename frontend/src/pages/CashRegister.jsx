@@ -71,23 +71,6 @@ export default function CashRegister() {
     enabled: !!businessId
   });
 
-  // Fetch payment methods
-  const { data: paymentMethods = [] } = useQuery({
-    queryKey: ['paymentMethods', businessId],
-    queryFn: async () => {
-      if (!businessId) return [];
-      const response = await apiClient.get('/protected/payment-methods');
-      const methods = normalizeListResponse(response, 'payment_methods');
-      return methods
-        .map((method) => ({
-          ...method,
-          type: method.type || method.code
-        }))
-        .filter((method) => (method.is_active ?? method.active) !== false);
-    },
-    enabled: !!businessId
-  });
-
   // Fetch sales for current session
   const { data: expectedTotals } = useQuery({
     queryKey: ['expectedTotals', currentSession?.id],
@@ -105,11 +88,25 @@ export default function CashRegister() {
     count: expectedTotals?.sales_count ?? 0
   };
 
-  const paymentTotals = {};
-  paymentMethods.forEach(method => {
-    const methodKey = method.code || method.type;
-    paymentTotals[methodKey] = expectedTotals?.payment_totals?.[methodKey] ?? 0;
-  });
+  const paymentTotals = (expectedTotals?.breakdown || []).reduce((acc, total) => {
+    const method = total.payment_method || total.paymentMethod;
+    const methodKey = method?.code || total.payment_method_id;
+    acc[methodKey] = Number(total.total ?? 0);
+    return acc;
+  }, {});
+
+  const paymentMovements = (expectedTotals?.breakdown || [])
+    .map((total) => {
+      const method = total.payment_method || total.paymentMethod;
+      return {
+        id: method?.id || total.payment_method_id,
+        name: method?.name || 'Payment Method',
+        code: method?.code || method?.type || total.payment_method_id,
+        color: method?.color || '#6B7280',
+        total: Number(total.total ?? 0)
+      };
+    })
+    .filter((method) => method.total !== 0);
 
   const expectedCash = (currentSession?.opening_cash_amount || 0) + (paymentTotals.cash || 0);
 
@@ -229,24 +226,30 @@ export default function CashRegister() {
                 <CardTitle className="text-lg">Sales by Payment Method</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {paymentMethods.map((method) => (
-                    <div key={method.id} className="flex items-center justify-between py-2 border-b">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: method.color || '#6B7280' }}
-                        />
-                        <span className="text-slate-600">{method.name}</span>
+                {paymentMovements.length > 0 ? (
+                  <div className="space-y-3">
+                    {paymentMovements.map((method) => (
+                      <div key={method.id} className="flex items-center justify-between py-2 border-b">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: method.color }}
+                          />
+                          <span className="text-slate-600">{method.name}</span>
+                        </div>
+                        <span className="font-medium">{formatPrice(method.total, currentBusiness)}</span>
                       </div>
-                      <span className="font-medium">{formatPrice(paymentTotals[method.code || method.type] || 0, currentBusiness)}</span>
+                    ))}
+                    <div className="flex items-center justify-between py-2 font-bold pt-2">
+                      <span>Total</span>
+                      <span>{formatPrice(sessionTotals.total, currentBusiness)}</span>
                     </div>
-                  ))}
-                  <div className="flex items-center justify-between py-2 font-bold pt-2">
-                    <span>Total</span>
-                    <span>{formatPrice(sessionTotals.total, currentBusiness)}</span>
                   </div>
-                </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500">
+                    No se cobró en ningún método de pago desde que la caja está abierta.
+                  </div>
+                )}
               </CardContent>
             </Card>
 
