@@ -131,21 +131,25 @@ export default function Settings() {
     }
   }, [currentBusiness]);
 
+  const normalizeIsActive = (entry) => {
+    if (Object.prototype.hasOwnProperty.call(entry, 'is_active')) {
+      return { ...entry, is_active: entry.is_active };
+    }
+    if (Object.prototype.hasOwnProperty.call(entry, 'active')) {
+      return { ...entry, is_active: entry.active };
+    }
+    return entry;
+  };
+
   const updateCategoryCache = (response) => {
-    const list = normalizeListResponse(response, 'categories').map((category) => ({
-      ...category,
-      is_active: category.is_active ?? category.active
-    }));
+    const list = normalizeListResponse(response, 'categories').map(normalizeIsActive);
     if (list.length > 0) {
       queryClient.setQueryData(['categories', businessId], list);
       return true;
     }
     const entity = normalizeEntityResponse(response);
     if (entity?.id) {
-      const normalizedEntity = {
-        ...entity,
-        is_active: entity.is_active ?? entity.active
-      };
+      const normalizedEntity = normalizeIsActive(entity);
       queryClient.setQueryData(['categories', businessId], (prev = []) => {
         const safePrev = Array.isArray(prev) ? prev : [];
         const exists = safePrev.find((category) => category.id === normalizedEntity.id);
@@ -167,10 +171,7 @@ export default function Settings() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/categories');
-      return normalizeListResponse(response, 'categories').map((category) => ({
-        ...category,
-        is_active: category.is_active ?? category.active
-      }));
+      return normalizeListResponse(response, 'categories').map(normalizeIsActive);
     },
     enabled: !!businessId
   });
@@ -181,12 +182,14 @@ export default function Settings() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/payment-methods');
-      return normalizeListResponse(response, 'payment_methods').map((method) => ({
-        ...method,
-        type: method.type || method.code,
-        is_active: method.is_active ?? method.active,
-        is_default: method.is_default ?? method.preferred
-      }));
+      return normalizeListResponse(response, 'payment_methods').map((method) => {
+        const normalizedMethod = normalizeIsActive(method);
+        return {
+          ...normalizedMethod,
+          type: method.type || method.code,
+          is_default: method.is_default ?? method.preferred
+        };
+      });
     },
     enabled: !!businessId
   });
@@ -540,7 +543,7 @@ export default function Settings() {
                              <IconComponent className="w-4 h-4" style={{ color: category.color || '#3B82F6' }} />
                            </div>
                            <span className="font-medium">{category.name}</span>
-                           {!category.is_active && (
+                           {category.is_active === false && (
                              <Badge variant="secondary">Inactive</Badge>
                            )}
                          </div>
