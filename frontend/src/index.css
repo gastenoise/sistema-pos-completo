@@ -86,3 +86,33 @@
     @apply bg-background text-foreground;
   }
 }
+
+.sonner-toast {
+  animation: toast-enter 320ms ease-out;
+}
+
+.sonner-toast[data-state='closed'] {
+  animation: toast-exit 220ms ease-in;
+}
+
+@keyframes toast-enter {
+  0% {
+    opacity: 0;
+    transform: translate(50vw, -50vh) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes toast-exit {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0, 20px) scale(0.95);
+  }
+}

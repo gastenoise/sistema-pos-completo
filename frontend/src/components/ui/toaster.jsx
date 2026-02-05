@@ -6,6 +6,10 @@ export function Toaster() {
       richColors
       closeButton
       expand
+      position="bottom-left"
+      toastOptions={{
+        className: 'sonner-toast'
+      }}
     />
   );
 }
