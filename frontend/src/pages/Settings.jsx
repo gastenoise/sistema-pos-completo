@@ -7,7 +7,7 @@ import {
   Utensils, Shirt, Laptop, Smartphone, Book, Wrench, Home, Car, Heart,
   Gamepad, Pizza, Apple, Cake, Watch, Glasses, Plane, Music,
   Camera, Dumbbell, Paintbrush, Hammer, Scissors, Zap, Star, Gift,
-  Mail, TestTube, Banknote, Wallet, QrCode, ArrowLeftRight
+  Mail, TestTube
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
+import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
@@ -84,24 +85,6 @@ export default function Settings() {
     '#0369A1', '#15803D', '#A16207', '#9F1239', '#7E22CE', '#A21CAF'
   ];
 
-  const paymentMethodColors = {
-    cash: '#10B981',
-    debit: '#3B82F6',
-    credit: '#8B5CF6',
-    mercado_pago: '#0EA5E9',
-    transfer: '#F59E0B',
-    other: '#6B7280'
-  };
-
-  const paymentMethodIcons = {
-    cash: Banknote,
-    debit: CreditCard,
-    credit: CreditCard,
-    mercado_pago: QrCode,
-    transfer: ArrowLeftRight,
-    other: Wallet
-  };
-  
   const [paymentStates, setPaymentStates] = useState({});
   const [defaultPaymentId, setDefaultPaymentId] = useState(null);
   const [savingPayments, setSavingPayments] = useState(false);
@@ -589,7 +572,7 @@ export default function Settings() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       {paymentMethods.map((method) => {
-                        const IconComponent = paymentMethodIcons[method.type] || Wallet;
+                        const IconComponent = getPaymentMethodIcon(method.icon);
                         const isDefaultPayment = method.id === defaultPaymentId
                           || method.is_default
                           || method.preferred;
@@ -598,11 +581,11 @@ export default function Settings() {
                             <div className="flex items-center gap-3">
                               <div 
                                 className="w-10 h-10 rounded-lg flex items-center justify-center"
-                                style={{ backgroundColor: (method.color || paymentMethodColors[method.type]) + '20' }}
+                                style={{ backgroundColor: (method.color || '#6B7280') + '20' }}
                               >
                                 <IconComponent 
                                   className="w-5 h-5" 
-                                  style={{ color: method.color || paymentMethodColors[method.type] }} 
+                                  style={{ color: method.color || '#6B7280' }} 
                                 />
                               </div>
                               <div>

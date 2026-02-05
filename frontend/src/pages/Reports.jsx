@@ -56,15 +56,6 @@ export default function Reports() {
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [includeVoided, setIncludeVoided] = useState(false);
 
-  const paymentMethodColors = {
-    cash: '#10B981',
-    debit: '#3B82F6',
-    credit: '#8B5CF6',
-    mercado_pago: '#0EA5E9',
-    transfer: '#F59E0B',
-    other: '#6B7280'
-  };
-
   // Fetch sales
   const { data: sales = [], isLoading: loadingSales } = useQuery({
     queryKey: ['sales', businessId, dateFrom, dateTo, includeVoided],
@@ -116,6 +107,11 @@ export default function Reports() {
     acc[method.type] = closedSales
       .filter(s => s.payment_method_type === method.type)
       .reduce((sum, s) => sum + (s.total_amount || 0), 0);
+    return acc;
+  }, {});
+
+  const paymentMethodColorLookup = paymentMethods.reduce((acc, method) => {
+    acc[method.type] = method.color;
     return acc;
   }, {});
 
@@ -248,20 +244,20 @@ export default function Reports() {
               <div className="grid grid-cols-4 gap-4">
                 {paymentMethods.filter(m => (m.is_active ?? m.active)).slice(0, 4).map((method) => (
                   <div key={method.id} className="flex flex-col gap-2 p-4 rounded-lg border-2" style={{
-                    borderColor: (method.color || paymentMethodColors[method.type]) + '40',
-                    backgroundColor: (method.color || paymentMethodColors[method.type]) + '10'
+                    borderColor: (method.color || '#6B7280') + '40',
+                    backgroundColor: (method.color || '#6B7280') + '10'
                   }}>
                     <div className="flex items-center gap-2">
                       <div
                         className="p-2 rounded-lg"
-                        style={{ backgroundColor: (method.color || paymentMethodColors[method.type]) + '30' }}
+                        style={{ backgroundColor: (method.color || '#6B7280') + '30' }}
                       >
                         <CreditCard
                           className="w-4 h-4"
-                          style={{ color: method.color || paymentMethodColors[method.type] }}
+                          style={{ color: method.color || '#6B7280' }}
                         />
                       </div>
-                      <p className="text-xs font-medium" style={{ color: method.color || paymentMethodColors[method.type] }}>
+                      <p className="text-xs font-medium" style={{ color: method.color || '#6B7280' }}>
                         {method.name}
                       </p>
                     </div>
@@ -422,7 +418,7 @@ export default function Reports() {
                           <div className="flex items-center gap-2">
                             <div
                               className="w-2 h-2 rounded-full"
-                              style={{ backgroundColor: paymentMethodColors[sale.payment_method_type] || '#6B7280' }}
+                              style={{ backgroundColor: paymentMethodColorLookup[sale.payment_method_type] || '#6B7280' }}
                             />
                             <span className="capitalize">{sale.payment_method_type || '—'}</span>
                           </div>
