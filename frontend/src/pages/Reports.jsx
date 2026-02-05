@@ -10,7 +10,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -56,20 +55,22 @@ export default function Reports() {
   const [tempDateTo, setTempDateTo] = useState(today);
   const [selectedSale, setSelectedSale] = useState(null);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
-  const [includeVoided, setIncludeVoided] = useState(false);
+  const [statusFilters, setStatusFilters] = useState(['closed']);
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
 
   // Fetch sales
   const { data: sales = [], isLoading: loadingSales } = useQuery({
-    queryKey: ['sales', businessId, dateFrom, dateTo, includeVoided, selectedPaymentMethod],
+    queryKey: ['sales', businessId, dateFrom, dateTo, statusFilters, selectedPaymentMethod],
     queryFn: async () => {
       if (!businessId) return [];
       try {
         const params = new URLSearchParams({
           start_date: dateFrom,
-          end_date: dateTo,
-          include_voided: includeVoided ? '1' : '0'
+          end_date: dateTo
         });
+        if (statusFilters.length > 0) {
+          params.set('statuses', statusFilters.join(','));
+        }
         if (selectedPaymentMethod) {
           params.set('payment_method', selectedPaymentMethod);
         }
@@ -93,14 +94,16 @@ export default function Reports() {
   });
 
   const { data: salesSummary = {} } = useQuery({
-    queryKey: ['sales-summary', businessId, dateFrom, dateTo, includeVoided, selectedPaymentMethod],
+    queryKey: ['sales-summary', businessId, dateFrom, dateTo, statusFilters, selectedPaymentMethod],
     queryFn: async () => {
       if (!businessId) return {};
       const params = new URLSearchParams({
         start_date: dateFrom,
-        end_date: dateTo,
-        include_voided: includeVoided ? '1' : '0'
+        end_date: dateTo
       });
+      if (statusFilters.length > 0) {
+        params.set('statuses', statusFilters.join(','));
+      }
       if (selectedPaymentMethod) {
         params.set('payment_method', selectedPaymentMethod);
       }
@@ -136,11 +139,35 @@ export default function Reports() {
     return acc;
   }, {});
 
+  const statusOptions = [
+    { value: 'closed', label: 'Closed' },
+    { value: 'open', label: 'Open' },
+    { value: 'voided', label: 'Voided' }
+  ];
+
+  const toggleStatusFilter = (status) => {
+    setStatusFilters((prev) => {
+      const next = prev.includes(status)
+        ? prev.filter((current) => current !== status)
+        : [...prev, status];
+      return next.length === 0 ? prev : next;
+    });
+  };
+
+  const clearFilters = () => {
+    setQuickDate('today');
+    setPaymentMethodFilter('all');
+    setStatusFilters(['closed']);
+  };
+
   const handleExportCsv = async () => {
     try {
       const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
       const token = getToken();
-      const response = await fetch(`${baseUrl}/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales`, {
+      const statusParams = statusFilters.length > 0
+        ? `&statuses=${encodeURIComponent(statusFilters.join(','))}`
+        : '';
+      const response = await fetch(`${baseUrl}/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales${statusParams}`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...(businessId ? { 'X-Business-Id': businessId } : {})
@@ -237,8 +264,9 @@ export default function Reports() {
                     <FileText className="w-6 h-6 text-amber-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-amber-600 font-medium">Transactions</p>
+                    <p className="text-sm text-amber-600 font-medium">Closed Transactions</p>
                     <p className="text-2xl font-bold text-amber-900">{summary.sales_count ?? 0}</p>
+                    <p className="text-xs text-amber-600">Closed sales only</p>
                   </div>
                 </div>
 
@@ -248,8 +276,9 @@ export default function Reports() {
                     <DollarSign className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-blue-600 font-medium">Total Sales</p>
+                    <p className="text-sm text-blue-600 font-medium">Closed Sales Total</p>
                     <p className="text-2xl font-bold text-blue-900">{formatPrice(summary.total_sales ?? 0, currentBusiness)}</p>
+                    <p className="text-xs text-blue-600">Closed sales only</p>
                   </div>
                 </div>
               </div>
@@ -290,7 +319,10 @@ export default function Reports() {
 
         {/* Filters */}
         <Card className="mb-6">
-          <CardContent className="p-4">
+          <CardHeader>
+            <CardTitle className="text-lg">Filters</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
             <div className="flex flex-wrap items-end gap-4">
               <div className="flex gap-2 flex-wrap">
                 <Button
@@ -367,16 +399,32 @@ export default function Reports() {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="include-voided"
-                  checked={includeVoided}
-                  onCheckedChange={setIncludeVoided}
-                />
-                <Label htmlFor="include-voided" className="text-sm cursor-pointer">
-                  Include voided
-                </Label>
+              <div className="flex flex-wrap items-center gap-2">
+                {statusOptions.map((status) => {
+                  const isActive = statusFilters.includes(status.value);
+                  return (
+                    <Button
+                      key={status.value}
+                      type="button"
+                      variant={isActive ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => toggleStatusFilter(status.value)}
+                      className="rounded-full"
+                    >
+                      {status.label}
+                    </Button>
+                  );
+                })}
               </div>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+              >
+                Clear filters
+              </Button>
             </div>
           </CardContent>
         </Card>

@@ -17,6 +17,9 @@ class ReportController extends Controller
         $endDate = $request->input('end_date');
         $includeVoided = $request->boolean('include_voided');
         $paymentMethod = $request->input('payment_method');
+        $statuses = collect(explode(',', (string) $request->input('statuses', '')))
+            ->map(fn ($status) => trim($status))
+            ->filter();
 
         $query = Sale::with(['items', 'payments.paymentMethod', 'user'])
             ->where('business_id', $businessId);
@@ -27,7 +30,9 @@ class ReportController extends Controller
         if ($endDate) {
             $query->whereDate('created_at', '<=', $endDate);
         }
-        if (!$includeVoided) {
+        if ($statuses->isNotEmpty()) {
+            $query->whereIn('status', $statuses->all());
+        } elseif (!$includeVoided) {
             $query->where('status', '!=', 'voided');
         }
         if ($paymentMethod) {
@@ -70,6 +75,9 @@ class ReportController extends Controller
         $endDate = $request->input('end_date');
         $includeVoided = $request->boolean('include_voided');
         $paymentMethod = $request->input('payment_method');
+        $statuses = collect(explode(',', (string) $request->input('statuses', '')))
+            ->map(fn ($status) => trim($status))
+            ->filter();
 
         $salesQuery = Sale::query()
             ->where('business_id', $businessId);
@@ -80,7 +88,9 @@ class ReportController extends Controller
         if ($endDate) {
             $salesQuery->whereDate('created_at', '<=', $endDate);
         }
-        if (!$includeVoided) {
+        if ($statuses->isNotEmpty()) {
+            $salesQuery->whereIn('status', $statuses->all());
+        } elseif (!$includeVoided) {
             $salesQuery->where('status', '!=', 'voided');
         }
         if ($paymentMethod) {
@@ -113,7 +123,9 @@ class ReportController extends Controller
         if ($endDate) {
             $paymentsQuery->whereDate('sales.created_at', '<=', $endDate);
         }
-        if (!$includeVoided) {
+        if ($statuses->isNotEmpty()) {
+            $paymentsQuery->whereIn('sales.status', $statuses->all());
+        } elseif (!$includeVoided) {
             $paymentsQuery->where('sales.status', '!=', 'voided');
         }
         if ($paymentMethod) {
@@ -134,8 +146,8 @@ class ReportController extends Controller
             'success' => true,
             'data' => [
                 'summary' => [
-                    'total_sales' => $sales->sum('total_amount'),
-                    'sales_count' => $sales->count(),
+                    'total_sales' => $sales->where('status', 'closed')->sum('total_amount'),
+                    'sales_count' => $sales->where('status', 'closed')->count(),
                     'voided_count' => $sales->where('status', 'voided')->count(),
                 ],
                 'totals_by_status' => $totalsByStatus,
@@ -175,6 +187,9 @@ class ReportController extends Controller
         $businessId = app(BusinessContext::class)->getBusinessId();
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
+        $statuses = collect(explode(',', (string) $request->input('statuses', '')))
+            ->map(fn ($status) => trim($status))
+            ->filter();
 
         $query = Sale::with(['items', 'payments.paymentMethod', 'user'])
             ->where('business_id', $businessId);
@@ -184,6 +199,9 @@ class ReportController extends Controller
         }
         if ($endDate) {
             $query->whereDate('created_at', '<=', $endDate);
+        }
+        if ($statuses->isNotEmpty()) {
+            $query->whereIn('status', $statuses->all());
         }
 
         $wantsJson = $request->wantsJson() || $request->boolean('format_json');
