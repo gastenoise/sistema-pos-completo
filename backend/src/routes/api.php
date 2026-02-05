@@ -14,7 +14,8 @@ use App\Http\Controllers\{
     MercadoPagoController,
     PaymentMethodController,
     InformationController,
-    NavigationEventController
+    NavigationEventController,
+    SalePaymentController
 };
 
 /*
@@ -102,6 +103,8 @@ Route::prefix('protected')->group(function () {
                     Route::post('{sale}/items', [SaleController::class, 'addItem']);
                     Route::delete('{sale}/items/{saleItem}', [SaleController::class, 'removeItem']);
                     Route::post('{sale}/payments', [SaleController::class, 'addPayment']);
+                    Route::post('{sale}/payments/{payment}/confirm', [SalePaymentController::class, 'confirm']);
+                    Route::post('{sale}/payments/{payment}/fail', [SalePaymentController::class, 'fail']);
                     Route::get('{sale}/qr', [SaleController::class, 'getPaymentQr']);
                     Route::post('{sale}/close', [SaleController::class, 'close']);
                     Route::post('{sale}/void', [SaleController::class, 'void']);
@@ -153,6 +156,8 @@ Route::prefix('public')->middleware(['auth.apikey', 'throttle:public-api'])->gro
         Route::post('{sale}/items', [SaleController::class, 'addItem']);
         Route::delete('{sale}/items/{saleItem}', [SaleController::class, 'removeItem']);
         Route::post('{sale}/payments', [SaleController::class, 'addPayment']);
+        Route::post('{sale}/payments/{payment}/confirm', [SalePaymentController::class, 'confirm']);
+        Route::post('{sale}/payments/{payment}/fail', [SalePaymentController::class, 'fail']);
         Route::get('{sale}/qr', [SaleController::class, 'getPaymentQr']);
         Route::post('{sale}/close', [SaleController::class, 'close']);
         Route::post('{sale}/void', [SaleController::class, 'void']);
