@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,8 +32,11 @@ export default function GenericItemForm({ onAdd }) {
         price: parseFloat(formData.price),
         isGeneric: true
       });
+      toast.success('Item creado y agregado');
       setFormData({ name: '', price: '' });
       setOpen(false);
+    } catch (error) {
+      toast.error('No se pudo crear el item');
     } finally {
       setLoading(false);
     }
