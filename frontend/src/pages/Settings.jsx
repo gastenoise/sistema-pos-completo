@@ -367,7 +367,24 @@ export default function Settings() {
   const handleSaveSmtp = async () => {
     setSavingSmtp(true);
     try {
-      await apiClient.put('/protected/business/smtp', smtpData);
+      if (!smtpData.host?.trim()) {
+        toast.error('SMTP host is required');
+        return;
+      }
+      if (!smtpData.from_email?.trim()) {
+        toast.error('From email is required');
+        return;
+      }
+      if (!smtpData.port || Number.isNaN(smtpData.port)) {
+        toast.error('SMTP port is required');
+        return;
+      }
+      const payload = {
+        ...smtpData,
+        from_name: smtpData.from_name?.trim() || currentBusiness?.name || '',
+        from_email: smtpData.from_email?.trim()
+      };
+      await apiClient.put('/protected/business/smtp', payload);
       toast.success('SMTP configuration saved');
       queryClient.invalidateQueries({ queryKey: ['smtpConfig', businessId] });
     } catch (error) {

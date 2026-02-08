@@ -94,12 +94,12 @@ class BusinessController extends Controller
         }
 
         $validated = $request->validate([
-            'host' => 'nullable|string',
-            'port' => 'nullable|integer',
-            'username' => 'nullable|string',
+            'host' => 'required|string',
+            'port' => 'required|integer',
+            'username' => 'required|string',
             'password' => 'nullable|string',
             'encryption' => 'nullable|string|in:none,ssl,tls',
-            'from_email' => 'nullable|email',
+            'from_email' => 'required|email',
             'from_name' => 'nullable|string',
             'active' => 'nullable|boolean',
         ]);
@@ -109,9 +109,17 @@ class BusinessController extends Controller
         $smtp = $business->smtpSettings ?: new BusinessSmtpSetting(['business_id' => $business->id]);
         $smtp->fill($validated);
 
+        if (!$smtp->exists && (!$request->has('password') || $request->password === null || $request->password === '')) {
+            return response()->json(['success' => false, 'message' => 'Password is required for new SMTP settings'], 422);
+        }
+
         // Si el password es NULL, no se actualiza.
-        if (!$request->has('password') || $request->password === null || $request->password === '') {
+        if ($smtp->exists && (!$request->has('password') || $request->password === null || $request->password === '')) {
             unset($smtp->password);
+        }
+
+        if (!$smtp->from_name) {
+            $smtp->from_name = $business->name;
         }
 
         $smtp->business_id = $business->id;
