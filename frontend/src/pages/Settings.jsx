@@ -517,14 +517,26 @@ export default function Settings() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
                       <Label>Business Name</Label>
+                      {/* <Input
+                        value={businessData.name}
+                        onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
+                      /> */}
                       <Input
+                        disabled
                         value={businessData.name}
                         onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
                       />
                     </div>
                     <div className="col-span-2">
                       <Label>Business Email</Label>
+                      {/* <Input
+                        type="email"
+                        value={businessData.business_email}
+                        onChange={(e) => setBusinessData({ ...businessData, business_email: e.target.value })}
+                        placeholder="contact@business.com"
+                      /> */}
                       <Input
+                        disabled
                         type="email"
                         value={businessData.business_email}
                         onChange={(e) => setBusinessData({ ...businessData, business_email: e.target.value })}
