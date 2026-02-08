@@ -52,14 +52,15 @@ Route::prefix('protected')->group(function () {
             Route::get('info/colors', [InformationController::class, 'colors']);
             Route::get('info/payment-methods', [InformationController::class, 'paymentMethods']);
 
-            Route::get('business/smtp', [BusinessController::class, 'getSmtpSettings']);
-            Route::put('business/smtp', [BusinessController::class, 'updateSmtpSettings']);
             /*
             |----------------------------------------------------------------------
             | Business Scoped Routes (Requieren business_id en sesión/header)
             |----------------------------------------------------------------------
             */
             Route::middleware('resolve.business')->group(function () {
+                Route::get('business/smtp', [BusinessController::class, 'getSmtpSettings']);
+                Route::put('business/smtp', [BusinessController::class, 'updateSmtpSettings']);
+                Route::post('business/smtp/test', [BusinessController::class, 'testSmtpSettings']);
                 Route::put('business', [BusinessController::class, 'update']);
 
                 Route::apiResource('api-keys', ApiKeyController::class)

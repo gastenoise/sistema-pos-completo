@@ -380,11 +380,26 @@ export default function Settings() {
   const handleTestSmtp = async () => {
     setTestingSmtp(true);
     try {
-      // In a real app, this would test the SMTP connection
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success('SMTP configuration test successful');
+      const targetEmail = user?.email || smtpData.from_email;
+      if (!targetEmail) {
+        toast.error('Add a recipient email to run the SMTP test');
+        return;
+      }
+      const payload = {
+        to_email: targetEmail
+      };
+      if (smtpData.host) payload.host = smtpData.host;
+      if (smtpData.port) payload.port = smtpData.port;
+      if (smtpData.username) payload.username = smtpData.username;
+      if (smtpData.password) payload.password = smtpData.password;
+      if (smtpData.encryption) payload.encryption = smtpData.encryption;
+      if (smtpData.from_name) payload.from_name = smtpData.from_name;
+      if (smtpData.from_email) payload.from_email = smtpData.from_email;
+      const response = await apiClient.post('/protected/business/smtp/test', payload);
+      toast.success(response?.message || 'SMTP configuration test successful');
     } catch (error) {
-      toast.error('SMTP test failed');
+      const message = error?.data?.message || error?.message || 'SMTP test failed';
+      toast.error(message);
     } finally {
       setTestingSmtp(false);
     }
