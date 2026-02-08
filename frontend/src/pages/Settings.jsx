@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { apiClient } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -56,6 +56,7 @@ export default function Settings() {
     currency: 'ARS'
   });
   const [savingBusiness, setSavingBusiness] = useState(false);
+  const businessFormRef = useRef(null);
   
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -97,6 +98,7 @@ export default function Settings() {
   });
   const [savingBank, setSavingBank] = useState(false);
   const [cbuTooLong, setCbuTooLong] = useState(false);
+  const bankFormRef = useRef(null);
   
   const [smtpData, setSmtpData] = useState({
     host: '',
@@ -109,6 +111,7 @@ export default function Settings() {
   });
   const [savingSmtp, setSavingSmtp] = useState(false);
   const [testingSmtp, setTestingSmtp] = useState(false);
+  const smtpFormRef = useRef(null);
   
   const [showPremiumDialog, setShowPremiumDialog] = useState(false);
   const [modules, setModules] = useState({
@@ -257,7 +260,12 @@ export default function Settings() {
     }
   }, [bankAccount]);
 
-  const handleSaveBusiness = async () => {
+  const handleSaveBusiness = async (event) => {
+    event?.preventDefault();
+    const form = businessFormRef.current;
+    if (form && !form.reportValidity()) {
+      return;
+    }
     if (!currentBusiness) return;
     setSavingBusiness(true);
     try {
@@ -351,7 +359,12 @@ export default function Settings() {
     }));
   };
 
-  const handleSaveBankData = async () => {
+  const handleSaveBankData = async (event) => {
+    event?.preventDefault();
+    const form = bankFormRef.current;
+    if (form && !form.reportValidity()) {
+      return;
+    }
     setSavingBank(true);
     try {
       await apiClient.put('/protected/banks', bankData);
@@ -364,10 +377,29 @@ export default function Settings() {
     }
   };
 
-  const handleSaveSmtp = async () => {
+  const handleSaveSmtp = async (event) => {
+    event?.preventDefault();
+    const form = smtpFormRef.current;
+    if (form && !form.reportValidity()) {
+      return;
+    }
     setSavingSmtp(true);
     try {
-      await apiClient.put('/protected/business/smtp', smtpData);
+      const fallbackEmail = currentBusiness?.email || currentBusiness?.business_email || '';
+      if (!smtpData.from_email?.trim() && !fallbackEmail) {
+        toast.error('Business email is required to send SMTP emails');
+        return;
+      }
+      if (!smtpData.port || Number.isNaN(smtpData.port)) {
+        toast.error('SMTP port is required');
+        return;
+      }
+      const payload = {
+        ...smtpData,
+        from_name: smtpData.from_name?.trim() || currentBusiness?.name || '',
+        from_email: smtpData.from_email?.trim() || fallbackEmail
+      };
+      await apiClient.put('/protected/business/smtp', payload);
       toast.success('SMTP configuration saved');
       queryClient.invalidateQueries({ queryKey: ['smtpConfig', businessId] });
     } catch (error) {
@@ -380,11 +412,35 @@ export default function Settings() {
   const handleTestSmtp = async () => {
     setTestingSmtp(true);
     try {
-      // In a real app, this would test the SMTP connection
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success('SMTP configuration test successful');
+      const fallbackEmail = currentBusiness?.email || currentBusiness?.business_email || '';
+      const targetEmail = user?.email || smtpData.from_email || fallbackEmail;
+      if (!targetEmail) {
+        toast.error('Add a recipient email to run the SMTP test');
+        return;
+      }
+      const payload = {
+        to_email: targetEmail
+      };
+      if (smtpData.host) payload.host = smtpData.host;
+      if (smtpData.port) payload.port = smtpData.port;
+      if (smtpData.username) payload.username = smtpData.username;
+      if (smtpData.password) payload.password = smtpData.password;
+      if (smtpData.encryption) payload.encryption = smtpData.encryption;
+      if (smtpData.from_name?.trim()) {
+        payload.from_name = smtpData.from_name.trim();
+      } else if (currentBusiness?.name) {
+        payload.from_name = currentBusiness.name;
+      }
+      if (smtpData.from_email?.trim()) {
+        payload.from_email = smtpData.from_email.trim();
+      } else if (fallbackEmail) {
+        payload.from_email = fallbackEmail;
+      }
+      const response = await apiClient.post('/protected/business/smtp/test', payload);
+      toast.success(response?.message || 'SMTP configuration test successful');
     } catch (error) {
-      toast.error('SMTP test failed');
+      const message = error?.data?.message || error?.message || 'SMTP test failed';
+      toast.error(message);
     } finally {
       setTestingSmtp(false);
     }
@@ -456,69 +512,83 @@ export default function Settings() {
                 <CardTitle>Business Information</CardTitle>
                 <CardDescription>Update your business details</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <Label>Business Name</Label>
-                    <Input
-                      value={businessData.name}
-                      onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
-                    />
+              <CardContent>
+                <form ref={businessFormRef} className="space-y-4" onSubmit={handleSaveBusiness}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <Label>Business Name</Label>
+                      {/* <Input
+                        value={businessData.name}
+                        onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
+                      /> */}
+                      <Input
+                        disabled
+                        value={businessData.name}
+                        onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Business Email</Label>
+                      {/* <Input
+                        type="email"
+                        value={businessData.business_email}
+                        onChange={(e) => setBusinessData({ ...businessData, business_email: e.target.value })}
+                        placeholder="contact@business.com"
+                      /> */}
+                      <Input
+                        disabled
+                        type="email"
+                        value={businessData.business_email}
+                        onChange={(e) => setBusinessData({ ...businessData, business_email: e.target.value })}
+                        placeholder="contact@business.com"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Address</Label>
+                      <Input
+                        value={businessData.address}
+                        onChange={(e) => setBusinessData({ ...businessData, address: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Phone</Label>
+                      <Input
+                        value={businessData.phone}
+                        onChange={(e) => setBusinessData({ ...businessData, phone: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Tax ID</Label>
+                      <Input
+                        value={businessData.tax_id}
+                        onChange={(e) => setBusinessData({ ...businessData, tax_id: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Currency</Label>
+                      <Select 
+                        value={businessData.currency} 
+                        onValueChange={(v) => setBusinessData({ ...businessData, currency: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ARS">ARS - Argentine Peso</SelectItem>
+                          <SelectItem value="USD">USD - US Dollar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="col-span-2">
-                    <Label>Business Email</Label>
-                    <Input
-                      type="email"
-                      value={businessData.business_email}
-                      onChange={(e) => setBusinessData({ ...businessData, business_email: e.target.value })}
-                      placeholder="contact@business.com"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Address</Label>
-                    <Input
-                      value={businessData.address}
-                      onChange={(e) => setBusinessData({ ...businessData, address: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Phone</Label>
-                    <Input
-                      value={businessData.phone}
-                      onChange={(e) => setBusinessData({ ...businessData, phone: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Tax ID</Label>
-                    <Input
-                      value={businessData.tax_id}
-                      onChange={(e) => setBusinessData({ ...businessData, tax_id: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Currency</Label>
-                    <Select 
-                      value={businessData.currency} 
-                      onValueChange={(v) => setBusinessData({ ...businessData, currency: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ARS">ARS - Argentine Peso</SelectItem>
-                        <SelectItem value="USD">USD - US Dollar</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <Button onClick={handleSaveBusiness} disabled={savingBusiness}>
-                  {savingBusiness ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Save Changes
-                </Button>
+                  <Button type="submit" disabled={savingBusiness}>
+                    {savingBusiness ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Save Changes
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </TabsContent>
@@ -654,61 +724,63 @@ export default function Settings() {
                 <CardTitle>Bank Transfer Configuration</CardTitle>
                 <CardDescription>Configure your bank account details for transfer payments</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <Label>Bank Name</Label>
-                    <Input
-                      value={bankData.bank_name}
-                      onChange={(e) => setBankData({ ...bankData, bank_name: e.target.value })}
-                      placeholder="e.g., Banco Galicia"
-                    />
+              <CardContent>
+                <form ref={bankFormRef} className="space-y-4" onSubmit={handleSaveBankData}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <Label>Bank Name</Label>
+                      <Input
+                        value={bankData.bank_name}
+                        onChange={(e) => setBankData({ ...bankData, bank_name: e.target.value })}
+                        placeholder="e.g., Banco Galicia"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Account Holder</Label>
+                      <Input
+                        value={bankData.account_holder_name}
+                        onChange={(e) => setBankData({ ...bankData, account_holder_name: e.target.value })}
+                        placeholder="Account holder name"
+                      />
+                    </div>
+                    <div>
+                      <Label>CBU</Label>
+                      <Input
+                        value={bankData.cbu}
+                        onChange={(e) => {
+                          const digitsOnly = e.target.value.replace(/\D/g, '');
+                          setCbuTooLong(digitsOnly.length > 22);
+                          setBankData({ ...bankData, cbu: digitsOnly.slice(0, 22) });
+                        }}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={22}
+                        placeholder="0123456789012345678901"
+                      />
+                      {cbuTooLong && (
+                        <p className="mt-1 text-xs text-red-600">
+                          The CBU must be 22 digits or fewer.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label>Alias</Label>
+                      <Input
+                        value={bankData.alias}
+                        onChange={(e) => setBankData({ ...bankData, alias: e.target.value })}
+                        placeholder="my.business.alias"
+                      />
+                    </div>
                   </div>
-                  <div className="col-span-2">
-                    <Label>Account Holder</Label>
-                    <Input
-                      value={bankData.account_holder_name}
-                      onChange={(e) => setBankData({ ...bankData, account_holder_name: e.target.value })}
-                      placeholder="Account holder name"
-                    />
-                  </div>
-                  <div>
-                    <Label>CBU</Label>
-                    <Input
-                      value={bankData.cbu}
-                      onChange={(e) => {
-                        const digitsOnly = e.target.value.replace(/\D/g, '');
-                        setCbuTooLong(digitsOnly.length > 22);
-                        setBankData({ ...bankData, cbu: digitsOnly.slice(0, 22) });
-                      }}
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={22}
-                      placeholder="0123456789012345678901"
-                    />
-                    {cbuTooLong && (
-                      <p className="mt-1 text-xs text-red-600">
-                        The CBU must be 22 digits or fewer.
-                      </p>
+                  <Button type="submit" disabled={savingBank}>
+                    {savingBank ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
                     )}
-                  </div>
-                  <div>
-                    <Label>Alias</Label>
-                    <Input
-                      value={bankData.alias}
-                      onChange={(e) => setBankData({ ...bankData, alias: e.target.value })}
-                      placeholder="my.business.alias"
-                    />
-                  </div>
-                </div>
-                <Button onClick={handleSaveBankData} disabled={savingBank}>
-                  {savingBank ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Save Bank Details
-                </Button>
+                    Save Bank Details
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </TabsContent>
@@ -720,91 +792,98 @@ export default function Settings() {
                 <CardTitle>SMTP Configuration</CardTitle>
                 <CardDescription>Configure email settings for sending receipts and notifications</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>Host</Label>
-                    <Input
-                      value={smtpData.host}
-                      onChange={(e) => setSmtpData({ ...smtpData, host: e.target.value })}
-                      placeholder="smtp.example.com"
-                    />
+              <CardContent>
+                <form ref={smtpFormRef} className="space-y-4" onSubmit={handleSaveSmtp}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label>Host</Label>
+                      <Input
+                        required
+                        value={smtpData.host}
+                        onChange={(e) => setSmtpData({ ...smtpData, host: e.target.value })}
+                        placeholder="smtp.example.com"
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label>Port</Label>
+                      <Input
+                        required
+                        min={1}
+                        type="number"
+                        value={smtpData.port}
+                        onChange={(e) => setSmtpData({ ...smtpData, port: parseInt(e.target.value, 10) })}
+                        placeholder="587"
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label>Username</Label>
+                      <Input
+                        required
+                        value={smtpData.username}
+                        onChange={(e) => setSmtpData({ ...smtpData, username: e.target.value })}
+                        placeholder="user@example.com"
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label>Password</Label>
+                      <Input
+                        required={!smtpConfig}
+                        type="password"
+                        value={smtpData.password}
+                        onChange={(e) => setSmtpData({ ...smtpData, password: e.target.value })}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label>Encryption</Label>
+                      <Select value={smtpData.encryption} onValueChange={(v) => setSmtpData({ ...smtpData, encryption: v })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="tls">TLS</SelectItem>
+                          <SelectItem value="ssl">SSL</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label>From Name</Label>
+                      <Input
+                        value={smtpData.from_name}
+                        onChange={(e) => setSmtpData({ ...smtpData, from_name: e.target.value })}
+                        placeholder={currentBusiness?.name || 'My Business'}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>From Email</Label>
+                      <Input
+                        type="email"
+                        value={smtpData.from_email}
+                        onChange={(e) => setSmtpData({ ...smtpData, from_email: e.target.value })}
+                        placeholder={currentBusiness?.email || currentBusiness?.business_email || 'noreply@example.com'}
+                      />
+                    </div>
                   </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>Port</Label>
-                    <Input
-                      type="number"
-                      value={smtpData.port}
-                      onChange={(e) => setSmtpData({ ...smtpData, port: parseInt(e.target.value) })}
-                      placeholder="587"
-                    />
+                  <div className="flex gap-3">
+                    <Button type="submit" disabled={savingSmtp}>
+                      {savingSmtp ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      Save Configuration
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleTestSmtp} disabled={testingSmtp}>
+                      {testingSmtp ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <TestTube className="w-4 h-4 mr-2" />
+                      )}
+                      Test SMTP
+                    </Button>
                   </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>Username</Label>
-                    <Input
-                      value={smtpData.username}
-                      onChange={(e) => setSmtpData({ ...smtpData, username: e.target.value })}
-                      placeholder="user@example.com"
-                    />
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>Password</Label>
-                    <Input
-                      type="password"
-                      value={smtpData.password}
-                      onChange={(e) => setSmtpData({ ...smtpData, password: e.target.value })}
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>Encryption</Label>
-                    <Select value={smtpData.encryption} onValueChange={(v) => setSmtpData({ ...smtpData, encryption: v })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="tls">TLS</SelectItem>
-                        <SelectItem value="ssl">SSL</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>From Name</Label>
-                    <Input
-                      value={smtpData.from_name}
-                      onChange={(e) => setSmtpData({ ...smtpData, from_name: e.target.value })}
-                      placeholder="My Business"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>From Email</Label>
-                    <Input
-                      type="email"
-                      value={smtpData.from_email}
-                      onChange={(e) => setSmtpData({ ...smtpData, from_email: e.target.value })}
-                      placeholder="noreply@example.com"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <Button onClick={handleSaveSmtp} disabled={savingSmtp}>
-                    {savingSmtp ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4 mr-2" />
-                    )}
-                    Save Configuration
-                  </Button>
-                  <Button variant="outline" onClick={handleTestSmtp} disabled={testingSmtp}>
-                    {testingSmtp ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <TestTube className="w-4 h-4 mr-2" />
-                    )}
-                    Test SMTP
-                  </Button>
-                </div>
+                </form>
               </CardContent>
             </Card>
           </TabsContent>
