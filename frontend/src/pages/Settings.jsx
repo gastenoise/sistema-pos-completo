@@ -412,7 +412,8 @@ export default function Settings() {
   const handleTestSmtp = async () => {
     setTestingSmtp(true);
     try {
-      const targetEmail = user?.email || smtpData.from_email;
+      const fallbackEmail = currentBusiness?.email || currentBusiness?.business_email || '';
+      const targetEmail = user?.email || smtpData.from_email || fallbackEmail;
       if (!targetEmail) {
         toast.error('Add a recipient email to run the SMTP test');
         return;
@@ -425,8 +426,16 @@ export default function Settings() {
       if (smtpData.username) payload.username = smtpData.username;
       if (smtpData.password) payload.password = smtpData.password;
       if (smtpData.encryption) payload.encryption = smtpData.encryption;
-      if (smtpData.from_name) payload.from_name = smtpData.from_name;
-      if (smtpData.from_email) payload.from_email = smtpData.from_email;
+      if (smtpData.from_name?.trim()) {
+        payload.from_name = smtpData.from_name.trim();
+      } else if (currentBusiness?.name) {
+        payload.from_name = currentBusiness.name;
+      }
+      if (smtpData.from_email?.trim()) {
+        payload.from_email = smtpData.from_email.trim();
+      } else if (fallbackEmail) {
+        payload.from_email = fallbackEmail;
+      }
       const response = await apiClient.post('/protected/business/smtp/test', payload);
       toast.success(response?.message || 'SMTP configuration test successful');
     } catch (error) {
