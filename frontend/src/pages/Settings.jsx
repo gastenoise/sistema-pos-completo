@@ -56,6 +56,7 @@ export default function Settings() {
     currency: 'ARS'
   });
   const [savingBusiness, setSavingBusiness] = useState(false);
+  const businessFormRef = useRef(null);
   
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -97,6 +98,7 @@ export default function Settings() {
   });
   const [savingBank, setSavingBank] = useState(false);
   const [cbuTooLong, setCbuTooLong] = useState(false);
+  const bankFormRef = useRef(null);
   
   const [smtpData, setSmtpData] = useState({
     host: '',
@@ -258,7 +260,12 @@ export default function Settings() {
     }
   }, [bankAccount]);
 
-  const handleSaveBusiness = async () => {
+  const handleSaveBusiness = async (event) => {
+    event?.preventDefault();
+    const form = businessFormRef.current;
+    if (form && !form.reportValidity()) {
+      return;
+    }
     if (!currentBusiness) return;
     setSavingBusiness(true);
     try {
@@ -352,7 +359,12 @@ export default function Settings() {
     }));
   };
 
-  const handleSaveBankData = async () => {
+  const handleSaveBankData = async (event) => {
+    event?.preventDefault();
+    const form = bankFormRef.current;
+    if (form && !form.reportValidity()) {
+      return;
+    }
     setSavingBank(true);
     try {
       await apiClient.put('/protected/banks', bankData);
@@ -491,69 +503,71 @@ export default function Settings() {
                 <CardTitle>Business Information</CardTitle>
                 <CardDescription>Update your business details</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <Label>Business Name</Label>
-                    <Input
-                      value={businessData.name}
-                      onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
-                    />
+              <CardContent>
+                <form ref={businessFormRef} className="space-y-4" onSubmit={handleSaveBusiness}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <Label>Business Name</Label>
+                      <Input
+                        value={businessData.name}
+                        onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Business Email</Label>
+                      <Input
+                        type="email"
+                        value={businessData.business_email}
+                        onChange={(e) => setBusinessData({ ...businessData, business_email: e.target.value })}
+                        placeholder="contact@business.com"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Address</Label>
+                      <Input
+                        value={businessData.address}
+                        onChange={(e) => setBusinessData({ ...businessData, address: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Phone</Label>
+                      <Input
+                        value={businessData.phone}
+                        onChange={(e) => setBusinessData({ ...businessData, phone: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Tax ID</Label>
+                      <Input
+                        value={businessData.tax_id}
+                        onChange={(e) => setBusinessData({ ...businessData, tax_id: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Currency</Label>
+                      <Select 
+                        value={businessData.currency} 
+                        onValueChange={(v) => setBusinessData({ ...businessData, currency: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ARS">ARS - Argentine Peso</SelectItem>
+                          <SelectItem value="USD">USD - US Dollar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="col-span-2">
-                    <Label>Business Email</Label>
-                    <Input
-                      type="email"
-                      value={businessData.business_email}
-                      onChange={(e) => setBusinessData({ ...businessData, business_email: e.target.value })}
-                      placeholder="contact@business.com"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Address</Label>
-                    <Input
-                      value={businessData.address}
-                      onChange={(e) => setBusinessData({ ...businessData, address: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Phone</Label>
-                    <Input
-                      value={businessData.phone}
-                      onChange={(e) => setBusinessData({ ...businessData, phone: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Tax ID</Label>
-                    <Input
-                      value={businessData.tax_id}
-                      onChange={(e) => setBusinessData({ ...businessData, tax_id: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Currency</Label>
-                    <Select 
-                      value={businessData.currency} 
-                      onValueChange={(v) => setBusinessData({ ...businessData, currency: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ARS">ARS - Argentine Peso</SelectItem>
-                        <SelectItem value="USD">USD - US Dollar</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <Button onClick={handleSaveBusiness} disabled={savingBusiness}>
-                  {savingBusiness ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Save Changes
-                </Button>
+                  <Button type="submit" disabled={savingBusiness}>
+                    {savingBusiness ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Save Changes
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </TabsContent>
@@ -689,61 +703,63 @@ export default function Settings() {
                 <CardTitle>Bank Transfer Configuration</CardTitle>
                 <CardDescription>Configure your bank account details for transfer payments</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <Label>Bank Name</Label>
-                    <Input
-                      value={bankData.bank_name}
-                      onChange={(e) => setBankData({ ...bankData, bank_name: e.target.value })}
-                      placeholder="e.g., Banco Galicia"
-                    />
+              <CardContent>
+                <form ref={bankFormRef} className="space-y-4" onSubmit={handleSaveBankData}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <Label>Bank Name</Label>
+                      <Input
+                        value={bankData.bank_name}
+                        onChange={(e) => setBankData({ ...bankData, bank_name: e.target.value })}
+                        placeholder="e.g., Banco Galicia"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Account Holder</Label>
+                      <Input
+                        value={bankData.account_holder_name}
+                        onChange={(e) => setBankData({ ...bankData, account_holder_name: e.target.value })}
+                        placeholder="Account holder name"
+                      />
+                    </div>
+                    <div>
+                      <Label>CBU</Label>
+                      <Input
+                        value={bankData.cbu}
+                        onChange={(e) => {
+                          const digitsOnly = e.target.value.replace(/\D/g, '');
+                          setCbuTooLong(digitsOnly.length > 22);
+                          setBankData({ ...bankData, cbu: digitsOnly.slice(0, 22) });
+                        }}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={22}
+                        placeholder="0123456789012345678901"
+                      />
+                      {cbuTooLong && (
+                        <p className="mt-1 text-xs text-red-600">
+                          The CBU must be 22 digits or fewer.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <Label>Alias</Label>
+                      <Input
+                        value={bankData.alias}
+                        onChange={(e) => setBankData({ ...bankData, alias: e.target.value })}
+                        placeholder="my.business.alias"
+                      />
+                    </div>
                   </div>
-                  <div className="col-span-2">
-                    <Label>Account Holder</Label>
-                    <Input
-                      value={bankData.account_holder_name}
-                      onChange={(e) => setBankData({ ...bankData, account_holder_name: e.target.value })}
-                      placeholder="Account holder name"
-                    />
-                  </div>
-                  <div>
-                    <Label>CBU</Label>
-                    <Input
-                      value={bankData.cbu}
-                      onChange={(e) => {
-                        const digitsOnly = e.target.value.replace(/\D/g, '');
-                        setCbuTooLong(digitsOnly.length > 22);
-                        setBankData({ ...bankData, cbu: digitsOnly.slice(0, 22) });
-                      }}
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={22}
-                      placeholder="0123456789012345678901"
-                    />
-                    {cbuTooLong && (
-                      <p className="mt-1 text-xs text-red-600">
-                        The CBU must be 22 digits or fewer.
-                      </p>
+                  <Button type="submit" disabled={savingBank}>
+                    {savingBank ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
                     )}
-                  </div>
-                  <div>
-                    <Label>Alias</Label>
-                    <Input
-                      value={bankData.alias}
-                      onChange={(e) => setBankData({ ...bankData, alias: e.target.value })}
-                      placeholder="my.business.alias"
-                    />
-                  </div>
-                </div>
-                <Button onClick={handleSaveBankData} disabled={savingBank}>
-                  {savingBank ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Save Bank Details
-                </Button>
+                    Save Bank Details
+                  </Button>
+                </form>
               </CardContent>
             </Card>
           </TabsContent>
