@@ -99,7 +99,7 @@ class BusinessController extends Controller
             'username' => 'required|string',
             'password' => 'nullable|string',
             'encryption' => 'nullable|string|in:none,ssl,tls',
-            'from_email' => 'required|email',
+            'from_email' => 'nullable|email',
             'from_name' => 'nullable|string',
             'active' => 'nullable|boolean',
         ]);
@@ -118,9 +118,13 @@ class BusinessController extends Controller
             unset($smtp->password);
         }
 
-        if (!$smtp->from_name) {
-            $smtp->from_name = $business->name;
+        $fallbackEmail = $validated['from_email'] ?? $smtp->from_email ?? $business->email;
+        if (!$fallbackEmail) {
+            return response()->json(['success' => false, 'message' => 'Business email is required for SMTP settings'], 422);
         }
+        $smtp->from_email = $fallbackEmail;
+
+        $smtp->from_name = $validated['from_name'] ?? $smtp->from_name ?? $business->name;
 
         $smtp->business_id = $business->id;
         $smtp->save();
@@ -173,6 +177,13 @@ class BusinessController extends Controller
             'from_email' => $validated['from_email'] ?? $smtp?->from_email,
             'from_name' => $validated['from_name'] ?? $smtp?->from_name,
         ];
+
+        if (!$config['from_email']) {
+            $config['from_email'] = $business->email;
+        }
+        if (!$config['from_name']) {
+            $config['from_name'] = $business->name;
+        }
 
         $toEmail = $validated['to_email'] ?? Auth::user()?->email;
         if (!$toEmail) {

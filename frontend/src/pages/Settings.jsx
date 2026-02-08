@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { apiClient } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -109,6 +109,7 @@ export default function Settings() {
   });
   const [savingSmtp, setSavingSmtp] = useState(false);
   const [testingSmtp, setTestingSmtp] = useState(false);
+  const smtpFormRef = useRef(null);
   
   const [showPremiumDialog, setShowPremiumDialog] = useState(false);
   const [modules, setModules] = useState({
@@ -364,15 +365,17 @@ export default function Settings() {
     }
   };
 
-  const handleSaveSmtp = async () => {
+  const handleSaveSmtp = async (event) => {
+    event?.preventDefault();
+    const form = smtpFormRef.current;
+    if (form && !form.reportValidity()) {
+      return;
+    }
     setSavingSmtp(true);
     try {
-      if (!smtpData.host?.trim()) {
-        toast.error('SMTP host is required');
-        return;
-      }
-      if (!smtpData.from_email?.trim()) {
-        toast.error('From email is required');
+      const fallbackEmail = currentBusiness?.email || currentBusiness?.business_email || '';
+      if (!smtpData.from_email?.trim() && !fallbackEmail) {
+        toast.error('Business email is required to send SMTP emails');
         return;
       }
       if (!smtpData.port || Number.isNaN(smtpData.port)) {
@@ -382,7 +385,7 @@ export default function Settings() {
       const payload = {
         ...smtpData,
         from_name: smtpData.from_name?.trim() || currentBusiness?.name || '',
-        from_email: smtpData.from_email?.trim()
+        from_email: smtpData.from_email?.trim() || fallbackEmail
       };
       await apiClient.put('/protected/business/smtp', payload);
       toast.success('SMTP configuration saved');
@@ -752,91 +755,98 @@ export default function Settings() {
                 <CardTitle>SMTP Configuration</CardTitle>
                 <CardDescription>Configure email settings for sending receipts and notifications</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>Host</Label>
-                    <Input
-                      value={smtpData.host}
-                      onChange={(e) => setSmtpData({ ...smtpData, host: e.target.value })}
-                      placeholder="smtp.example.com"
-                    />
+              <CardContent>
+                <form ref={smtpFormRef} className="space-y-4" onSubmit={handleSaveSmtp}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label>Host</Label>
+                      <Input
+                        required
+                        value={smtpData.host}
+                        onChange={(e) => setSmtpData({ ...smtpData, host: e.target.value })}
+                        placeholder="smtp.example.com"
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label>Port</Label>
+                      <Input
+                        required
+                        min={1}
+                        type="number"
+                        value={smtpData.port}
+                        onChange={(e) => setSmtpData({ ...smtpData, port: parseInt(e.target.value, 10) })}
+                        placeholder="587"
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label>Username</Label>
+                      <Input
+                        required
+                        value={smtpData.username}
+                        onChange={(e) => setSmtpData({ ...smtpData, username: e.target.value })}
+                        placeholder="user@example.com"
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label>Password</Label>
+                      <Input
+                        required={!smtpConfig}
+                        type="password"
+                        value={smtpData.password}
+                        onChange={(e) => setSmtpData({ ...smtpData, password: e.target.value })}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label>Encryption</Label>
+                      <Select value={smtpData.encryption} onValueChange={(v) => setSmtpData({ ...smtpData, encryption: v })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="tls">TLS</SelectItem>
+                          <SelectItem value="ssl">SSL</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label>From Name</Label>
+                      <Input
+                        value={smtpData.from_name}
+                        onChange={(e) => setSmtpData({ ...smtpData, from_name: e.target.value })}
+                        placeholder={currentBusiness?.name || 'My Business'}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>From Email</Label>
+                      <Input
+                        type="email"
+                        value={smtpData.from_email}
+                        onChange={(e) => setSmtpData({ ...smtpData, from_email: e.target.value })}
+                        placeholder={currentBusiness?.email || currentBusiness?.business_email || 'noreply@example.com'}
+                      />
+                    </div>
                   </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>Port</Label>
-                    <Input
-                      type="number"
-                      value={smtpData.port}
-                      onChange={(e) => setSmtpData({ ...smtpData, port: parseInt(e.target.value) })}
-                      placeholder="587"
-                    />
+                  <div className="flex gap-3">
+                    <Button type="submit" disabled={savingSmtp}>
+                      {savingSmtp ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      Save Configuration
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleTestSmtp} disabled={testingSmtp}>
+                      {testingSmtp ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <TestTube className="w-4 h-4 mr-2" />
+                      )}
+                      Test SMTP
+                    </Button>
                   </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>Username</Label>
-                    <Input
-                      value={smtpData.username}
-                      onChange={(e) => setSmtpData({ ...smtpData, username: e.target.value })}
-                      placeholder="user@example.com"
-                    />
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>Password</Label>
-                    <Input
-                      type="password"
-                      value={smtpData.password}
-                      onChange={(e) => setSmtpData({ ...smtpData, password: e.target.value })}
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>Encryption</Label>
-                    <Select value={smtpData.encryption} onValueChange={(v) => setSmtpData({ ...smtpData, encryption: v })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="tls">TLS</SelectItem>
-                        <SelectItem value="ssl">SSL</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <Label>From Name</Label>
-                    <Input
-                      value={smtpData.from_name}
-                      onChange={(e) => setSmtpData({ ...smtpData, from_name: e.target.value })}
-                      placeholder="My Business"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>From Email</Label>
-                    <Input
-                      type="email"
-                      value={smtpData.from_email}
-                      onChange={(e) => setSmtpData({ ...smtpData, from_email: e.target.value })}
-                      placeholder="noreply@example.com"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <Button onClick={handleSaveSmtp} disabled={savingSmtp}>
-                    {savingSmtp ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4 mr-2" />
-                    )}
-                    Save Configuration
-                  </Button>
-                  <Button variant="outline" onClick={handleTestSmtp} disabled={testingSmtp}>
-                    {testingSmtp ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <TestTube className="w-4 h-4 mr-2" />
-                    )}
-                    Test SMTP
-                  </Button>
-                </div>
+                </form>
               </CardContent>
             </Card>
           </TabsContent>
