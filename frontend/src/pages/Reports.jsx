@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 import { normalizeListResponse } from '@/lib/normalizeResponse';
 import { formatPrice } from '@/lib/formatPrice';
@@ -55,12 +56,12 @@ export default function Reports() {
   const [tempDateTo, setTempDateTo] = useState(today);
   const [selectedSale, setSelectedSale] = useState(null);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
-  const [statusFilters, setStatusFilters] = useState(['closed']);
+  const [statusTab, setStatusTab] = useState('closed');
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
 
   // Fetch sales
   const { data: sales = [], isLoading: loadingSales } = useQuery({
-    queryKey: ['sales', businessId, dateFrom, dateTo, statusFilters, selectedPaymentMethod],
+    queryKey: ['sales', businessId, dateFrom, dateTo, statusTab, selectedPaymentMethod],
     queryFn: async () => {
       if (!businessId) return [];
       try {
@@ -68,9 +69,7 @@ export default function Reports() {
           start_date: dateFrom,
           end_date: dateTo
         });
-        if (statusFilters.length > 0) {
-          params.set('statuses', statusFilters.join(','));
-        }
+        params.set('statuses', statusTab);
         if (selectedPaymentMethod) {
           params.set('payment_method', selectedPaymentMethod);
         }
@@ -142,29 +141,16 @@ export default function Reports() {
     { value: 'voided', label: 'Voided' }
   ];
 
-  const toggleStatusFilter = (status) => {
-    setStatusFilters((prev) => {
-      const next = prev.includes(status)
-        ? prev.filter((current) => current !== status)
-        : [...prev, status];
-      return next.length === 0 ? prev : next;
-    });
-  };
-
   const clearFilters = () => {
     setQuickDate('today');
     setPaymentMethodFilter('all');
-    setStatusFilters(['closed']);
   };
 
   const handleExportCsv = async () => {
     try {
       const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
       const token = getToken();
-      const statusParams = statusFilters.length > 0
-        ? `&statuses=${encodeURIComponent(statusFilters.join(','))}`
-        : '';
-      const response = await fetch(`${baseUrl}/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales${statusParams}`, {
+      const response = await fetch(`${baseUrl}/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales&statuses=${encodeURIComponent(statusTab)}`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...(businessId ? { 'X-Business-Id': businessId } : {})
@@ -248,71 +234,6 @@ export default function Reports() {
           </div>
           <CsvExportButton onExport={handleExportCsv} />
         </div>
-
-        {/* Summary Card */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {/* Top Row: Transactions and Total Sales */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Transactions */}
-                <div className="flex items-center gap-4 p-4 bg-amber-50 rounded-lg">
-                  <div className="p-3 bg-amber-100 rounded-lg">
-                    <FileText className="w-6 h-6 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-amber-600 font-medium">Closed Transactions</p>
-                    <p className="text-2xl font-bold text-amber-900">{summary.sales_count ?? 0}</p>
-                    <p className="text-xs text-amber-600">Closed sales only</p>
-                  </div>
-                </div>
-
-                {/* Total Sales */}
-                <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg">
-                  <div className="p-3 bg-blue-100 rounded-lg">
-                    <DollarSign className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-blue-600 font-medium">Closed Sales Total</p>
-                    <p className="text-2xl font-bold text-blue-900">{formatPrice(summary.total_sales ?? 0, currentBusiness)}</p>
-                    <p className="text-xs text-blue-600">Closed sales only</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Row: Payment Methods */}
-              <div className="grid grid-cols-4 gap-4">
-                {paymentMethods.filter(m => (m.is_active ?? m.active)).slice(0, 4).map((method) => {
-                  const MethodIcon = getPaymentMethodIcon(method.icon);
-                  return (
-                    <div key={method.id} className="flex flex-col gap-2 p-4 rounded-lg border-2" style={{
-                      borderColor: (method.color || '#6B7280') + '40',
-                      backgroundColor: (method.color || '#6B7280') + '10'
-                    }}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="p-2 rounded-lg"
-                          style={{ backgroundColor: (method.color || '#6B7280') + '30' }}
-                        >
-                          <MethodIcon
-                            className="w-4 h-4"
-                            style={{ color: method.color || '#6B7280' }}
-                          />
-                        </div>
-                        <p className="text-xs font-medium" style={{ color: method.color || '#6B7280' }}>
-                          {method.name}
-                        </p>
-                      </div>
-                      <p className="text-xl font-bold text-slate-900">
-                        {formatPrice(paymentTotals[method.type] || 0, currentBusiness)}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Filters */}
         <Card className="mb-6">
@@ -405,25 +326,71 @@ export default function Reports() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-              <div className="flex flex-wrap items-center gap-2">
-                {statusOptions.map((status) => {
-                  const isActive = statusFilters.includes(status.value);
+        {/* Summary Card */}
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {/* Top Row: Transactions and Total Sales */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Transactions */}
+                <div className="flex items-center gap-4 p-4 bg-amber-50 rounded-lg">
+                  <div className="p-3 bg-amber-100 rounded-lg">
+                    <FileText className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-amber-600 font-medium">Closed Transactions</p>
+                    <p className="text-2xl font-bold text-amber-900">{summary.sales_count ?? 0}</p>
+                    <p className="text-xs text-amber-600">Closed sales only</p>
+                  </div>
+                </div>
+
+                {/* Total Sales */}
+                <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg">
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <DollarSign className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-600 font-medium">Closed Sales Total</p>
+                    <p className="text-2xl font-bold text-blue-900">{formatPrice(summary.total_sales ?? 0, currentBusiness)}</p>
+                    <p className="text-xs text-blue-600">Closed sales only</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Row: Payment Methods */}
+              <div className="grid grid-cols-4 gap-4">
+                {paymentMethods.filter(m => (m.is_active ?? m.active)).slice(0, 4).map((method) => {
+                  const MethodIcon = getPaymentMethodIcon(method.icon);
                   return (
-                    <Button
-                      key={status.value}
-                      type="button"
-                      variant={isActive ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => toggleStatusFilter(status.value)}
-                      className="rounded-full"
-                    >
-                      {status.label}
-                    </Button>
+                    <div key={method.id} className="flex flex-col gap-2 p-4 rounded-lg border-2" style={{
+                      borderColor: (method.color || '#6B7280') + '40',
+                      backgroundColor: (method.color || '#6B7280') + '10'
+                    }}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="p-2 rounded-lg"
+                          style={{ backgroundColor: (method.color || '#6B7280') + '30' }}
+                        >
+                          <MethodIcon
+                            className="w-4 h-4"
+                            style={{ color: method.color || '#6B7280' }}
+                          />
+                        </div>
+                        <p className="text-xs font-medium" style={{ color: method.color || '#6B7280' }}>
+                          {method.name}
+                        </p>
+                      </div>
+                      <p className="text-xl font-bold text-slate-900">
+                        {formatPrice(paymentTotals[method.type] || 0, currentBusiness)}
+                      </p>
+                    </div>
                   );
                 })}
               </div>
-
             </div>
           </CardContent>
         </Card>
@@ -431,7 +398,18 @@ export default function Reports() {
         {/* Sales Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Sales</CardTitle>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="text-lg">Sales</CardTitle>
+              <Tabs value={statusTab} onValueChange={setStatusTab}>
+                <TabsList>
+                  {statusOptions.map((status) => (
+                    <TabsTrigger key={status.value} value={status.value}>
+                      {status.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {loadingSales ? (
