@@ -250,9 +250,9 @@ export default function Reports() {
               Clear filters
             </Button>
           </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="flex gap-2 flex-wrap">
+          <CardContent className="p-4 pt-2">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   variant={dateMode === 'today' ? "default" : "outline"}
                   size="sm"
@@ -284,14 +284,14 @@ export default function Reports() {
                 </Button>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-end gap-2">
                 <div>
                   <Label className="text-xs">From</Label>
                   <Input
                     type="date"
                     value={dateMode === 'custom' ? tempDateFrom : dateFrom}
                     onChange={(e) => setTempDateFrom(e.target.value)}
-                    className="w-36"
+                    className="w-32"
                     disabled={dateMode !== 'custom'}
                   />
                 </div>
@@ -301,7 +301,7 @@ export default function Reports() {
                     type="date"
                     value={dateMode === 'custom' ? tempDateTo : dateTo}
                     onChange={(e) => setTempDateTo(e.target.value)}
-                    className="w-36"
+                    className="w-32"
                     disabled={dateMode !== 'custom'}
                   />
                 </div>
