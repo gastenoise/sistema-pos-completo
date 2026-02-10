@@ -7,6 +7,7 @@ import {
   DollarSign,
   Calendar, Loader2, FileText, Ban, Eye, Trash2
 } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -129,6 +130,20 @@ export default function Reports() {
   const totalsByCategory = (salesSummary?.totals_by_category || []).filter(
     (category) => (parseFloat(category.total_amount) || 0) > 0
   );
+  const resolveCategoryColor = (category) => {
+    const colorHex = typeof category?.color_hex === 'string' ? category.color_hex.trim() : '';
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorHex)) {
+      return colorHex;
+    }
+
+    const colorValue = typeof category?.color === 'string' ? category.color.trim() : '';
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorValue)) {
+      return colorValue;
+    }
+
+    return '#64748B';
+  };
+
   const paymentTotals = totalsByPaymentMethod.reduce((acc, method) => {
     acc[method.code] = parseFloat(method.total_amount) || 0;
     return acc;
@@ -446,10 +461,10 @@ export default function Reports() {
                   <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Sales by category</p>
                   <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
                     {totalsByCategory.map((category) => {
-                      const categoryColor = category.color_hex || category.color || '#64748B';
+                      const categoryColor = resolveCategoryColor(category);
                       return (
                         <div
-                          key={category.id}
+                          key={category.id ?? `uncategorized-${category.name}`}
                           className="flex flex-col gap-1.5 rounded-lg border p-3"
                           style={{
                             borderColor: `${categoryColor}40`,
@@ -461,13 +476,10 @@ export default function Reports() {
                               className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
                               style={{ backgroundColor: `${categoryColor}30` }}
                             >
-                              {category.icon ? (
-                                <span className="text-xs leading-none" style={{ color: categoryColor }} aria-hidden="true">
-                                  {category.icon}
-                                </span>
-                              ) : (
-                                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: categoryColor }} aria-hidden="true" />
-                              )}
+                              {(() => {
+                                const IconComponent = LucideIcons[category.icon] || LucideIcons.Package;
+                                return <IconComponent className="h-3.5 w-3.5" style={{ color: categoryColor }} aria-hidden="true" />;
+                              })()}
                             </div>
                             <p className="truncate text-[11px] font-medium" style={{ color: categoryColor }}>
                               {category.name}

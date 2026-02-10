@@ -145,7 +145,7 @@ class ReportController extends Controller
         $totalsByCategoryQuery = DB::table('sales')
             ->join('sale_items', 'sales.id', '=', 'sale_items.sale_id')
             ->join('items', 'sale_items.item_id', '=', 'items.id')
-            ->join('categories', 'items.category_id', '=', 'categories.id')
+            ->leftJoin('categories', 'items.category_id', '=', 'categories.id')
             ->where('sales.business_id', $businessId);
 
         if ($startDate) {
@@ -172,10 +172,10 @@ class ReportController extends Controller
         $totalsByCategory = $totalsByCategoryQuery
             ->select(
                 'categories.id',
-                'categories.name',
+                DB::raw("COALESCE(categories.name, 'Sin categoría') as name"),
                 'categories.color',
                 'categories.color_hex',
-                'categories.icon',
+                DB::raw("COALESCE(categories.icon, 'Package') as icon"),
                 DB::raw('SUM(sale_items.total) as total_amount')
             )
             ->groupBy('categories.id', 'categories.name', 'categories.color', 'categories.color_hex', 'categories.icon')
