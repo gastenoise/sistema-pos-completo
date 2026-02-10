@@ -42,11 +42,11 @@ class ReportController extends Controller
             });
         }
         if ($categoryId) {
-            $query->whereHas('items', function ($itemQuery) use ($categoryId) {
+            $query->whereHas('items.item', function ($itemQuery) use ($categoryId) {
                 if ($categoryId === 'uncategorized') {
-                    $itemQuery->whereNull('category_id');
+                    $itemQuery->whereNull('items.category_id');
                 } else {
-                    $itemQuery->where('category_id', $categoryId);
+                    $itemQuery->where('items.category_id', $categoryId);
                 }
             });
         }
@@ -110,11 +110,11 @@ class ReportController extends Controller
             });
         }
         if ($categoryId) {
-            $salesQuery->whereHas('items', function ($itemQuery) use ($categoryId) {
+            $salesQuery->whereHas('items.item', function ($itemQuery) use ($categoryId) {
                 if ($categoryId === 'uncategorized') {
-                    $itemQuery->whereNull('category_id');
+                    $itemQuery->whereNull('items.category_id');
                 } else {
-                    $itemQuery->where('category_id', $categoryId);
+                    $itemQuery->where('items.category_id', $categoryId);
                 }
             });
         }
