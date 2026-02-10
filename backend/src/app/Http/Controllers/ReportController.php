@@ -17,6 +17,7 @@ class ReportController extends Controller
         $endDate = $request->input('end_date');
         $includeVoided = $request->boolean('include_voided');
         $paymentMethod = $request->input('payment_method');
+        $categoryId = $request->input('category_id');
         $statuses = collect(explode(',', (string) $request->input('statuses', '')))
             ->map(fn ($status) => trim($status))
             ->filter();
@@ -38,6 +39,15 @@ class ReportController extends Controller
         if ($paymentMethod) {
             $query->whereHas('payments.paymentMethod', function ($paymentQuery) use ($paymentMethod) {
                 $paymentQuery->where('code', $paymentMethod);
+            });
+        }
+        if ($categoryId) {
+            $query->whereHas('items', function ($itemQuery) use ($categoryId) {
+                if ($categoryId === 'uncategorized') {
+                    $itemQuery->whereNull('category_id');
+                } else {
+                    $itemQuery->where('category_id', $categoryId);
+                }
             });
         }
 
@@ -75,6 +85,7 @@ class ReportController extends Controller
         $endDate = $request->input('end_date');
         $includeVoided = $request->boolean('include_voided');
         $paymentMethod = $request->input('payment_method');
+        $categoryId = $request->input('category_id');
         $statuses = collect(explode(',', (string) $request->input('statuses', '')))
             ->map(fn ($status) => trim($status))
             ->filter();
@@ -96,6 +107,15 @@ class ReportController extends Controller
         if ($paymentMethod) {
             $salesQuery->whereHas('payments.paymentMethod', function ($paymentQuery) use ($paymentMethod) {
                 $paymentQuery->where('code', $paymentMethod);
+            });
+        }
+        if ($categoryId) {
+            $salesQuery->whereHas('items', function ($itemQuery) use ($categoryId) {
+                if ($categoryId === 'uncategorized') {
+                    $itemQuery->whereNull('category_id');
+                } else {
+                    $itemQuery->where('category_id', $categoryId);
+                }
             });
         }
 
@@ -130,6 +150,20 @@ class ReportController extends Controller
         }
         if ($paymentMethod) {
             $paymentsQuery->where('payment_methods.code', $paymentMethod);
+        }
+        if ($categoryId) {
+            $paymentsQuery->whereExists(function ($query) use ($categoryId) {
+                $query->selectRaw('1')
+                    ->from('sale_items')
+                    ->join('items', 'sale_items.item_id', '=', 'items.id')
+                    ->whereColumn('sale_items.sale_id', 'sales.id');
+
+                if ($categoryId === 'uncategorized') {
+                    $query->whereNull('items.category_id');
+                } else {
+                    $query->where('items.category_id', $categoryId);
+                }
+            });
         }
 
         $totalsByPaymentMethod = $paymentsQuery
@@ -167,6 +201,13 @@ class ReportController extends Controller
                     ->whereColumn('sale_payments.sale_id', 'sales.id')
                     ->where('payment_methods.code', $paymentMethod);
             });
+        }
+        if ($categoryId) {
+            if ($categoryId === 'uncategorized') {
+                $totalsByCategoryQuery->whereNull('items.category_id');
+            } else {
+                $totalsByCategoryQuery->where('items.category_id', $categoryId);
+            }
         }
 
         $totalsByCategory = $totalsByCategoryQuery

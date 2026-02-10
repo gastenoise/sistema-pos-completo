@@ -57,13 +57,15 @@ export default function Reports() {
   const [tempDateTo, setTempDateTo] = useState(today);
   const [selectedSale, setSelectedSale] = useState(null);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [isMoreFiltersOpen, setIsMoreFiltersOpen] = useState(false);
   const [statusTab, setStatusTab] = useState('closed');
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
+  const selectedCategory = categoryFilter !== 'all' ? categoryFilter : null;
 
   // Fetch sales
   const { data: sales = [], isLoading: loadingSales } = useQuery({
-    queryKey: ['sales', businessId, dateFrom, dateTo, statusTab, selectedPaymentMethod],
+    queryKey: ['sales', businessId, dateFrom, dateTo, statusTab, selectedPaymentMethod, selectedCategory],
     queryFn: async () => {
       if (!businessId) return [];
       try {
@@ -74,6 +76,9 @@ export default function Reports() {
         params.set('statuses', statusTab);
         if (selectedPaymentMethod) {
           params.set('payment_method', selectedPaymentMethod);
+        }
+        if (selectedCategory) {
+          params.set('category_id', selectedCategory);
         }
         const response = await apiClient.get(`/protected/reports/sales?${params.toString()}`);
         return normalizeListResponse(response, 'sales');
@@ -95,7 +100,7 @@ export default function Reports() {
   });
 
   const { data: salesSummary = {} } = useQuery({
-    queryKey: ['sales-summary', businessId, dateFrom, dateTo, selectedPaymentMethod],
+    queryKey: ['sales-summary', businessId, dateFrom, dateTo, selectedPaymentMethod, selectedCategory],
     queryFn: async () => {
       if (!businessId) return {};
       const params = new URLSearchParams({
@@ -104,6 +109,9 @@ export default function Reports() {
       });
       if (selectedPaymentMethod) {
         params.set('payment_method', selectedPaymentMethod);
+      }
+      if (selectedCategory) {
+        params.set('category_id', selectedCategory);
       }
       const response = await apiClient.get(`/protected/reports/summary?${params.toString()}`);
       return response?.data ?? response;
@@ -121,6 +129,16 @@ export default function Reports() {
         ...method,
         type: method.type || method.code
       }));
+    },
+    enabled: !!businessId
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['report-categories', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const response = await apiClient.get('/protected/categories');
+      return normalizeListResponse(response, 'categories');
     },
     enabled: !!businessId
   });
@@ -182,6 +200,7 @@ export default function Reports() {
   const clearFilters = () => {
     setQuickDate('today');
     setPaymentMethodFilter('all');
+    setCategoryFilter('all');
   };
 
   const handleExportCsv = async () => {
@@ -381,6 +400,22 @@ export default function Reports() {
                     <SelectItem value="all">All Methods</SelectItem>
                     {paymentMethods.filter(m => m.is_active).map(m => (
                       <SelectItem key={m.id} value={m.type}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-sm">Category</Label>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="uncategorized">Sin categoría</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
