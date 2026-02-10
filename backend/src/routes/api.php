@@ -28,10 +28,6 @@ Route::prefix('protected')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login'])->name('login');
     Route::post('auth/register', [AuthController::class, 'register']);
 
-    Route::get('sales/{sale}/ticket/pdf/download', [SaleTicketController::class, 'downloadSigned'])
-        ->middleware('signed')
-        ->name('sales.ticket.pdf.signed-download');
-
     Route::get('mercadopago/test', [MercadoPagoController::class, 'testConfig']);
     Route::post('mercadopago/preferencia', [MercadoPagoController::class, 'crearPreferencia']);
 
@@ -114,8 +110,8 @@ Route::prefix('protected')->group(function () {
                     Route::get('{sale}/qr', [SaleController::class, 'getPaymentQr']);
                     Route::post('{sale}/close', [SaleController::class, 'close']);
                     Route::post('{sale}/void', [SaleController::class, 'void']);
+                    // Fuente de datos oficial para renderizar tickets en front-end.
                     Route::get('{sale}/ticket', [SaleTicketController::class, 'show']);
-                    Route::get('{sale}/ticket/pdf', [SaleTicketController::class, 'pdf']);
                     Route::post('{sale}/ticket/email', [SaleTicketController::class, 'email']);
                     Route::post('{sale}/ticket/share/whatsapp', [SaleTicketController::class, 'shareWhatsapp']);
                 });
@@ -172,8 +168,8 @@ Route::prefix('public')->middleware(['auth.apikey', 'throttle:public-api'])->gro
         Route::get('{sale}/qr', [SaleController::class, 'getPaymentQr']);
         Route::post('{sale}/close', [SaleController::class, 'close']);
         Route::post('{sale}/void', [SaleController::class, 'void']);
+        // Fuente de datos oficial para renderizar tickets en front-end.
         Route::get('{sale}/ticket', [SaleTicketController::class, 'show']);
-        Route::get('{sale}/ticket/pdf', [SaleTicketController::class, 'pdf']);
     });
 
     Route::get('reports/daily-summary', [ReportController::class, 'dailySummary']);

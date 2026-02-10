@@ -13,8 +13,8 @@ class SaleTicketMail extends Mailable
 
     public function __construct(
         private readonly Sale $sale,
-        private readonly string $pdfContent,
-        private readonly string $pdfFilename,
+        private readonly string $clientPdfContent,
+        private readonly string $clientPdfFilename,
         private readonly ?string $customMessage = null,
         private readonly ?string $customSubject = null,
     ) {}
@@ -28,7 +28,7 @@ class SaleTicketMail extends Mailable
                 'saleId' => $this->sale->id,
                 'messageBody' => $this->customMessage,
             ])
-            ->attachData($this->pdfContent, $this->pdfFilename, [
+            ->attachData($this->clientPdfContent, $this->clientPdfFilename, [
                 'mime' => 'application/pdf',
             ]);
     }
