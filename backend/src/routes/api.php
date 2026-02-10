@@ -15,7 +15,8 @@ use App\Http\Controllers\{
     PaymentMethodController,
     InformationController,
     NavigationEventController,
-    SalePaymentController
+    SalePaymentController,
+    SaleTicketController
 };
 
 /*
@@ -109,6 +110,8 @@ Route::prefix('protected')->group(function () {
                     Route::get('{sale}/qr', [SaleController::class, 'getPaymentQr']);
                     Route::post('{sale}/close', [SaleController::class, 'close']);
                     Route::post('{sale}/void', [SaleController::class, 'void']);
+                    Route::get('{sale}/ticket', [SaleTicketController::class, 'show']);
+                    Route::get('{sale}/ticket/pdf', [SaleTicketController::class, 'pdf']);
                 });
 
                 // Reportes
@@ -163,6 +166,8 @@ Route::prefix('public')->middleware(['auth.apikey', 'throttle:public-api'])->gro
         Route::get('{sale}/qr', [SaleController::class, 'getPaymentQr']);
         Route::post('{sale}/close', [SaleController::class, 'close']);
         Route::post('{sale}/void', [SaleController::class, 'void']);
+        Route::get('{sale}/ticket', [SaleTicketController::class, 'show']);
+        Route::get('{sale}/ticket/pdf', [SaleTicketController::class, 'pdf']);
     });
 
     Route::get('reports/daily-summary', [ReportController::class, 'dailySummary']);
