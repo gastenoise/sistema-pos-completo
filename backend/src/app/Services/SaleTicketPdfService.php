@@ -12,7 +12,10 @@ class SaleTicketPdfService
         private readonly SaleTicketService $saleTicketService,
     ) {}
 
-    public function render(Sale $sale, bool $download = false): Response
+    /**
+     * @return array{content:string,filename:string}
+     */
+    public function generate(Sale $sale): array
     {
         $ticket = $this->saleTicketService->build($sale);
         $filename = sprintf('ticket-venta-%d.pdf', $sale->id);
@@ -21,8 +24,24 @@ class SaleTicketPdfService
             'ticket' => $ticket,
         ]);
 
+        return [
+            'content' => $pdf->output(),
+            'filename' => $filename,
+        ];
+    }
+
+    public function render(Sale $sale, bool $download = false): Response
+    {
+        $ticketPdf = $this->generate($sale);
+
         return $download
-            ? $pdf->download($filename)
-            : $pdf->stream($filename);
+            ? response($ticketPdf['content'], 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => sprintf('attachment; filename="%s"', $ticketPdf['filename']),
+            ])
+            : response($ticketPdf['content'], 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => sprintf('inline; filename="%s"', $ticketPdf['filename']),
+            ]);
     }
 }
