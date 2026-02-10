@@ -56,6 +56,7 @@ export default function Reports() {
   const [tempDateTo, setTempDateTo] = useState(today);
   const [selectedSale, setSelectedSale] = useState(null);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+  const [isMoreFiltersOpen, setIsMoreFiltersOpen] = useState(false);
   const [statusTab, setStatusTab] = useState('closed');
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
 
@@ -237,21 +238,8 @@ export default function Reports() {
 
         {/* Filters */}
         <Card className="mb-6">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Filters</CardTitle>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              Clear filters
-            </Button>
-          </CardHeader>
-          <CardContent className="p-4 pt-2">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant={dateMode === 'today' ? "default" : "outline"}
@@ -309,26 +297,58 @@ export default function Reports() {
                   size="sm"
                   onClick={handleApplyCustomDates}
                   disabled={dateMode !== 'custom'}
-                  className="mt-5"
                 >
                   Apply
                 </Button>
               </div>
 
-              <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-                <SelectTrigger className="w-full lg:w-48">
-                  <SelectValue placeholder="Payment" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Methods</SelectItem>
-                  {paymentMethods.filter(m => m.is_active).map(m => (
-                    <SelectItem key={m.id} value={m.type}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMoreFiltersOpen(true)}
+                >
+                  More Filter
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Clear filters
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        <Dialog open={isMoreFiltersOpen} onOpenChange={setIsMoreFiltersOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>More Filters</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm">Payment method</Label>
+                <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Payment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Methods</SelectItem>
+                    {paymentMethods.filter(m => m.is_active).map(m => (
+                      <SelectItem key={m.id} value={m.type}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Summary Card */}
         <Card className="mb-6">
