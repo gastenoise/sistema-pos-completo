@@ -8,6 +8,18 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SaleTicketPdfService
 {
+    private const TICKET_WIDTH_MM = 80.0;
+
+    private const TICKET_BASE_HEIGHT_MM = 95.0;
+
+    private const TICKET_LINE_HEIGHT_MM = 6.0;
+
+    private const DOMPDF_RUNTIME_DIRECTORIES = [
+        'tmp',
+        'font',
+        'font-cache',
+    ];
+
     public function __construct(
         private readonly SaleTicketService $saleTicketService,
     ) {}
@@ -20,7 +32,17 @@ class SaleTicketPdfService
         $ticket = $this->saleTicketService->build($sale);
         $filename = sprintf('ticket-venta-%d.pdf', $sale->id);
 
-        $pdf = Pdf::loadView('tickets.sale', [
+        $this->ensureRuntimeDirectories();
+        $runtimeBasePath = storage_path('app/dompdf');
+
+        $paper = $this->buildTicketPaper($ticket);
+
+        $pdf = Pdf::setOption([
+            'tempDir' => $runtimeBasePath.'/tmp',
+            'fontDir' => $runtimeBasePath.'/font',
+            'fontCache' => $runtimeBasePath.'/font-cache',
+            'chroot' => base_path(),
+        ])->setPaper($paper)->loadView('tickets.sale', [
             'ticket' => $ticket,
         ]);
 
@@ -43,5 +65,49 @@ class SaleTicketPdfService
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => sprintf('inline; filename="%s"', $ticketPdf['filename']),
             ]);
+    }
+
+
+    /**
+     * @param array<string,mixed> $ticket
+     *
+     * @return array{0:float,1:float,2:float,3:float}
+     */
+    private function buildTicketPaper(array $ticket): array
+    {
+        $itemLines = count($ticket['items'] ?? []);
+        $paymentLines = count($ticket['payments'] ?? []);
+        $estimatedLines = 14 + $itemLines + $paymentLines;
+
+        $heightMm = self::TICKET_BASE_HEIGHT_MM + ($estimatedLines * self::TICKET_LINE_HEIGHT_MM);
+
+        return [
+            0.0,
+            0.0,
+            $this->mmToPoints(self::TICKET_WIDTH_MM),
+            $this->mmToPoints($heightMm),
+        ];
+    }
+
+    private function mmToPoints(float $millimeters): float
+    {
+        return $millimeters * 2.8346456693;
+    }
+
+    private function ensureRuntimeDirectories(): void
+    {
+        $basePath = storage_path('app/dompdf');
+
+        if (!is_dir($basePath)) {
+            mkdir($basePath, 0775, true);
+        }
+
+        foreach (self::DOMPDF_RUNTIME_DIRECTORIES as $directory) {
+            $absolutePath = $basePath.'/'.$directory;
+
+            if (!is_dir($absolutePath)) {
+                mkdir($absolutePath, 0775, true);
+            }
+        }
     }
 }

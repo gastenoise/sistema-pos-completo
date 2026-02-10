@@ -4,14 +4,19 @@
     <meta charset="UTF-8">
     <title>Ticket Venta #{{ $ticket['id'] }}</title>
     <style>
+        @page {
+            margin: 4mm;
+        }
+
         body {
+            margin: 0;
             font-family: DejaVu Sans, sans-serif;
-            font-size: 12px;
+            font-size: 11px;
             color: #111;
         }
 
         .ticket {
-            width: 280px;
+            width: 72mm;
             margin: 0 auto;
         }
 
@@ -99,6 +104,7 @@
     </div>
 
     <p class="center muted">Gracias por su compra</p>
+    <p class="center muted" style="font-size: 9px; margin-top: 8px;">Comprobante no válido como factura. Sin validez fiscal.</p>
 </div>
 </body>
 </html>
