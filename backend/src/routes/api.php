@@ -64,8 +64,12 @@ Route::prefix('protected')->group(function () {
                 Route::post('business/smtp/test', [BusinessController::class, 'testSmtpSettings']);
                 Route::put('business', [BusinessController::class, 'update']);
 
-                Route::apiResource('api-keys', ApiKeyController::class)
-                    ->only(['index', 'store', 'destroy']);
+                Route::get('api-keys', [ApiKeyController::class, 'index'])
+                    ->middleware('can:viewAny,App\Models\ApiKey');
+                Route::post('api-keys', [ApiKeyController::class, 'store'])
+                    ->middleware('can:create,App\Models\ApiKey');
+                Route::delete('api-keys/{apiKey}', [ApiKeyController::class, 'destroy'])
+                    ->middleware('can:delete,apiKey');
 
                 // Categorías
                 Route::apiResource('categories', CategoryController::class);
