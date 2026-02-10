@@ -8,6 +8,7 @@ use App\Http\Middleware\ResolveBusiness;
 use App\Http\Middleware\AuthenticateApiKey;
 use App\Http\Middleware\EnsureTokenIsFresh;
 use Illuminate\Http\Middleware\HandleCors;
+use Illuminate\Auth\Access\AuthorizationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -28,5 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (AuthorizationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Forbidden',
+            ], 403);
+        });
     })->create();
