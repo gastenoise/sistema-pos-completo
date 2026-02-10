@@ -40,6 +40,11 @@ const resolveErrorMessage = async (response) => {
   }
 };
 
+
+export const getSaleTicket = async (saleId) => {
+  const response = await apiClient.get(`/protected/sales/${saleId}/ticket`);
+  return resolveResponseData(response);
+};
 export const downloadSaleTicketPdf = async (saleId) => {
   const token = getToken();
   const businessId = getBusinessId();
