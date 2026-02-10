@@ -4,6 +4,32 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 const BUSINESS_STORAGE_KEY = 'pos_current_business';
 
 let businessContext = null;
+let didNotifySessionExpired = false;
+
+const AUTH_MESSAGE_REGEX = /not authenticated|unauthenticated|unauthorized|token|session/i;
+
+const notifySessionExpired = (reason = 'session_expired') => {
+  clearToken();
+  if (typeof window !== 'undefined' && !didNotifySessionExpired) {
+    didNotifySessionExpired = true;
+    window.dispatchEvent(new CustomEvent('session-expired', {
+      detail: { reason }
+    }));
+  }
+};
+
+const isAuthFailure = (status, payload) => {
+  if (status === 401) {
+    return true;
+  }
+  if (status !== 403) {
+    return false;
+  }
+  const message = typeof payload === 'string'
+    ? payload
+    : payload?.message || payload?.error || '';
+  return AUTH_MESSAGE_REGEX.test(message);
+};
 
 const buildUrl = (path) => {
   if (!API_BASE_URL) {
@@ -120,16 +146,25 @@ export const request = async (path, options = {}) => {
   const response = await fetch(buildUrl(path), {
     ...normalizedOptions,
     headers
+  }).catch((error) => {
+    if (token) {
+      notifySessionExpired('api_unreachable');
+    }
+    throw error;
   });
 
-  if (response.status === 401 && token) {
-    clearToken();
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('session-expired'));
+  const parsed = await parseResponse(response).catch((error) => {
+    if (token && isAuthFailure(error?.status, error?.data)) {
+      notifySessionExpired();
     }
+    throw error;
+  });
+
+  if (token) {
+    didNotifySessionExpired = false;
   }
 
-  return parseResponse(response);
+  return parsed;
 };
 
 export const apiClient = {
