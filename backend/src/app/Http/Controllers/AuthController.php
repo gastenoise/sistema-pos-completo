@@ -7,16 +7,59 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function login(Request $request) {
+    public function login(Request $request)
+    {
         $request->validate(['email' => 'required|email', 'password' => 'required']);
-        
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+
+        $email = Str::lower((string) $request->input('email'));
+        $throttleKey = sprintf('login-failed:%s|%s', $request->ip(), $email);
+        $failedAttempts = RateLimiter::attempts($throttleKey);
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 1)) {
+            $retryAfter = RateLimiter::availableIn($throttleKey);
+
+            Log::warning('Auth login blocked by progressive backoff', [
+                'event' => 'auth.login.locked',
+                'ip' => $request->ip(),
+                'email_hash' => hash('sha256', $email),
+                'retry_after_seconds' => $retryAfter,
+                'failed_attempts' => $failedAttempts,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Demasiados intentos. Intenta nuevamente más tarde.',
+            ], 429);
         }
-        
+
+        if (!Auth::attempt($request->only('email', 'password'))) {
+            $currentAttempt = $failedAttempts + 1;
+            $decaySeconds = min(300, 5 * (2 ** max(0, $currentAttempt - 1)));
+
+            RateLimiter::hit($throttleKey, $decaySeconds);
+
+            Log::warning('Auth login failed', [
+                'event' => 'auth.login.failed',
+                'ip' => $request->ip(),
+                'email_hash' => hash('sha256', $email),
+                'failed_attempts' => $currentAttempt,
+                'backoff_seconds' => $decaySeconds,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Demasiados intentos. Intenta nuevamente más tarde.',
+            ], 429);
+        }
+
+        RateLimiter::clear($throttleKey);
+
         $user = User::where('email', $request->email)->with('businesses')->first();
         $user->tokens()->where('name', 'front')->delete();
         $idleMinutes = (int) config('sanctum.frontend_idle_minutes', 60);
@@ -25,11 +68,11 @@ class AuthController extends Controller
             : null;
 
         $token = $user->createToken('front', ['front'], $tokenExpiration)->plainTextToken;
-        
+
         return response()->json([
             'success' => true,
             'data' => [
-                'user_name' => $user->name, 
+                'user_name' => $user->name,
                 'token' => $token,
                 'session_idle_minutes' => $idleMinutes,
             ]
