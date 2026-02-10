@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ApiErrorResponder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\BusinessUser;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Mail;
 
 class BusinessController extends Controller
 {
+    use ApiErrorResponder;
+
     public function __construct(
         private readonly BusinessSmtpRuntimeConfigurator $smtpRuntimeConfigurator,
     ) {}
@@ -194,11 +197,13 @@ class BusinessController extends Controller
                 }
             );
         } catch (\Throwable $exception) {
-            return response()->json([
-                'success' => false,
-                'message' => 'SMTP test failed',
-                'error' => $exception->getMessage(),
-            ], 422);
+            return $this->respondWithError(
+                request: $request,
+                clientMessage: 'Error interno, intente nuevamente.',
+                status: 422,
+                exception: $exception,
+                context: ['scope' => 'business.smtp.test', 'business_id' => $businessId]
+            );
         }
 
         return response()->json([

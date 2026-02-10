@@ -38,8 +38,8 @@ class SaleController extends Controller
             
         if (!$session) {
             return response()->json([
-                'success' => false, 
-                'error' => 'No active cash session', 
+                'success' => false,
+                'message' => 'No hay una caja activa para operar.',
                 'code' => 'CASH_CLOSED'
             ], 422);
         }

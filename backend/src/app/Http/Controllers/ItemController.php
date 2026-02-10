@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ApiErrorResponder;
 use App\Models\Item;
 use App\Models\Category;
 use App\Models\Import;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use App\Services\BusinessContext;
 
 class ItemController extends Controller
 {
+    use ApiErrorResponder;
+
     public function index(Request $request)
     {
         $query = Item::query();
@@ -165,7 +167,14 @@ class ItemController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+
+            return $this->respondWithError(
+                request: $request,
+                clientMessage: 'Error interno, intente nuevamente.',
+                status: 500,
+                exception: $e,
+                context: ['scope' => 'items.import_confirm']
+            );
         }
     }
 }

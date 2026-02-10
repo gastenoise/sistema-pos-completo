@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ApiErrorResponder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use MercadoPago\MercadoPagoConfig;
@@ -10,6 +11,8 @@ use MercadoPago\Client\Payment\PaymentClient;
 
 class MercadoPagoController extends Controller
 {
+    use ApiErrorResponder;
+
     /**
      * Test MercadoPago configuration.
      */
@@ -74,11 +77,13 @@ class MercadoPagoController extends Controller
                 'preference_id' => $preference['id'] ?? null,
             ]);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al crear preferencia de pago.',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->respondWithError(
+                request: $request,
+                clientMessage: 'Error interno, intente nuevamente.',
+                status: 500,
+                exception: $e,
+                context: ['scope' => 'mercadopago.preference.create']
+            );
         }
     }
 
@@ -168,14 +173,16 @@ class MercadoPagoController extends Controller
             return response()->json(['received' => true], 200);
 
         } catch (\Throwable $e) {
-            Log::error('Webhook MercadoPago: Error procesando notificación', [
-                'error' => $e->getMessage(),
-                'data_id' => $data_id ?? null,
-            ]);
-            return response()->json([
-                'error' => true,
-                'message' => 'Error procesando notificación',
-            ], 500);
+            return $this->respondWithError(
+                request: $request,
+                clientMessage: 'Error interno, intente nuevamente.',
+                status: 500,
+                exception: $e,
+                context: [
+                    'scope' => 'mercadopago.webhook',
+                    'data_id' => $data_id ?? null,
+                ]
+            );
         }
     }
 

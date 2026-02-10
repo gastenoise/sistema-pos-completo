@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ApiErrorResponder;
 use App\Models\CashRegisterSession;
 use App\Models\CashRegisterExpectedTotal;
 use App\Models\CashClosure;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Auth;
 
 class CashRegisterController extends Controller
 {
+    use ApiErrorResponder;
+
     public function status()
     {
         $session = CashRegisterSession::where('status', 'open')
@@ -168,7 +171,14 @@ class CashRegisterController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+
+            return $this->respondWithError(
+                request: $request,
+                clientMessage: 'Error interno, intente nuevamente.',
+                status: 500,
+                exception: $e,
+                context: ['scope' => 'cash_register.close']
+            );
         }
     }
 

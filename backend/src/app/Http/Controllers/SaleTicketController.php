@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ApiErrorResponder;
 use App\Mail\SaleTicketMail;
 use App\Models\Business;
 use App\Models\Sale;
@@ -17,6 +18,8 @@ use Illuminate\Support\Str;
 
 class SaleTicketController extends Controller
 {
+    use ApiErrorResponder;
+
     private const MAX_TICKET_PDF_BYTES = 5242880;
 
     public function __construct(
@@ -123,15 +126,21 @@ class SaleTicketController extends Controller
             ]);
         } catch (\Throwable $exception) {
             $this->logEmailAudit($sale, $business->id, $validated['to_email'], 'failed', [
-                'error' => $exception->getMessage(),
                 'file' => $fileMetadata,
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'No se pudo enviar el ticket por email.',
-                'error' => $exception->getMessage(),
-            ], 422);
+            return $this->respondWithError(
+                request: $request,
+                clientMessage: 'Error interno, intente nuevamente.',
+                status: 422,
+                exception: $exception,
+                context: [
+                    'scope' => 'sale_ticket.email',
+                    'sale_id' => $sale->id,
+                    'business_id' => $business->id,
+                    'recipient' => $validated['to_email'],
+                ]
+            );
         }
 
         return response()->json([
