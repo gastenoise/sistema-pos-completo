@@ -22,7 +22,7 @@ class ReportController extends Controller
             ->map(fn ($status) => trim($status))
             ->filter();
 
-        $query = Sale::with(['items', 'payments.paymentMethod', 'user'])
+        $query = Sale::with(['items.item.category', 'payments.paymentMethod', 'user'])
             ->where('business_id', $businessId);
 
         if ($startDate) {
@@ -66,7 +66,11 @@ class ReportController extends Controller
                 'total_amount' => $sale->total_amount,
                 'created_at' => $sale->created_at,
                 'closed_at' => $sale->closed_at,
-                'items' => $sale->items,
+                'items' => $sale->items->map(function ($saleItem) {
+                    $itemData = $saleItem->toArray();
+                    $itemData['category_name'] = $saleItem->item?->category?->name;
+                    return $itemData;
+                }),
                 'payments' => $sale->payments->map(function ($payment) {
                     return [
                         'id' => $payment->id,
@@ -273,7 +277,7 @@ class ReportController extends Controller
             ->map(fn ($status) => trim($status))
             ->filter();
 
-        $query = Sale::with(['items', 'payments.paymentMethod', 'user'])
+        $query = Sale::with(['items.item.category', 'payments.paymentMethod', 'user'])
             ->where('business_id', $businessId);
 
         if ($startDate) {
@@ -303,7 +307,11 @@ class ReportController extends Controller
                     'total_amount' => $sale->total_amount,
                     'created_at' => $sale->created_at,
                     'closed_at' => $sale->closed_at,
-                    'items' => $sale->items,
+                    'items' => $sale->items->map(function ($saleItem) {
+                        $itemData = $saleItem->toArray();
+                        $itemData['category_name'] = $saleItem->item?->category?->name;
+                        return $itemData;
+                    }),
                     'payments' => $sale->payments->map(function ($payment) {
                         return [
                             'id' => $payment->id,

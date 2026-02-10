@@ -695,10 +695,12 @@ export default function Reports() {
                     const unitPrice = item.unit_price ?? item.unit_price_snapshot ?? item.price ?? 0;
                     const subtotal = item.subtotal ?? item.total ?? (quantity * unitPrice);
                     const name = item.name ?? item.item_name_snapshot ?? item.item?.name ?? 'Item';
+                    const categoryName = item.category_name ?? item.item?.category?.name ?? 'Sin categoría';
                     return (
                       <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                         <div>
                           <p className="font-medium">{name}</p>
+                          <p className="text-[11px] text-slate-400">Categoría: {categoryName}</p>
                           <p className="text-sm text-slate-500">Qty: {quantity} × {formatPrice(unitPrice, currentBusiness)}</p>
                         </div>
                         <p className="font-medium">{formatPrice(subtotal, currentBusiness)}</p>
