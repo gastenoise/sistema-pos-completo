@@ -2,7 +2,31 @@ import { request } from './client';
 
 const TOKEN_KEY = 'pos_auth_token';
 
+/** @typedef {import('@/types/user').CanonicalUserProfile} UserProfile */
+
 const canUseStorage = () => typeof window !== 'undefined' && !!window.localStorage;
+
+/**
+ * Normaliza la carga útil del usuario autenticado para mantener un único contrato en frontend.
+ * Backward compatibility: soporta `created_date` legado y lo expone como `created_at`.
+ * @param {any} user
+ * @returns {UserProfile | null}
+ */
+export const normalizeUserProfile = (user) => {
+  if (!user || typeof user !== 'object') {
+    return null;
+  }
+
+  return {
+    id: typeof user.id === 'number' ? user.id : undefined,
+    name: user.name ?? user.full_name ?? '',
+    email: user.email ?? '',
+    phone: user.phone ?? null,
+    email_verified_at: user.email_verified_at ?? null,
+    created_at: user.created_at ?? user.created_date ?? null,
+    updated_at: user.updated_at ?? null,
+  };
+};
 
 export const getToken = () => {
   if (!canUseStorage()) {
@@ -53,7 +77,8 @@ const authFetch = async (url, options = {}) => {
 
 export const fetchMe = async () => {
   const response = await authFetch('/protected/auth/me');
-  return response?.data?.user ?? response?.user ?? response;
+  const user = response?.data?.user ?? response?.user ?? response;
+  return normalizeUserProfile(user);
 };
 
 export const updateMe = async (updates) => {
@@ -61,5 +86,6 @@ export const updateMe = async (updates) => {
     method: 'PUT',
     body: JSON.stringify(updates)
   });
-  return response?.data?.user ?? response?.user ?? response;
+  const user = response?.data?.user ?? response?.user ?? response;
+  return normalizeUserProfile(user);
 };

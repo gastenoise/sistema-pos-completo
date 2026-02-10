@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
+/** @typedef {import('@/types/user').CanonicalUserProfile} CanonicalUserProfile */
+
 export default function Profile() {
+  /** @type {[CanonicalUserProfile | null, import('react').Dispatch<import('react').SetStateAction<CanonicalUserProfile | null>>]} */
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState({
     full_name: '',
@@ -31,7 +33,7 @@ export default function Profile() {
     fetchMe().then(u => {
       setUser(u);
       setUserData({
-        full_name: u.name || u.full_name || '',
+        full_name: u?.name || '',
         email: u.email || '',
         phone: u.phone || ''
       });
@@ -50,7 +52,7 @@ export default function Profile() {
       });
       setUser({ ...user, name: userData.full_name, phone: userData.phone });
       toast.success('Profile updated successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to update profile');
     } finally {
       setSaving(false);
@@ -76,7 +78,7 @@ export default function Profile() {
       });
       toast.success('Password changed successfully');
       setPasswordData({ current: '', new: '', confirm: '' });
-    } catch (error) {
+    } catch {
       toast.error('Failed to change password');
     } finally {
       setSavingPassword(false);
@@ -233,13 +235,15 @@ export default function Profile() {
               <div className="flex justify-between py-2 border-b border-slate-100">
                 <span className="text-sm text-slate-600">Account Created</span>
                 <span className="text-sm font-medium text-slate-900">
-                  {user?.created_date ? new Date(user.created_date).toLocaleDateString('es-AR') : 'N/A'}
+                  {user?.created_at ? new Date(user.created_at).toLocaleDateString('es-AR') : 'N/A'}
                 </span>
               </div>
-              <div className="flex justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-600">User ID</span>
-                <span className="text-sm font-mono text-slate-900">{user?.id}</span>
-              </div>
+              {typeof user?.id === 'number' && (
+                <div className="flex justify-between py-2 border-b border-slate-100">
+                  <span className="text-sm text-slate-600">User ID</span>
+                  <span className="text-sm font-mono text-slate-900">{user.id}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
