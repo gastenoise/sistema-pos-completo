@@ -17,6 +17,21 @@ const getRedirectTarget = (search) => {
   return createPageUrl('Home');
 };
 
+
+const getSessionMessage = (search) => {
+  const params = new URLSearchParams(search);
+  const reason = params.get('reason');
+
+  switch (reason) {
+    case 'api_unreachable':
+      return 'No pudimos validar tu sesión porque la API no responde. Inicia sesión nuevamente.';
+    case 'session_expired':
+      return 'Tu sesión expiró. Inicia sesión nuevamente para continuar.';
+    default:
+      return '';
+  }
+};
+
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -24,6 +39,7 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const sessionMessage = getSessionMessage(location.search);
 
   const handleChange = (field) => (event) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
@@ -82,6 +98,11 @@ export default function Login() {
                 required
               />
             </div>
+            {sessionMessage && !error && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                {sessionMessage}
+              </div>
+            )}
             {error && (
               <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                 {error}

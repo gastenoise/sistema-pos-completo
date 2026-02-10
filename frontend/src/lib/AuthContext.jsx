@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { clearToken, fetchMe, login as loginRequest, updateMe } from '@/api/auth';
 
 const AuthContext = createContext();
@@ -11,21 +11,37 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState(null);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [sessionExpiredReason, setSessionExpiredReason] = useState('session_expired');
 
   useEffect(() => {
     checkAppState();
+  }, []);
+
+  const navigateToLogin = useCallback((reason = null) => {
+    const redirect = `${window.location.pathname}${window.location.search}`;
+    const params = new URLSearchParams();
+    params.set('redirect', redirect);
+    if (reason) {
+      params.set('reason', reason);
+    }
+    window.location.href = `/login?${params.toString()}`;
   }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return undefined;
     }
-    const handleSessionExpired = () => {
+    const handleSessionExpired = (event) => {
+      const reason = event?.detail?.reason || 'session_expired';
+      setSessionExpiredReason(reason);
       setSessionExpired(true);
+      setUser(null);
+      setIsAuthenticated(false);
+      navigateToLogin(reason);
     };
     window.addEventListener('session-expired', handleSessionExpired);
     return () => window.removeEventListener('session-expired', handleSessionExpired);
-  }, []);
+  }, [navigateToLogin]);
 
   const checkAppState = async () => {
     setIsLoadingPublicSettings(true);
@@ -104,14 +120,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const navigateToLogin = () => {
-    const redirect = `${window.location.pathname}${window.location.search}`;
-    window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
-  };
-
   const acknowledgeSessionExpired = () => {
     setSessionExpired(false);
-    navigateToLogin();
+    navigateToLogin(sessionExpiredReason);
   };
 
   return (
@@ -127,6 +138,7 @@ export const AuthProvider = ({ children }) => {
       updateUser,
       logout,
       navigateToLogin,
+      sessionExpiredReason,
       acknowledgeSessionExpired,
       checkAppState
     }}>
