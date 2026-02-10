@@ -251,7 +251,7 @@ export default function Reports() {
             </Button>
           </CardHeader>
           <CardContent className="p-4 pt-2">
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant={dateMode === 'today' ? "default" : "outline"}
@@ -284,50 +284,48 @@ export default function Reports() {
                 </Button>
               </div>
 
-              <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3">
-                  <div>
-                    <Label className="text-xs">From</Label>
-                    <Input
-                      type="date"
-                      value={dateMode === 'custom' ? tempDateFrom : dateFrom}
-                      onChange={(e) => setTempDateFrom(e.target.value)}
-                      className="w-full sm:w-40"
-                      disabled={dateMode !== 'custom'}
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">To</Label>
-                    <Input
-                      type="date"
-                      value={dateMode === 'custom' ? tempDateTo : dateTo}
-                      onChange={(e) => setTempDateTo(e.target.value)}
-                      className="w-full sm:w-40"
-                      disabled={dateMode !== 'custom'}
-                    />
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={handleApplyCustomDates}
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <Label className="text-xs">From</Label>
+                  <Input
+                    type="date"
+                    value={dateMode === 'custom' ? tempDateFrom : dateFrom}
+                    onChange={(e) => setTempDateFrom(e.target.value)}
+                    className="w-full sm:w-40"
                     disabled={dateMode !== 'custom'}
-                    className="mt-5"
-                  >
-                    Apply
-                  </Button>
+                  />
                 </div>
-
-                <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-                  <SelectTrigger className="w-full md:w-48">
-                    <SelectValue placeholder="Payment" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Methods</SelectItem>
-                    {paymentMethods.filter(m => m.is_active).map(m => (
-                      <SelectItem key={m.id} value={m.type}>{m.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div>
+                  <Label className="text-xs">To</Label>
+                  <Input
+                    type="date"
+                    value={dateMode === 'custom' ? tempDateTo : dateTo}
+                    onChange={(e) => setTempDateTo(e.target.value)}
+                    className="w-full sm:w-40"
+                    disabled={dateMode !== 'custom'}
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleApplyCustomDates}
+                  disabled={dateMode !== 'custom'}
+                  className="mt-5"
+                >
+                  Apply
+                </Button>
               </div>
+
+              <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                <SelectTrigger className="w-full lg:w-48">
+                  <SelectValue placeholder="Payment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Methods</SelectItem>
+                  {paymentMethods.filter(m => m.is_active).map(m => (
+                    <SelectItem key={m.id} value={m.type}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
