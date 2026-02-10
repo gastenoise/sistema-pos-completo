@@ -1506,6 +1506,61 @@
               ]
             }
           }
+        },
+        {
+          "name": "Get Ticket JSON",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/sales/{{sale_id}}/ticket",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "sales",
+                "{{sale_id}}",
+                "ticket"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Ticket PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/protected/sales/{{sale_id}}/ticket/pdf?download=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "sales",
+                "{{sale_id}}",
+                "ticket",
+                "pdf"
+              ],
+              "query": [
+                {
+                  "key": "download",
+                  "value": "true"
+                }
+              ]
+            }
+          }
         }
       ]
     },
