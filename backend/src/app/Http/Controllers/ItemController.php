@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Item;
 use App\Models\Category;
 use App\Models\Import;
+use App\Http\Resources\ItemResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -41,7 +42,7 @@ class ItemController extends Controller
         $perPage = (int) $request->input('per_page', 20);
         $perPage = $perPage > 0 ? min($perPage, 100) : 20;
 
-        return response()->json(['success' => true, 'data' => $query->paginate($perPage)]);
+        return response()->json(['success' => true, 'data' => ItemResource::collection($query->paginate($perPage))]);
     }
 
     public function store(Request $request)
@@ -55,12 +56,12 @@ class ItemController extends Controller
         ]);
 
         $item = Item::create($validated);
-        return response()->json(['success' => true, 'data' => $item], 201);
+        return response()->json(['success' => true, 'data' => new ItemResource($item)], 201);
     }
 
     public function show(Item $item)
     {
-        return response()->json(['success' => true, 'data' => $item]);
+        return response()->json(['success' => true, 'data' => new ItemResource($item)]);
     }
 
     public function update(Request $request, Item $item)
@@ -73,7 +74,7 @@ class ItemController extends Controller
         ]);
 
         $item->update($validated);
-        return response()->json(['success' => true, 'data' => $item]);
+        return response()->json(['success' => true, 'data' => new ItemResource($item)]);
     }
 
     // --- Import Logic ---

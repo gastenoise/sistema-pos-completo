@@ -52,6 +52,13 @@ Para deshabilitar cron, comentar el servicio scheduler en docker-compose.yml.
 Tests
 Ejecutar make test para correr Pest/PHPUnit.
 
+## Convención de naming API (catálogo)
+
+- Para recursos de catálogo (`items`, `categories`) el estado de activación expuesto por API debe llamarse `is_active`.
+- El campo de base de datos puede seguir siendo `active`, pero no debe exponerse directamente en respuestas nuevas.
+- Durante migraciones de clientes, los consumidores pueden mantener un adaptador temporal que acepte ambos (`is_active` y `active`).
+- Todo endpoint nuevo que devuelva catálogo debe serializar este flag con `is_active` para mantener consistencia.
+
 
 #### Ejemplo de Test (`tests/Feature/SaleFlowTest.php`)
 

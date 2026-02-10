@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
+import { mapCatalogIsActive, withCatalogIsActive } from '@/lib/catalogNaming';
 import { formatPrice } from '@/lib/formatPrice';
 
 import { useBusiness } from '../components/pos/BusinessContext';
@@ -46,10 +47,7 @@ function POSContent() {
   const searchInputRef = useRef(null);
 
   const updateItemsCache = (response) => {
-    const list = normalizeListResponse(response, 'items').map((item) => ({
-      ...item,
-      is_active: item.is_active ?? item.active
-    }));
+    const list = mapCatalogIsActive(normalizeListResponse(response, 'items'));
     if (list.length > 0) {
       queryClient.setQueryData(['items', businessId], list);
       return true;
@@ -57,10 +55,7 @@ function POSContent() {
 
     const entity = normalizeEntityResponse(response);
     if (entity?.id) {
-      const normalizedEntity = {
-        ...entity,
-        is_active: entity.is_active ?? entity.active
-      };
+      const normalizedEntity = withCatalogIsActive(entity);
       queryClient.setQueryData(['items', businessId], (prev = []) => {
         const safePrev = Array.isArray(prev) ? prev : [];
         const exists = safePrev.find((item) => item.id === normalizedEntity.id);
@@ -81,11 +76,7 @@ function POSContent() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/items');
-      return normalizeListResponse(response, 'items')
-        .map((item) => ({
-          ...item,
-          is_active: item.is_active ?? item.active
-        }))
+      return mapCatalogIsActive(normalizeListResponse(response, 'items'))
         .filter((item) => item.is_active !== false);
     },
     enabled: !!businessId
@@ -97,10 +88,7 @@ function POSContent() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/categories');
-      return normalizeListResponse(response, 'categories').map((category) => ({
-        ...category,
-        is_active: category.is_active ?? category.active
-      }));
+      return mapCatalogIsActive(normalizeListResponse(response, 'categories'));
     },
     enabled: !!businessId
   });
