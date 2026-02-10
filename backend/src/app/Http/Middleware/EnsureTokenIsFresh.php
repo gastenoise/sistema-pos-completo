@@ -25,17 +25,22 @@ class EnsureTokenIsFresh
             ], 403);
         }
 
-        $idleMinutes = config('sanctum.frontend_idle_minutes', 60);
-        $lastActivity = $token->last_used_at ?? $token->created_at;
+        $idleMinutes = (int) config('sanctum.frontend_idle_minutes', 60);
 
-        if ($idleMinutes && $lastActivity && $lastActivity->lt(now()->subMinutes($idleMinutes))) {
-            $token->delete();
-            Auth::guard('web')->logout();
+        if ($idleMinutes > 0) {
+            if ($token->expires_at && $token->expires_at->lte(now())) {
+                $token->delete();
+                Auth::guard('web')->logout();
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Session expired. Please log in again.'
-            ], 401);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Session expired. Please log in again.'
+                ], 401);
+            }
+
+            $token->forceFill([
+                'expires_at' => now()->addMinutes($idleMinutes),
+            ])->save();
         }
 
         return $next($request);

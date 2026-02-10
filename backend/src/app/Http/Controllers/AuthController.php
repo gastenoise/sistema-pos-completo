@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Carbon;
 
 class AuthController extends Controller
 {
@@ -18,14 +19,19 @@ class AuthController extends Controller
         
         $user = User::where('email', $request->email)->with('businesses')->first();
         $user->tokens()->where('name', 'front')->delete();
-        $token = $user->createToken('front', ['front'])->plainTextToken;
+        $idleMinutes = (int) config('sanctum.frontend_idle_minutes', 60);
+        $tokenExpiration = $idleMinutes > 0
+            ? Carbon::now()->addMinutes($idleMinutes)
+            : null;
+
+        $token = $user->createToken('front', ['front'], $tokenExpiration)->plainTextToken;
         
         return response()->json([
             'success' => true,
             'data' => [
                 'user_name' => $user->name, 
                 'token' => $token,
-                'session_idle_minutes' => config('sanctum.frontend_idle_minutes', 60),
+                'session_idle_minutes' => $idleMinutes,
             ]
         ]);
     }
