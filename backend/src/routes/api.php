@@ -28,7 +28,6 @@ Route::prefix('protected')->group(function () {
     Route::post('auth/login', [AuthController::class, 'login'])->name('login');
     Route::post('auth/register', [AuthController::class, 'register']);
 
-    Route::get('mercadopago/test', [MercadoPagoController::class, 'testConfig']);
     Route::post('mercadopago/preferencia', [MercadoPagoController::class, 'crearPreferencia']);
 
     /*
@@ -59,6 +58,10 @@ Route::prefix('protected')->group(function () {
             |----------------------------------------------------------------------
             */
             Route::middleware('resolve.business')->group(function () {
+                Route::middleware('business.role:owner,admin')->group(function () {
+                    Route::get('mercadopago/test', [MercadoPagoController::class, 'testConfig']);
+                });
+
                 Route::get('business/smtp', [BusinessController::class, 'getSmtpSettings']);
                 Route::put('business/smtp', [BusinessController::class, 'updateSmtpSettings']);
                 Route::post('business/smtp/test', [BusinessController::class, 'testSmtpSettings']);
