@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Download, Loader2, Mail, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -7,12 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  downloadSaleTicketPdf,
-  getSaleTicket,
-  getSaleTicketWhatsappShare,
-  sendSaleTicketEmail,
-} from '@/api/salesTickets';
+import { getSaleTicket, getSaleTicketWhatsappShare, sendSaleTicketEmail } from '@/api/salesTickets';
+import { downloadTicketPdfFromNode } from '@/utils/ticketPdf';
 
 const resolveErrorMessage = (error, fallbackMessage) => {
   return error?.message || error?.data?.message || fallbackMessage;
@@ -134,6 +130,7 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
   const [isLoadingWhatsapp, setIsLoadingWhatsapp] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const ticketContentRef = useRef(null);
 
   const defaultEmail = useMemo(() => customerEmail || '', [customerEmail]);
 
@@ -148,13 +145,10 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
 
     try {
       setIsDownloading(true);
-      const { blob, fileName } = await downloadSaleTicketPdf(saleId);
-      const url = window.URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = fileName;
-      anchor.click();
-      window.URL.revokeObjectURL(url);
+      await downloadTicketPdfFromNode({
+        saleId,
+        ticketNode: ticketContentRef.current,
+      });
       notifyTicketActionSuccess('Ticket PDF descargado correctamente.');
     } catch (downloadError) {
       notifyTicketActionError('No se pudo descargar el PDF del ticket.', downloadError);
@@ -212,7 +206,7 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
             <DialogTitle>Vista previa del ticket</DialogTitle>
           </DialogHeader>
 
-          <div className="rounded-lg border bg-slate-50 p-4 text-sm max-h-[60vh] overflow-y-auto">
+          <div ref={ticketContentRef} className="rounded-lg border bg-slate-50 p-4 text-sm max-h-[60vh] overflow-y-auto">
             {isLoading && (
               <div className="flex items-center justify-center py-8 text-slate-500">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
