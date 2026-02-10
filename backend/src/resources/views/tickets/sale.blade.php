@@ -104,6 +104,7 @@
     </div>
 
     <p class="center muted">Gracias por su compra</p>
+    <p class="center muted" style="font-size: 9px; margin-top: 8px;">Comprobante no válido como factura. Sin validez fiscal.</p>
 </div>
 </body>
 </html>
