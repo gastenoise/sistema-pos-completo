@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from 'sonner';
 import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
+import { mapCatalogIsActive, withCatalogIsActive } from '@/lib/catalogNaming';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
@@ -51,9 +52,8 @@ export default function Items() {
   const [bulkLoading, setBulkLoading] = useState(false);
 
   const updateItemsCache = (response) => {
-    const list = normalizeListResponse(response, 'items').map((item) => ({
+    const list = mapCatalogIsActive(normalizeListResponse(response, 'items')).map((item) => ({
       ...item,
-      is_active: item.is_active ?? item.active,
       category_id: item.category_id ? Number(item.category_id) : null
     }));
     if (list.length > 0) {
@@ -72,8 +72,7 @@ export default function Items() {
     const entity = normalizeEntityResponse(response);
     if (entity?.id) {
       const normalizedEntity = {
-        ...entity,
-        is_active: entity.is_active ?? entity.active,
+        ...withCatalogIsActive(entity),
         category_id: entity.category_id ? Number(entity.category_id) : null
       };
       queryClient.setQueriesData({ queryKey: ['items', businessId] }, (prev) => {
@@ -113,9 +112,8 @@ export default function Items() {
       params.set('page', String(page));
       params.set('per_page', String(ITEMS_PER_PAGE));
       const response = await apiClient.get(`/protected/items?${params.toString()}`);
-      const list = normalizeListResponse(response, 'items').map((item) => ({
+      const list = mapCatalogIsActive(normalizeListResponse(response, 'items')).map((item) => ({
         ...item,
-        is_active: item.is_active ?? item.active,
         category_id: item.category_id ? Number(item.category_id) : null
       }));
       const paginationSource = response?.data && Array.isArray(response?.data?.data) ? response.data : response;
@@ -140,10 +138,7 @@ export default function Items() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/categories');
-      const list = normalizeListResponse(response, 'categories').map((category) => ({
-        ...category,
-        is_active: category.is_active ?? category.active
-      }));
+      const list = mapCatalogIsActive(normalizeListResponse(response, 'categories'));
       return list.filter((category) => category.is_active !== false);
     },
     enabled: !!businessId

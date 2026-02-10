@@ -3,7 +3,7 @@ import { apiClient } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   Store, Tag, CreditCard, Plus, Pencil, Trash2, 
-  Loader2, Save, Check, Package, Lock, ShoppingBag, Coffee,
+  Loader2, Save, Package, Lock, ShoppingBag, Coffee,
   Utensils, Shirt, Laptop, Smartphone, Book, Wrench, Home, Car, Heart,
   Gamepad, Pizza, Apple, Cake, Watch, Glasses, Plane, Music,
   Camera, Dumbbell, Paintbrush, Hammer, Scissors, Zap, Star, Gift,
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
+import { mapCatalogIsActive, withCatalogIsActive } from '@/lib/catalogNaming';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 
 import { useBusiness } from '../components/pos/BusinessContext';
@@ -135,25 +136,15 @@ export default function Settings() {
     }
   }, [currentBusiness]);
 
-  const normalizeIsActive = (entry) => {
-    if (Object.prototype.hasOwnProperty.call(entry, 'is_active')) {
-      return { ...entry, is_active: entry.is_active };
-    }
-    if (Object.prototype.hasOwnProperty.call(entry, 'active')) {
-      return { ...entry, is_active: entry.active };
-    }
-    return entry;
-  };
-
   const updateCategoryCache = (response) => {
-    const list = normalizeListResponse(response, 'categories').map(normalizeIsActive);
+    const list = mapCatalogIsActive(normalizeListResponse(response, 'categories'));
     if (list.length > 0) {
       queryClient.setQueryData(['categories', businessId], list);
       return true;
     }
     const entity = normalizeEntityResponse(response);
     if (entity?.id) {
-      const normalizedEntity = normalizeIsActive(entity);
+      const normalizedEntity = withCatalogIsActive(entity);
       queryClient.setQueryData(['categories', businessId], (prev = []) => {
         const safePrev = Array.isArray(prev) ? prev : [];
         const exists = safePrev.find((category) => category.id === normalizedEntity.id);
@@ -175,7 +166,7 @@ export default function Settings() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/categories');
-      return normalizeListResponse(response, 'categories').map(normalizeIsActive);
+      return mapCatalogIsActive(normalizeListResponse(response, 'categories'));
     },
     enabled: !!businessId
   });
@@ -187,7 +178,7 @@ export default function Settings() {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/payment-methods');
       return normalizeListResponse(response, 'payment_methods').map((method) => {
-        const normalizedMethod = normalizeIsActive(method);
+        const normalizedMethod = withCatalogIsActive(method);
         return {
           ...normalizedMethod,
           type: method.type || method.code,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Http\Resources\CategoryResource;
 use Illuminate\Http\Request;
 use App\Services\BusinessContext;
 use Illuminate\Support\Facades\Schema;
@@ -11,7 +12,7 @@ class CategoryController extends Controller
 {
     public function index()
     {
-        return response()->json(['success' => true, 'data' => Category::all()]);
+        return response()->json(['success' => true, 'data' => CategoryResource::collection(Category::all())]);
     }
 
     public function store(Request $request)
@@ -41,7 +42,7 @@ class CategoryController extends Controller
 
         $category = Category::create($payload);
 
-        return response()->json(['success' => true, 'data' => $category], 201);
+        return response()->json(['success' => true, 'data' => new CategoryResource($category)], 201);
     }
 
     public function update(Request $request, Category $category)
@@ -66,7 +67,7 @@ class CategoryController extends Controller
         }
 
         $category->update($validated);
-        return response()->json(['success' => true, 'data' => $category->fresh()]);
+        return response()->json(['success' => true, 'data' => new CategoryResource($category->fresh())]);
     }
 
     public function destroy(Category $category)
