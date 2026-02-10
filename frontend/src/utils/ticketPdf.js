@@ -28,13 +28,7 @@ const createPrintableWrapper = (sourceNode) => {
   return wrapper;
 };
 
-export const generateTicketFileName = (saleId) => `ticket-venta-${saleId}.pdf`;
-
-export const downloadTicketPdfFromNode = async ({ saleId, ticketNode }) => {
-  if (!saleId) {
-    throw new Error('No se encontró el id de la venta para generar el PDF.');
-  }
-
+const buildTicketPdfFromNode = async ({ ticketNode }) => {
   if (!ticketNode) {
     throw new Error('No hay contenido de ticket para exportar.');
   }
@@ -64,8 +58,29 @@ export const downloadTicketPdfFromNode = async ({ saleId, ticketNode }) => {
     });
 
     pdf.addImage(imageData, 'PNG', HORIZONTAL_PADDING_MM, HORIZONTAL_PADDING_MM, contentWidthMm, contentHeightMm, undefined, 'FAST');
-    pdf.save(generateTicketFileName(saleId));
+
+    return pdf;
   } finally {
     printableWrapper.remove();
   }
+};
+
+export const generateTicketFileName = (saleId) => `ticket-venta-${saleId}.pdf`;
+
+export const generateTicketPdfBlobFromNode = async ({ saleId, ticketNode }) => {
+  if (!saleId) {
+    throw new Error('No se encontró el id de la venta para generar el PDF.');
+  }
+
+  const pdf = await buildTicketPdfFromNode({ ticketNode });
+  return pdf.output('blob');
+};
+
+export const downloadTicketPdfFromNode = async ({ saleId, ticketNode }) => {
+  if (!saleId) {
+    throw new Error('No se encontró el id de la venta para generar el PDF.');
+  }
+
+  const pdf = await buildTicketPdfFromNode({ ticketNode });
+  pdf.save(generateTicketFileName(saleId));
 };

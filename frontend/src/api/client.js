@@ -130,7 +130,9 @@ export const request = async (path, options = {}) => {
   const normalizedOptions = normalizeBody(options);
   const headers = new Headers(normalizedOptions.headers || {});
 
-  if (normalizedOptions.body && !headers.has('Content-Type')) {
+  const isMultipartBody = normalizedOptions.body instanceof FormData;
+
+  if (normalizedOptions.body && !isMultipartBody && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 
