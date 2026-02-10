@@ -269,13 +269,10 @@
         {
           "name": "Test Config",
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Business-Id",
-                "value": "{{business_id}}"
-              }
-            ],
             "url": {
               "raw": "{{base_url}}/protected/mercadopago/test",
               "host": [
