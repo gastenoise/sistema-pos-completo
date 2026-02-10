@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { apiClient } from '@/api/client';
-import { getToken } from '@/api/auth';
 import { useQuery } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import {
@@ -238,29 +237,42 @@ export default function Reports() {
 
   const handleExportCsv = async () => {
     try {
-      const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
-      const token = getToken();
-      const response = await fetch(`${baseUrl}/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales&statuses=${encodeURIComponent(statusTab)}`, {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(businessId ? { 'X-Business-Id': businessId } : {})
-        }
+      const params = new URLSearchParams({
+        start_date: dateFrom,
+        end_date: dateTo,
+        type: 'sales',
+        statuses: statusTab
+      });
+      const response = await apiClient.get(`/protected/reports/export?${params.toString()}`, {
+        responseType: 'blob',
+        includeMeta: true
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to export report');
+      const contentDisposition = response.headers.get('content-disposition') || '';
+      const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+      const serverFileName = decodeURIComponent(fileNameMatch?.[1] || fileNameMatch?.[2] || '').trim();
+      const fallbackName = `sales-report-${dateFrom}-to-${dateTo}.csv`;
+      const fileName = serverFileName || fallbackName;
+
+      const mimeType = response.data.type || response.headers.get('content-type') || 'text/csv;charset=utf-8';
+      const downloadableBlob = response.data.type
+        ? response.data
+        : new Blob([response.data], { type: mimeType });
+
+      if (!downloadableBlob.size) {
+        toast.error('Export completed but the file is empty. Try a different date range.');
+        return;
       }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(downloadableBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `sales-report-${dateFrom}-to-${dateTo}.csv`;
+      a.download = fileName;
       a.click();
       URL.revokeObjectURL(url);
       toast.success('Report exported');
     } catch (error) {
-      toast.error('Failed to export report');
+      toast.error(error?.message || 'Failed to export report');
     }
   };
 
