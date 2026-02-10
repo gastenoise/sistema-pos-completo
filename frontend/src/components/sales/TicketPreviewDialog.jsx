@@ -217,11 +217,27 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
 
     try {
       setIsSendingEmail(true);
-      const response = await sendSaleTicketEmail(saleId, {
-        to_email: formPayload.to_email.trim(),
-        subject: formPayload.subject?.trim() || undefined,
-        message: formPayload.message?.trim() || undefined,
+      const pdfBlob = await generateTicketPdfBlobFromNode({
+        saleId,
+        ticketNode: ticketContentRef.current,
       });
+
+      const formData = new FormData();
+      formData.append('to_email', formPayload.to_email.trim());
+
+      const subject = formPayload.subject?.trim();
+      if (subject) {
+        formData.append('subject', subject);
+      }
+
+      const message = formPayload.message?.trim();
+      if (message) {
+        formData.append('message', message);
+      }
+
+      formData.append('ticket_pdf', new File([pdfBlob], generateTicketFileName(saleId), { type: 'application/pdf' }));
+
+      const response = await sendSaleTicketEmail(saleId, formData);
 
       notifyTicketActionSuccess(response?.message || 'Ticket enviado correctamente por e-mail.');
       setIsEmailDialogOpen(false);

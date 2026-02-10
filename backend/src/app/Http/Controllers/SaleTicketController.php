@@ -73,9 +73,7 @@ class SaleTicketController extends Controller
             'to_email' => 'required|email',
             'subject' => 'nullable|string|max:255',
             'message' => 'nullable|string',
-            'pdf_file' => 'nullable|file|mimetypes:application/pdf|max:5120',
-            'pdf_base64' => 'nullable|string',
-            'pdf_filename' => 'nullable|string|max:255',
+            'ticket_pdf' => 'required|file|mimetypes:application/pdf|max:5120',
         ]);
 
         $business = Business::find($sale->business_id);
@@ -86,14 +84,14 @@ class SaleTicketController extends Controller
             ], 404);
         }
 
-        [$pdfContent, $pdfFilename, $fileMetadata] = $this->resolveClientPdfPayload($request, $validated, $sale);
+        [$pdfContent, $pdfFilename, $fileMetadata] = $this->resolveClientPdfPayload($request, $sale);
 
         if (!$pdfContent || !$pdfFilename) {
             $this->logEmailAudit($sale, $business->id, $validated['to_email'], 'invalid_pdf_payload');
 
             return response()->json([
                 'success' => false,
-                'message' => 'Debés enviar un PDF válido en pdf_file (multipart/form-data) o pdf_base64.',
+                'message' => 'Debés enviar un PDF válido en ticket_pdf (multipart/form-data).',
             ], 422);
         }
 
@@ -223,78 +221,36 @@ class SaleTicketController extends Controller
     }
 
     /**
-     * @param array<string,mixed> $validated
      * @return array{0:?string,1:?string,2:array<string,mixed>}
      */
-    private function resolveClientPdfPayload(Request $request, array $validated, Sale $sale): array
+    private function resolveClientPdfPayload(Request $request, Sale $sale): array
     {
-        if ($request->hasFile('pdf_file')) {
-            $file = $request->file('pdf_file');
-
-            if (!$file || !$file->isValid() || $file->getMimeType() !== 'application/pdf') {
-                return [null, null, []];
-            }
-
-            $content = $file->get();
-            if ($content === false || strlen($content) > self::MAX_TICKET_PDF_BYTES) {
-                return [null, null, []];
-            }
-
-            $filename = $file->getClientOriginalName() ?: sprintf('ticket-venta-%d.pdf', $sale->id);
-
-            return [
-                $content,
-                $this->normalizePdfFilename($filename, $sale),
-                [
-                    'source' => 'multipart',
-                    'filename' => $this->normalizePdfFilename($filename, $sale),
-                    'size_bytes' => strlen($content),
-                    'mime_type' => $file->getMimeType(),
-                    'sha256' => hash('sha256', $content),
-                ],
-            ];
-        }
-
-        $base64 = $validated['pdf_base64'] ?? null;
-        if (!is_string($base64) || trim($base64) === '') {
+        if (!$request->hasFile('ticket_pdf')) {
             return [null, null, []];
         }
 
-        $mime = 'application/pdf';
-        $payload = trim($base64);
+        $file = $request->file('ticket_pdf');
 
-        if (str_starts_with($payload, 'data:')) {
-            if (!preg_match('/^data:(?<mime>[\w\/+\-.]+);base64,(?<data>.+)$/', $payload, $matches)) {
-                return [null, null, []];
-            }
-
-            $mime = $matches['mime'] ?? '';
-            $payload = $matches['data'] ?? '';
+        if (!$file || !$file->isValid() || $file->getMimeType() !== 'application/pdf') {
+            return [null, null, []];
         }
 
-        $content = base64_decode($payload, true);
-
+        $content = $file->get();
         if ($content === false || strlen($content) === 0 || strlen($content) > self::MAX_TICKET_PDF_BYTES) {
             return [null, null, []];
         }
 
-        if ($mime !== 'application/pdf' || !str_starts_with($content, '%PDF')) {
-            return [null, null, []];
-        }
-
-        $filename = $this->normalizePdfFilename(
-            $validated['pdf_filename'] ?? sprintf('ticket-venta-%d.pdf', $sale->id),
-            $sale,
-        );
+        $filename = $file->getClientOriginalName() ?: sprintf('ticket-venta-%d.pdf', $sale->id);
+        $normalizedFilename = $this->normalizePdfFilename($filename, $sale);
 
         return [
             $content,
-            $filename,
+            $normalizedFilename,
             [
-                'source' => 'base64',
-                'filename' => $filename,
+                'source' => 'multipart',
+                'filename' => $normalizedFilename,
                 'size_bytes' => strlen($content),
-                'mime_type' => $mime,
+                'mime_type' => $file->getMimeType(),
                 'sha256' => hash('sha256', $content),
             ],
         ];

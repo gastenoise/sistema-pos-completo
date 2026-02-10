@@ -7,8 +7,8 @@ export const getSaleTicket = async (saleId) => {
   return resolveResponseData(response);
 };
 
-export const sendSaleTicketEmail = async (saleId, payload) => {
-  const response = await apiClient.post(`/protected/sales/${saleId}/ticket/email`, payload);
+export const sendSaleTicketEmail = async (saleId, formData) => {
+  const response = await apiClient.post(`/protected/sales/${saleId}/ticket/email`, formData);
   return resolveResponseData(response);
 };
 
