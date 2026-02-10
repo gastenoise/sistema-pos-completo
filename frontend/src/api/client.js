@@ -7,6 +7,7 @@ let businessContext = null;
 let didNotifySessionExpired = false;
 
 const AUTH_MESSAGE_REGEX = /not authenticated|unauthenticated|unauthorized|token|session/i;
+const DEFAULT_ERROR_MESSAGE = 'Something went wrong. Please try again.';
 
 const notifySessionExpired = (reason = 'session_expired') => {
   clearToken();
@@ -84,17 +85,51 @@ const normalizeBody = (options) => {
   return options;
 };
 
-const parseResponse = async (response) => {
+const extractErrorMessage = (payload, fallback = DEFAULT_ERROR_MESSAGE) => {
+  if (typeof payload === 'string') {
+    return payload || fallback;
+  }
+  if (Array.isArray(payload?.errors)) {
+    const firstError = payload.errors.find(Boolean);
+    if (firstError) return firstError;
+  }
+  if (payload?.errors && typeof payload.errors === 'object') {
+    const firstErrorGroup = Object.values(payload.errors).find((value) => Array.isArray(value) && value.length > 0);
+    if (firstErrorGroup?.[0]) {
+      return firstErrorGroup[0];
+    }
+  }
+  return payload?.message || payload?.error || fallback;
+};
+
+const parseErrorPayload = async (response) => {
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return response.json().catch(() => null);
+  }
+  return response.text().catch(() => null);
+};
+
+const parseSuccessPayload = async (response, responseType = 'auto') => {
   if (response.status === 204) {
     return null;
   }
+
+  if (responseType === 'blob') {
+    return response.blob();
+  }
+
+  if (responseType === 'text') {
+    return response.text().catch(() => null);
+  }
+
   const contentType = response.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
   const data = isJson
     ? await response.json().catch(() => null)
     : await response.text().catch(() => null);
 
-  if (response.ok && !isJson && typeof data === 'string') {
+  if (!isJson && typeof data === 'string') {
     const looksLikeHtml = /<!doctype html|<html|<head|<body|<div id="root">/i.test(data);
     if (looksLikeHtml) {
       const error = new Error('Unexpected HTML response. Check VITE_API_BASE_URL.');
@@ -104,17 +139,22 @@ const parseResponse = async (response) => {
     }
   }
 
+  return data;
+};
+
+const parseResponse = async (response, responseType = 'auto') => {
   if (!response.ok) {
-    const message = typeof data === 'string'
-      ? data
-      : data?.message || response.statusText || 'Request failed';
+    const data = await parseErrorPayload(response);
+    const message = isAuthFailure(response.status, data)
+      ? 'Your session has expired. Please log in again.'
+      : extractErrorMessage(data, response.statusText || DEFAULT_ERROR_MESSAGE);
     const error = new Error(message);
     error.status = response.status;
     error.data = data;
     throw error;
   }
 
-  return data;
+  return parseSuccessPayload(response, responseType);
 };
 
 export const setBusinessContext = (context) => {
@@ -145,17 +185,20 @@ export const request = async (path, options = {}) => {
     headers.set('X-Business-Id', businessId);
   }
 
+  const { responseType = 'auto', includeMeta = false, ...fetchOptions } = normalizedOptions;
+
   const response = await fetch(buildUrl(path), {
-    ...normalizedOptions,
+    ...fetchOptions,
     headers
   }).catch((error) => {
     if (token) {
       notifySessionExpired('api_unreachable');
     }
+    error.message = 'Unable to connect to server. Check your internet connection and try again.';
     throw error;
   });
 
-  const parsed = await parseResponse(response).catch((error) => {
+  const parsed = await parseResponse(response, responseType).catch((error) => {
     if (token && isAuthFailure(error?.status, error?.data)) {
       notifySessionExpired();
     }
@@ -164,6 +207,14 @@ export const request = async (path, options = {}) => {
 
   if (token) {
     didNotifySessionExpired = false;
+  }
+
+  if (includeMeta) {
+    return {
+      data: parsed,
+      status: response.status,
+      headers: response.headers
+    };
   }
 
   return parsed;
