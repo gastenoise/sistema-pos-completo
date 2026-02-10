@@ -263,16 +263,17 @@ export default function Reports() {
                 >
                   This month
                 </Button>
+              </div>
+
+              <div className="flex w-full flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
                 <Button
                   variant={dateMode === 'custom' ? "default" : "outline"}
                   size="sm"
                   onClick={() => setQuickDate('custom')}
+                  className="w-full sm:w-auto"
                 >
                   Custom
                 </Button>
-              </div>
-
-              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
                 <div className="flex w-full items-center gap-2 sm:w-auto">
                   <Label className="text-xs text-slate-600">From</Label>
                   <Input
