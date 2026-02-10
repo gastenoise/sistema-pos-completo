@@ -40,7 +40,8 @@ function POSContent() {
   const [showWizard, setShowWizard] = useState(false);
   const [showCashOpenModal, setShowCashOpenModal] = useState(false);
   const [pendingPayment, setPendingPayment] = useState(null);
-  const [completedSaleId, setCompletedSaleId] = useState(null);
+  const [lastCompletedSaleId, setLastCompletedSaleId] = useState(null);
+  const [syncedSaleIds, setSyncedSaleIds] = useState([]);
   
   const searchInputRef = useRef(null);
 
@@ -212,7 +213,7 @@ function POSContent() {
       notes: 'Venta completada'
     });
 
-    return saleId;
+    return { saleId };
   };
 
   const normalizeQueuedSale = (queuedSale) => {
@@ -323,8 +324,8 @@ function POSContent() {
       if (!isOnline) {
         addToOfflineQueue(salePayload);
       } else {
-        const saleId = await createSaleFlow(salePayload);
-        setCompletedSaleId(saleId);
+        const { saleId } = await createSaleFlow(salePayload);
+        setLastCompletedSaleId(saleId);
       }
       
       clearCart();
@@ -363,11 +364,15 @@ function POSContent() {
     
     let successCount = 0;
     let failCount = 0;
+    const syncedIds = [];
     
     for (const queuedSale of offlineQueue) {
       try {
         const normalizedSale = normalizeQueuedSale(queuedSale);
-        await createSaleFlow(normalizedSale);
+        const { saleId } = await createSaleFlow(normalizedSale);
+        if (saleId) {
+          syncedIds.push(saleId);
+        }
         successCount++;
       } catch (error) {
         failCount++;
@@ -377,6 +382,7 @@ function POSContent() {
     clearOfflineQueue();
     
     if (successCount > 0) {
+      setSyncedSaleIds(syncedIds);
       toast.success(`Synced ${successCount} sale${successCount !== 1 ? 's' : ''}`);
     }
     if (failCount > 0) {
@@ -510,13 +516,32 @@ function POSContent() {
       {/* Network Indicator */}
       <NetworkIndicator onSyncQueue={handleSyncOfflineQueue} />
 
-      <Dialog open={!!completedSaleId} onOpenChange={(open) => !open && setCompletedSaleId(null)}>
+      <Dialog open={!!lastCompletedSaleId} onOpenChange={(open) => !open && setLastCompletedSaleId(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Venta cerrada correctamente</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-500">¿Qué deseas hacer con el ticket de esta venta?</p>
-          <TicketActions saleId={completedSaleId} className="pt-2" />
+          <TicketActions saleId={lastCompletedSaleId} className="pt-2" />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={syncedSaleIds.length > 0} onOpenChange={(open) => !open && setSyncedSaleIds([])}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Tickets de ventas sincronizadas</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-500">
+            La sincronización finalizó. Ya puedes descargar o enviar cada ticket.
+          </p>
+          <div className="space-y-4 pt-2 max-h-96 overflow-y-auto">
+            {syncedSaleIds.map((saleId) => (
+              <div key={saleId} className="border rounded-lg p-3">
+                <p className="text-xs text-slate-500 mb-2">Venta #{saleId}</p>
+                <TicketActions saleId={saleId} />
+              </div>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
