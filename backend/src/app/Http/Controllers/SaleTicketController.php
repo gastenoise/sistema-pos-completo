@@ -7,22 +7,19 @@ use App\Models\Business;
 use App\Models\Sale;
 use App\Services\BusinessContext;
 use App\Services\BusinessSmtpRuntimeConfigurator;
-use App\Services\SaleTicketPdfService;
 use App\Services\SaleTicketService;
-use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\URL;
-use Symfony\Component\HttpFoundation\Response;
 
 class SaleTicketController extends Controller
 {
+    private const MAX_TICKET_PDF_BYTES = 5242880;
+
     public function __construct(
         private readonly BusinessContext $businessContext,
         private readonly SaleTicketService $saleTicketService,
-        private readonly SaleTicketPdfService $saleTicketPdfService,
         private readonly BusinessSmtpRuntimeConfigurator $smtpRuntimeConfigurator,
     ) {}
 
@@ -38,24 +35,30 @@ class SaleTicketController extends Controller
         ]);
     }
 
-    public function pdf(Request $request, Sale $sale): Response|JsonResponse
+    /**
+     * @deprecated El PDF debe ser generado por el front-end usando la data de show().
+     */
+    public function pdf(Sale $sale): JsonResponse
     {
         if ($response = $this->validateBusinessAccess($sale)) {
             return $response;
         }
 
-        return $this->saleTicketPdfService->render(
-            sale: $sale,
-            download: $request->boolean('download'),
-        );
+        return response()->json([
+            'success' => false,
+            'message' => 'El endpoint /ticket/pdf está obsoleto. Usá /ticket para obtener los datos y renderizar el PDF en front-end.',
+        ], 410);
     }
 
-    public function downloadSigned(Request $request, Sale $sale): Response
+    /**
+     * @deprecated Ruta firmada obsoleta junto al flujo legacy de PDF backend.
+     */
+    public function downloadSigned(): JsonResponse
     {
-        return $this->saleTicketPdfService->render(
-            sale: $sale,
-            download: $request->boolean('download', true),
-        );
+        return response()->json([
+            'success' => false,
+            'message' => 'La descarga firmada del PDF está obsoleta. Generá el PDF en front-end con datos de /ticket.',
+        ], 410);
     }
 
     public function email(Request $request, Sale $sale): JsonResponse
@@ -68,6 +71,9 @@ class SaleTicketController extends Controller
             'to_email' => 'required|email',
             'subject' => 'nullable|string|max:255',
             'message' => 'nullable|string',
+            'pdf_file' => 'nullable|file|mimetypes:application/pdf|max:5120',
+            'pdf_base64' => 'nullable|string',
+            'pdf_filename' => 'nullable|string|max:255',
         ]);
 
         $business = Business::find($sale->business_id);
@@ -78,9 +84,22 @@ class SaleTicketController extends Controller
             ], 404);
         }
 
+        [$pdfContent, $pdfFilename, $fileMetadata] = $this->resolveClientPdfPayload($request, $validated, $sale);
+
+        if (!$pdfContent || !$pdfFilename) {
+            $this->logEmailAudit($sale, $business->id, $validated['to_email'], 'invalid_pdf_payload');
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Debés enviar un PDF válido en pdf_file (multipart/form-data) o pdf_base64.',
+            ], 422);
+        }
+
         $smtpValidation = $this->smtpRuntimeConfigurator->validateActiveAndCompleteConfig($business);
         if (!$smtpValidation['valid']) {
-            $this->logEmailAudit($sale, $business->id, $validated['to_email'], 'smtp_invalid');
+            $this->logEmailAudit($sale, $business->id, $validated['to_email'], 'smtp_invalid', [
+                'file' => $fileMetadata,
+            ]);
 
             return response()->json([
                 'success' => false,
@@ -91,20 +110,21 @@ class SaleTicketController extends Controller
         $this->smtpRuntimeConfigurator->apply($smtpValidation['config']);
 
         try {
-            $ticketPdf = $this->saleTicketPdfService->generate($sale);
-
             Mail::mailer('smtp')->to($validated['to_email'])->send(new SaleTicketMail(
                 sale: $sale,
-                pdfContent: $ticketPdf['content'],
-                pdfFilename: $ticketPdf['filename'],
+                clientPdfContent: $pdfContent,
+                clientPdfFilename: $pdfFilename,
                 customMessage: $validated['message'] ?? null,
                 customSubject: $validated['subject'] ?? null,
             ));
 
-            $this->logEmailAudit($sale, $business->id, $validated['to_email'], 'sent');
+            $this->logEmailAudit($sale, $business->id, $validated['to_email'], 'sent', [
+                'file' => $fileMetadata,
+            ]);
         } catch (\Throwable $exception) {
             $this->logEmailAudit($sale, $business->id, $validated['to_email'], 'failed', [
                 'error' => $exception->getMessage(),
+                'file' => $fileMetadata,
             ]);
 
             return response()->json([
@@ -128,13 +148,7 @@ class SaleTicketController extends Controller
 
         $sale->loadMissing('business');
 
-        $signedTicketUrl = URL::temporarySignedRoute(
-            'sales.ticket.pdf.signed-download',
-            Carbon::now()->addMinutes(20),
-            ['sale' => $sale->id, 'download' => 1]
-        );
-
-        $shareText = $this->buildWhatsappShareText($sale, $signedTicketUrl);
+        $shareText = $this->buildWhatsappShareText($sale);
 
         return response()->json([
             'success' => true,
@@ -169,7 +183,102 @@ class SaleTicketController extends Controller
         ], $extra));
     }
 
-    private function buildWhatsappShareText(Sale $sale, string $ticketUrl): string
+    /**
+     * @param array<string,mixed> $validated
+     * @return array{0:?string,1:?string,2:array<string,mixed>}
+     */
+    private function resolveClientPdfPayload(Request $request, array $validated, Sale $sale): array
+    {
+        if ($request->hasFile('pdf_file')) {
+            $file = $request->file('pdf_file');
+
+            if (!$file || !$file->isValid() || $file->getMimeType() !== 'application/pdf') {
+                return [null, null, []];
+            }
+
+            $content = $file->get();
+            if ($content === false || strlen($content) > self::MAX_TICKET_PDF_BYTES) {
+                return [null, null, []];
+            }
+
+            $filename = $file->getClientOriginalName() ?: sprintf('ticket-venta-%d.pdf', $sale->id);
+
+            return [
+                $content,
+                $this->normalizePdfFilename($filename, $sale),
+                [
+                    'source' => 'multipart',
+                    'filename' => $this->normalizePdfFilename($filename, $sale),
+                    'size_bytes' => strlen($content),
+                    'mime_type' => $file->getMimeType(),
+                    'sha256' => hash('sha256', $content),
+                ],
+            ];
+        }
+
+        $base64 = $validated['pdf_base64'] ?? null;
+        if (!is_string($base64) || trim($base64) === '') {
+            return [null, null, []];
+        }
+
+        $mime = 'application/pdf';
+        $payload = trim($base64);
+
+        if (str_starts_with($payload, 'data:')) {
+            if (!preg_match('/^data:(?<mime>[\w\/+\-.]+);base64,(?<data>.+)$/', $payload, $matches)) {
+                return [null, null, []];
+            }
+
+            $mime = $matches['mime'] ?? '';
+            $payload = $matches['data'] ?? '';
+        }
+
+        $content = base64_decode($payload, true);
+
+        if ($content === false || strlen($content) === 0 || strlen($content) > self::MAX_TICKET_PDF_BYTES) {
+            return [null, null, []];
+        }
+
+        if ($mime !== 'application/pdf' || !str_starts_with($content, '%PDF')) {
+            return [null, null, []];
+        }
+
+        $filename = $this->normalizePdfFilename(
+            $validated['pdf_filename'] ?? sprintf('ticket-venta-%d.pdf', $sale->id),
+            $sale,
+        );
+
+        return [
+            $content,
+            $filename,
+            [
+                'source' => 'base64',
+                'filename' => $filename,
+                'size_bytes' => strlen($content),
+                'mime_type' => $mime,
+                'sha256' => hash('sha256', $content),
+            ],
+        ];
+    }
+
+    private function normalizePdfFilename(?string $filename, Sale $sale): string
+    {
+        $fallback = sprintf('ticket-venta-%d.pdf', $sale->id);
+
+        if (!$filename || trim($filename) === '') {
+            return $fallback;
+        }
+
+        $clean = trim(str_replace(["\0", '/', '\\'], '', $filename));
+
+        if (!str_ends_with(strtolower($clean), '.pdf')) {
+            $clean .= '.pdf';
+        }
+
+        return $clean !== '' ? $clean : $fallback;
+    }
+
+    private function buildWhatsappShareText(Sale $sale): string
     {
         $businessName = $sale->business?->name ?? 'Negocio';
         $ticketDate = optional($sale->closed_at ?? $sale->created_at)->format('Y-m-d H:i:s');
@@ -180,7 +289,7 @@ class SaleTicketController extends Controller
             sprintf('Ticket: #%d', $sale->id),
             sprintf('Fecha: %s', $ticketDate),
             sprintf('Total: %s', $totalAmount),
-            sprintf('PDF: %s', $ticketUrl),
+            'PDF: adjunto en el email o generado en front-end.',
         ]);
     }
 }
