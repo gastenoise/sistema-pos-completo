@@ -9,10 +9,12 @@ use App\Services\BusinessContext;
 use App\Services\BusinessSmtpRuntimeConfigurator;
 use App\Services\SaleTicketPdfService;
 use App\Services\SaleTicketService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\Response;
 
 class SaleTicketController extends Controller
@@ -45,6 +47,14 @@ class SaleTicketController extends Controller
         return $this->saleTicketPdfService->render(
             sale: $sale,
             download: $request->boolean('download'),
+        );
+    }
+
+    public function downloadSigned(Request $request, Sale $sale): Response
+    {
+        return $this->saleTicketPdfService->render(
+            sale: $sale,
+            download: $request->boolean('download', true),
         );
     }
 
@@ -110,6 +120,31 @@ class SaleTicketController extends Controller
         ]);
     }
 
+    public function shareWhatsapp(Sale $sale): JsonResponse
+    {
+        if ($response = $this->validateBusinessAccess($sale)) {
+            return $response;
+        }
+
+        $sale->loadMissing('business');
+
+        $signedTicketUrl = URL::temporarySignedRoute(
+            'sales.ticket.pdf.signed-download',
+            Carbon::now()->addMinutes(20),
+            ['sale' => $sale->id, 'download' => 1]
+        );
+
+        $shareText = $this->buildWhatsappShareText($sale, $signedTicketUrl);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'share_text' => $shareText,
+                'whatsapp_url' => sprintf('https://wa.me/?text=%s', rawurlencode($shareText)),
+            ],
+        ]);
+    }
+
     private function validateBusinessAccess(Sale $sale): ?JsonResponse
     {
         $businessId = $this->businessContext->getBusinessId();
@@ -132,5 +167,20 @@ class SaleTicketController extends Controller
             'recipient' => $recipient,
             'status' => $status,
         ], $extra));
+    }
+
+    private function buildWhatsappShareText(Sale $sale, string $ticketUrl): string
+    {
+        $businessName = $sale->business?->name ?? 'Negocio';
+        $ticketDate = optional($sale->closed_at ?? $sale->created_at)->format('Y-m-d H:i:s');
+        $totalAmount = number_format((float) $sale->total_amount, 2, '.', '');
+
+        return implode("\n", [
+            sprintf('%s te comparte tu ticket.', $businessName),
+            sprintf('Ticket: #%d', $sale->id),
+            sprintf('Fecha: %s', $ticketDate),
+            sprintf('Total: %s', $totalAmount),
+            sprintf('PDF: %s', $ticketUrl),
+        ]);
     }
 }
