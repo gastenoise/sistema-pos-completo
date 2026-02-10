@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 import { normalizeListResponse } from '@/lib/normalizeResponse';
 import { formatPrice } from '@/lib/formatPrice';
@@ -55,12 +56,13 @@ export default function Reports() {
   const [tempDateTo, setTempDateTo] = useState(today);
   const [selectedSale, setSelectedSale] = useState(null);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
-  const [statusFilters, setStatusFilters] = useState(['closed']);
+  const [isMoreFiltersOpen, setIsMoreFiltersOpen] = useState(false);
+  const [statusTab, setStatusTab] = useState('closed');
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
 
   // Fetch sales
   const { data: sales = [], isLoading: loadingSales } = useQuery({
-    queryKey: ['sales', businessId, dateFrom, dateTo, statusFilters, selectedPaymentMethod],
+    queryKey: ['sales', businessId, dateFrom, dateTo, statusTab, selectedPaymentMethod],
     queryFn: async () => {
       if (!businessId) return [];
       try {
@@ -68,9 +70,7 @@ export default function Reports() {
           start_date: dateFrom,
           end_date: dateTo
         });
-        if (statusFilters.length > 0) {
-          params.set('statuses', statusFilters.join(','));
-        }
+        params.set('statuses', statusTab);
         if (selectedPaymentMethod) {
           params.set('payment_method', selectedPaymentMethod);
         }
@@ -142,29 +142,16 @@ export default function Reports() {
     { value: 'voided', label: 'Voided' }
   ];
 
-  const toggleStatusFilter = (status) => {
-    setStatusFilters((prev) => {
-      const next = prev.includes(status)
-        ? prev.filter((current) => current !== status)
-        : [...prev, status];
-      return next.length === 0 ? prev : next;
-    });
-  };
-
   const clearFilters = () => {
     setQuickDate('today');
     setPaymentMethodFilter('all');
-    setStatusFilters(['closed']);
   };
 
   const handleExportCsv = async () => {
     try {
       const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
       const token = getToken();
-      const statusParams = statusFilters.length > 0
-        ? `&statuses=${encodeURIComponent(statusFilters.join(','))}`
-        : '';
-      const response = await fetch(`${baseUrl}/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales${statusParams}`, {
+      const response = await fetch(`${baseUrl}/protected/reports/export?start_date=${dateFrom}&end_date=${dateTo}&type=sales&statuses=${encodeURIComponent(statusTab)}`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...(businessId ? { 'X-Business-Id': businessId } : {})
@@ -249,6 +236,122 @@ export default function Reports() {
           <CsvExportButton onExport={handleExportCsv} />
         </div>
 
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:gap-4">
+              <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+                <Button
+                  variant={dateMode === 'today' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setQuickDate('today')}
+                >
+                  <Calendar className="w-4 h-4 mr-1" />
+                  Today
+                </Button>
+                <Button
+                  variant={dateMode === 'week' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setQuickDate('week')}
+                >
+                  Last 7 days
+                </Button>
+                <Button
+                  variant={dateMode === 'month' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setQuickDate('month')}
+                >
+                  This month
+                </Button>
+              </div>
+
+              <div className="flex w-full flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+                <Button
+                  variant={dateMode === 'custom' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setQuickDate('custom')}
+                  className="w-full sm:w-auto"
+                >
+                  Custom
+                </Button>
+                <div className="flex w-full items-center gap-2 sm:w-auto">
+                  <Label className="text-xs text-slate-600">From</Label>
+                  <Input
+                    type="date"
+                    value={dateMode === 'custom' ? tempDateFrom : dateFrom}
+                    onChange={(e) => setTempDateFrom(e.target.value)}
+                    className="w-full sm:w-36"
+                    disabled={dateMode !== 'custom'}
+                  />
+                </div>
+                <div className="flex w-full items-center gap-2 sm:w-auto">
+                  <Label className="text-xs text-slate-600">To</Label>
+                  <Input
+                    type="date"
+                    value={dateMode === 'custom' ? tempDateTo : dateTo}
+                    onChange={(e) => setTempDateTo(e.target.value)}
+                    className="w-full sm:w-36"
+                    disabled={dateMode !== 'custom'}
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleApplyCustomDates}
+                  disabled={dateMode !== 'custom'}
+                  className="w-full sm:w-auto"
+                >
+                  Apply
+                </Button>
+              </div>
+
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end lg:ml-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMoreFiltersOpen(true)}
+                >
+                  More Filter
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Clear filters
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Dialog open={isMoreFiltersOpen} onOpenChange={setIsMoreFiltersOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>More Filters</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm">Payment method</Label>
+                <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Payment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Methods</SelectItem>
+                    {paymentMethods.filter(m => m.is_active).map(m => (
+                      <SelectItem key={m.id} value={m.type}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Summary Card */}
         <Card className="mb-6">
           <CardContent className="p-6">
@@ -314,124 +417,21 @@ export default function Reports() {
           </CardContent>
         </Card>
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Filters</CardTitle>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              Clear filters
-            </Button>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  variant={dateMode === 'today' ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setQuickDate('today')}
-                >
-                  <Calendar className="w-4 h-4 mr-1" />
-                  Today
-                </Button>
-                <Button
-                  variant={dateMode === 'week' ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setQuickDate('week')}
-                >
-                  Last 7 days
-                </Button>
-                <Button
-                  variant={dateMode === 'month' ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setQuickDate('month')}
-                >
-                  This month
-                </Button>
-                <Button
-                  variant={dateMode === 'custom' ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setQuickDate('custom')}
-                >
-                  Custom
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div>
-                  <Label className="text-xs">From</Label>
-                  <Input
-                    type="date"
-                    value={dateMode === 'custom' ? tempDateFrom : dateFrom}
-                    onChange={(e) => setTempDateFrom(e.target.value)}
-                    className="w-36"
-                    disabled={dateMode !== 'custom'}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">To</Label>
-                  <Input
-                    type="date"
-                    value={dateMode === 'custom' ? tempDateTo : dateTo}
-                    onChange={(e) => setTempDateTo(e.target.value)}
-                    className="w-36"
-                    disabled={dateMode !== 'custom'}
-                  />
-                </div>
-                <Button
-                  size="sm"
-                  onClick={handleApplyCustomDates}
-                  disabled={dateMode !== 'custom'}
-                  className="mt-5"
-                >
-                  Apply
-                </Button>
-              </div>
-
-              <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Payment" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Methods</SelectItem>
-                  {paymentMethods.filter(m => m.is_active).map(m => (
-                    <SelectItem key={m.id} value={m.type}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <div className="flex flex-wrap items-center gap-2">
-                {statusOptions.map((status) => {
-                  const isActive = statusFilters.includes(status.value);
-                  return (
-                    <Button
-                      key={status.value}
-                      type="button"
-                      variant={isActive ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => toggleStatusFilter(status.value)}
-                      className="rounded-full"
-                    >
-                      {status.label}
-                    </Button>
-                  );
-                })}
-              </div>
-
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Sales Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Sales</CardTitle>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="text-lg">Sales</CardTitle>
+              <Tabs value={statusTab} onValueChange={setStatusTab}>
+                <TabsList>
+                  {statusOptions.map((status) => (
+                    <TabsTrigger key={status.value} value={status.value}>
+                      {status.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {loadingSales ? (
