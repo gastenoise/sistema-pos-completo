@@ -44,6 +44,7 @@ import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
 import TopNav from '../components/pos/TopNav';
 import CsvExportButton from '../components/pos/CsvExportButton';
+import TicketActions from '../components/sales/TicketActions';
 
 export default function Reports() {
   const { businessId, currentBusiness } = useBusiness();
@@ -759,6 +760,14 @@ export default function Reports() {
                   )}
                 </div>
               )}
+
+              <div className="pt-4 border-t">
+                <h3 className="font-medium mb-2">Ticket</h3>
+                <TicketActions
+                  saleId={selectedSale.id}
+                  customerEmail={selectedSale.customer_email}
+                />
+              </div>
             </div>
           )}
         </DialogContent>
