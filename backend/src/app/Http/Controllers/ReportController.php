@@ -53,6 +53,12 @@ class ReportController extends Controller
 
         $sales = $query->get()->map(function (Sale $sale) {
             $primaryPayment = $sale->payments->first();
+            $paymentMethodTypes = $sale->payments
+                ->map(fn ($payment) => $payment->paymentMethod?->code)
+                ->filter()
+                ->values()
+                ->unique()
+                ->values();
 
             return [
                 'id' => $sale->id,
@@ -72,6 +78,7 @@ class ReportController extends Controller
                     ];
                 }),
                 'payment_method_type' => $primaryPayment?->paymentMethod?->code,
+                'payment_method_types' => $paymentMethodTypes,
             ];
         });
 
@@ -283,6 +290,12 @@ class ReportController extends Controller
         if ($wantsJson) {
             $sales = $query->get()->map(function (Sale $sale) {
                 $primaryPayment = $sale->payments->first();
+                $paymentMethodTypes = $sale->payments
+                    ->map(fn ($payment) => $payment->paymentMethod?->code)
+                    ->filter()
+                    ->values()
+                    ->unique()
+                    ->values();
 
                 return [
                     'id' => $sale->id,
@@ -302,6 +315,7 @@ class ReportController extends Controller
                         ];
                     }),
                     'payment_method_type' => $primaryPayment?->paymentMethod?->code,
+                    'payment_method_types' => $paymentMethodTypes,
                 ];
             });
 

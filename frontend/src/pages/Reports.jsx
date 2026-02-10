@@ -191,6 +191,38 @@ export default function Reports() {
     return acc;
   }, {});
 
+  const getSalePaymentBreakdown = (sale) => {
+    const payments = Array.isArray(sale?.payments) ? sale.payments : [];
+
+    if (payments.length === 0) {
+      const fallbackCode = sale?.payment_method_type;
+      if (!fallbackCode) return [];
+      const fallbackMethod = paymentMethodLookup[fallbackCode] || {};
+      return [{
+        code: fallbackCode,
+        name: fallbackMethod.name || fallbackCode,
+        amount: parseFloat(sale?.total_amount ?? sale?.total ?? 0) || 0,
+      }];
+    }
+
+    return payments.map((payment) => {
+      const code = payment.payment_method_code || payment.code || payment.type || 'unknown';
+      const method = paymentMethodLookup[code] || {};
+      return {
+        code,
+        name: method.name || code,
+        amount: parseFloat(payment.amount) || 0,
+      };
+    });
+  };
+
+  const getSalePaymentMethodsLabel = (sale) => {
+    const breakdown = getSalePaymentBreakdown(sale);
+    if (breakdown.length === 0) return '—';
+
+    return [...new Set(breakdown.map((entry) => entry.name))].join(', ');
+  };
+
   const statusOptions = [
     { value: 'closed', label: 'Closed' },
     { value: 'open', label: 'Open' },
@@ -600,7 +632,7 @@ export default function Reports() {
                               className="w-2 h-2 rounded-full"
                               style={{ backgroundColor: paymentMethodColorLookup[sale.payment_method_type] || '#6B7280' }}
                             />
-                            <span className="capitalize">{sale.payment_method_type || '—'}</span>
+                            <span className="text-sm">{getSalePaymentMethodsLabel(sale)}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-medium">
@@ -694,11 +726,18 @@ export default function Reports() {
                     <span className="font-bold">Total</span>
                     <span className="font-bold text-lg">{formatPrice(selectedSale.total_amount ?? selectedSale.total ?? 0, currentBusiness)}</span>
                   </div>
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-slate-600">Payment Method</span>
-                    <Badge variant="outline" className="capitalize">
-                      {selectedSale.payment_method_type || 'N/A'}
-                    </Badge>
+                  <div className="space-y-2 pt-2">
+                    <span className="text-slate-600">Payment Methods</span>
+                    <div className="space-y-2">
+                      {getSalePaymentBreakdown(selectedSale).map((payment, idx) => (
+                        <div key={`${payment.code}-${idx}`} className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2">
+                          <Badge variant="outline" className="capitalize">
+                            {payment.name}
+                          </Badge>
+                          <span className="font-medium">{formatPrice(payment.amount, currentBusiness)}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   {selectedSale.payment_reference && (
                     <div className="flex justify-between">
