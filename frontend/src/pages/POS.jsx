@@ -2,13 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { apiClient } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
-  Search, Package, Plus, Loader2, ShoppingBag, Coffee,
+  Search, Package, Loader2, ShoppingBag, Coffee,
   Utensils, Shirt, Laptop, Smartphone, Book, Wrench, Home, Car, Heart,
   Gamepad, Pizza, Apple, Cake, Watch, Glasses, Plane, Music,
   Camera, Dumbbell, Paintbrush, Hammer, Scissors, Zap, Star, Gift, Tag, CreditCard
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
 import { formatPrice } from '@/lib/formatPrice';
@@ -23,6 +28,7 @@ import CashRegisterOpenModal from '../components/pos/CashRegisterOpenModal';
 import QuickAddForm from '../components/pos/QuickAddForm';
 import NetworkIndicator from '../components/pos/NetworkIndicator';
 import GenericItemForm from '../components/pos/GenericItemForm';
+import TicketActions from '../components/sales/TicketActions';
 
 function POSContent() {
   const { businessId, currentBusiness } = useBusiness();
@@ -34,6 +40,7 @@ function POSContent() {
   const [showWizard, setShowWizard] = useState(false);
   const [showCashOpenModal, setShowCashOpenModal] = useState(false);
   const [pendingPayment, setPendingPayment] = useState(null);
+  const [completedSaleId, setCompletedSaleId] = useState(null);
   
   const searchInputRef = useRef(null);
 
@@ -204,6 +211,8 @@ function POSContent() {
     await apiClient.post(`/protected/sales/${saleId}/close`, {
       notes: 'Venta completada'
     });
+
+    return saleId;
   };
 
   const normalizeQueuedSale = (queuedSale) => {
@@ -314,7 +323,8 @@ function POSContent() {
       if (!isOnline) {
         addToOfflineQueue(salePayload);
       } else {
-        await createSaleFlow(salePayload);
+        const saleId = await createSaleFlow(salePayload);
+        setCompletedSaleId(saleId);
       }
       
       clearCart();
@@ -499,6 +509,16 @@ function POSContent() {
 
       {/* Network Indicator */}
       <NetworkIndicator onSyncQueue={handleSyncOfflineQueue} />
+
+      <Dialog open={!!completedSaleId} onOpenChange={(open) => !open && setCompletedSaleId(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Venta cerrada correctamente</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-500">¿Qué deseas hacer con el ticket de esta venta?</p>
+          <TicketActions saleId={completedSaleId} className="pt-2" />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
