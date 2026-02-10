@@ -126,6 +126,9 @@ export default function Reports() {
 
   const summary = salesSummary?.summary || {};
   const totalsByPaymentMethod = salesSummary?.totals_by_payment_method || [];
+  const totalsByCategory = (salesSummary?.totals_by_category || []).filter(
+    (category) => (parseFloat(category.total_amount) || 0) > 0
+  );
   const paymentTotals = totalsByPaymentMethod.reduce((acc, method) => {
     acc[method.code] = parseFloat(method.total_amount) || 0;
     return acc;
@@ -436,6 +439,37 @@ export default function Reports() {
                   );
                 })}
               </div>
+
+
+              {totalsByCategory.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Sales by category</p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {totalsByCategory.map((category) => {
+                      const categoryColor = category.color_hex || category.color || '#64748B';
+                      return (
+                        <div
+                          key={category.id}
+                          className="flex items-center justify-between rounded-md border px-3 py-2 text-xs"
+                          style={{ borderColor: `${categoryColor}50`, backgroundColor: `${categoryColor}12` }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {category.icon ? (
+                              <span className="text-[10px] leading-none" aria-hidden="true">{category.icon}</span>
+                            ) : null}
+                            <span className="truncate font-medium" style={{ color: categoryColor }}>
+                              {category.name}
+                            </span>
+                          </div>
+                          <span className="font-semibold text-slate-700">
+                            {formatPrice(category.total_amount || 0, currentBusiness)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

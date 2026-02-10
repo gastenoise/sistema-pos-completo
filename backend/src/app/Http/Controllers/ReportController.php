@@ -142,6 +142,47 @@ class ReportController extends Controller
             ->groupBy('payment_methods.code', 'payment_methods.name')
             ->get();
 
+        $totalsByCategoryQuery = DB::table('sales')
+            ->join('sale_items', 'sales.id', '=', 'sale_items.sale_id')
+            ->join('items', 'sale_items.item_id', '=', 'items.id')
+            ->join('categories', 'items.category_id', '=', 'categories.id')
+            ->where('sales.business_id', $businessId);
+
+        if ($startDate) {
+            $totalsByCategoryQuery->whereDate('sales.created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $totalsByCategoryQuery->whereDate('sales.created_at', '<=', $endDate);
+        }
+        if ($statuses->isNotEmpty()) {
+            $totalsByCategoryQuery->whereIn('sales.status', $statuses->all());
+        } elseif (!$includeVoided) {
+            $totalsByCategoryQuery->where('sales.status', '!=', 'voided');
+        }
+        if ($paymentMethod) {
+            $totalsByCategoryQuery->whereExists(function ($query) use ($paymentMethod) {
+                $query->selectRaw('1')
+                    ->from('sale_payments')
+                    ->join('payment_methods', 'sale_payments.payment_method_id', '=', 'payment_methods.id')
+                    ->whereColumn('sale_payments.sale_id', 'sales.id')
+                    ->where('payment_methods.code', $paymentMethod);
+            });
+        }
+
+        $totalsByCategory = $totalsByCategoryQuery
+            ->select(
+                'categories.id',
+                'categories.name',
+                'categories.color',
+                'categories.color_hex',
+                'categories.icon',
+                DB::raw('SUM(sale_items.total) as total_amount')
+            )
+            ->groupBy('categories.id', 'categories.name', 'categories.color', 'categories.color_hex', 'categories.icon')
+            ->havingRaw('SUM(sale_items.total) > 0')
+            ->orderByDesc('total_amount')
+            ->get();
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -152,6 +193,7 @@ class ReportController extends Controller
                 ],
                 'totals_by_status' => $totalsByStatus,
                 'totals_by_payment_method' => $totalsByPaymentMethod,
+                'totals_by_category' => $totalsByCategory,
             ],
         ]);
     }
