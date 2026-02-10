@@ -444,26 +444,38 @@ export default function Reports() {
               {totalsByCategory.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Sales by category</p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
                     {totalsByCategory.map((category) => {
                       const categoryColor = category.color_hex || category.color || '#64748B';
                       return (
                         <div
                           key={category.id}
-                          className="flex items-center justify-between rounded-md border px-3 py-2 text-xs"
-                          style={{ borderColor: `${categoryColor}50`, backgroundColor: `${categoryColor}12` }}
+                          className="flex flex-col gap-1.5 rounded-lg border p-3"
+                          style={{
+                            borderColor: `${categoryColor}40`,
+                            backgroundColor: `${categoryColor}10`
+                          }}
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            {category.icon ? (
-                              <span className="text-[10px] leading-none" aria-hidden="true">{category.icon}</span>
-                            ) : null}
-                            <span className="truncate font-medium" style={{ color: categoryColor }}>
+                            <div
+                              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
+                              style={{ backgroundColor: `${categoryColor}30` }}
+                            >
+                              {category.icon ? (
+                                <span className="text-xs leading-none" style={{ color: categoryColor }} aria-hidden="true">
+                                  {category.icon}
+                                </span>
+                              ) : (
+                                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: categoryColor }} aria-hidden="true" />
+                              )}
+                            </div>
+                            <p className="truncate text-[11px] font-medium" style={{ color: categoryColor }}>
                               {category.name}
-                            </span>
+                            </p>
                           </div>
-                          <span className="font-semibold text-slate-700">
+                          <p className="text-sm font-bold text-slate-900">
                             {formatPrice(category.total_amount || 0, currentBusiness)}
-                          </span>
+                          </p>
                         </div>
                       );
                     })}
