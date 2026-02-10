@@ -1,0 +1,304 @@
+import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Download, Loader2, Mail, MessageCircle } from 'lucide-react';
+import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  downloadSaleTicketPdf,
+  getSaleTicket,
+  getSaleTicketWhatsappShare,
+  sendSaleTicketEmail,
+} from '@/api/salesTickets';
+
+const resolveErrorMessage = (error, fallbackMessage) => {
+  return error?.message || error?.data?.message || fallbackMessage;
+};
+
+const notifyTicketActionError = (fallbackMessage, error) => {
+  toast.error(resolveErrorMessage(error, fallbackMessage));
+};
+
+const notifyTicketActionSuccess = (message) => {
+  toast.success(message);
+};
+
+const formatCurrency = (value) => {
+  const amount = Number(value || 0);
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    minimumFractionDigits: 2,
+  }).format(amount);
+};
+
+const formatDate = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('es-AR');
+};
+
+function TicketEmailDialog({
+  open,
+  onOpenChange,
+  defaultEmail,
+  defaultSubject,
+  defaultMessage,
+  isSending,
+  onSend,
+}) {
+  const [form, setForm] = useState({
+    to_email: defaultEmail || '',
+    subject: defaultSubject || 'Tu ticket de compra',
+    message: defaultMessage || 'Gracias por tu compra. Te compartimos el comprobante adjunto.',
+  });
+
+  React.useEffect(() => {
+    if (open) {
+      setForm({
+        to_email: defaultEmail || '',
+        subject: defaultSubject || 'Tu ticket de compra',
+        message: defaultMessage || 'Gracias por tu compra. Te compartimos el comprobante adjunto.',
+      });
+    }
+  }, [open, defaultEmail, defaultSubject, defaultMessage]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    await onSend(form);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Enviar ticket por e-mail</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="ticket-email-to">Destinatario</Label>
+            <Input
+              id="ticket-email-to"
+              type="email"
+              value={form.to_email}
+              onChange={(e) => setForm((prev) => ({ ...prev, to_email: e.target.value }))}
+              placeholder="cliente@ejemplo.com"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ticket-email-subject">Asunto</Label>
+            <Input
+              id="ticket-email-subject"
+              value={form.subject}
+              onChange={(e) => setForm((prev) => ({ ...prev, subject: e.target.value }))}
+              placeholder="Tu ticket de compra"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ticket-email-message">Mensaje</Label>
+            <textarea
+              id="ticket-email-message"
+              value={form.message}
+              onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))}
+              rows={4}
+              className="w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              placeholder="Mensaje opcional"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSending}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSending || !form.to_email.trim()}>
+              {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Enviar e-mail
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function TicketPreviewDialog({ open, onOpenChange, saleId, customerEmail }) {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isLoadingWhatsapp, setIsLoadingWhatsapp] = useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+  const defaultEmail = useMemo(() => customerEmail || '', [customerEmail]);
+
+  const { data: ticket, isLoading, isError, error } = useQuery({
+    queryKey: ['sale-ticket', saleId],
+    queryFn: async () => getSaleTicket(saleId),
+    enabled: open && !!saleId,
+  });
+
+  const handleDownloadPdf = async () => {
+    if (!saleId || isDownloading) return;
+
+    try {
+      setIsDownloading(true);
+      const { blob, fileName } = await downloadSaleTicketPdf(saleId);
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = fileName;
+      anchor.click();
+      window.URL.revokeObjectURL(url);
+      notifyTicketActionSuccess('Ticket PDF descargado correctamente.');
+    } catch (downloadError) {
+      notifyTicketActionError('No se pudo descargar el PDF del ticket.', downloadError);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleShareWhatsapp = async () => {
+    if (!saleId || isLoadingWhatsapp) return;
+
+    try {
+      setIsLoadingWhatsapp(true);
+      const payload = await getSaleTicketWhatsappShare(saleId);
+      const whatsappUrl = payload?.whatsapp_url;
+
+      if (!whatsappUrl) {
+        throw new Error('No se pudo obtener el enlace de WhatsApp.');
+      }
+
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      notifyTicketActionSuccess('Enlace de WhatsApp generado.');
+    } catch (shareError) {
+      notifyTicketActionError('No se pudo preparar el ticket para WhatsApp.', shareError);
+    } finally {
+      setIsLoadingWhatsapp(false);
+    }
+  };
+
+  const handleSendEmail = async (formPayload) => {
+    if (!saleId) return;
+
+    try {
+      setIsSendingEmail(true);
+      const response = await sendSaleTicketEmail(saleId, {
+        to_email: formPayload.to_email.trim(),
+        subject: formPayload.subject?.trim() || undefined,
+        message: formPayload.message?.trim() || undefined,
+      });
+
+      notifyTicketActionSuccess(response?.message || 'Ticket enviado correctamente por e-mail.');
+      setIsEmailDialogOpen(false);
+    } catch (sendError) {
+      notifyTicketActionError('No se pudo enviar el ticket por e-mail.', sendError);
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Vista previa del ticket</DialogTitle>
+          </DialogHeader>
+
+          <div className="rounded-lg border bg-slate-50 p-4 text-sm max-h-[60vh] overflow-y-auto">
+            {isLoading && (
+              <div className="flex items-center justify-center py-8 text-slate-500">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Cargando ticket...
+              </div>
+            )}
+
+            {isError && (
+              <p className="text-sm text-red-600">{resolveErrorMessage(error, 'No se pudo cargar el ticket.')}</p>
+            )}
+
+            {!isLoading && !isError && ticket && (
+              <div className="space-y-4 font-mono text-xs text-slate-700">
+                <div className="text-center">
+                  <p className="font-semibold uppercase">{ticket?.business?.name || 'Negocio'}</p>
+                  <p>{ticket?.business?.address || '-'}</p>
+                  <p>Tel: {ticket?.business?.phone || '-'}</p>
+                  <p>CUIT: {ticket?.business?.tax_id || '-'}</p>
+                </div>
+
+                <div className="border-t border-b border-dashed py-2 space-y-1">
+                  <p>Ticket #{ticket?.id || saleId}</p>
+                  <p>Fecha: {formatDate(ticket?.date?.closed_at || ticket?.date?.created_at)}</p>
+                  <p>Vendedor: {ticket?.seller?.name || '-'}</p>
+                  <p>Caja: {ticket?.cash_register?.session_id || '-'}</p>
+                </div>
+
+                <div className="space-y-1">
+                  {Array.isArray(ticket?.items) && ticket.items.length > 0 ? (
+                    ticket.items.map((item) => (
+                      <div key={item.id} className="space-y-1 border-b border-dotted pb-1">
+                        <p className="font-semibold">{item.name}</p>
+                        <div className="flex justify-between">
+                          <span>
+                            {item.quantity} x {formatCurrency(item.unit_price)}
+                          </span>
+                          <span>{formatCurrency(item.total)}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p>Sin ítems.</p>
+                  )}
+                </div>
+
+                <div className="border-t border-dashed pt-2 space-y-1">
+                  {Array.isArray(ticket?.payments) && ticket.payments.map((payment) => (
+                    <div key={payment.id} className="flex justify-between">
+                      <span>{payment.method || 'Pago'}</span>
+                      <span>{formatCurrency(payment.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-between border-t pt-2 text-sm font-bold">
+                  <span>TOTAL</span>
+                  <span>{formatCurrency(ticket?.total?.amount)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="outline" onClick={handleDownloadPdf} disabled={!saleId || isDownloading}>
+              {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              Descargar PDF
+            </Button>
+            <Button type="button" variant="outline" onClick={handleShareWhatsapp} disabled={!saleId || isLoadingWhatsapp}>
+              {isLoadingWhatsapp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageCircle className="mr-2 h-4 w-4" />}
+              Enviar por WhatsApp
+            </Button>
+            <Button type="button" onClick={() => setIsEmailDialogOpen(true)} disabled={!saleId || isSendingEmail}>
+              <Mail className="mr-2 h-4 w-4" />
+              Enviar por e-mail
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <TicketEmailDialog
+        open={isEmailDialogOpen}
+        onOpenChange={setIsEmailDialogOpen}
+        defaultEmail={defaultEmail}
+        isSending={isSendingEmail}
+        onSend={handleSendEmail}
+      />
+    </>
+  );
+}

@@ -521,7 +521,7 @@ function POSContent() {
           <DialogHeader>
             <DialogTitle>Venta cerrada correctamente</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-500">¿Qué deseas hacer con el ticket de esta venta?</p>
+          <p className="text-sm text-slate-500">Puedes ver el ticket y acceder a sus acciones.</p>
           <TicketActions saleId={lastCompletedSaleId} className="pt-2" />
         </DialogContent>
       </Dialog>
@@ -532,7 +532,7 @@ function POSContent() {
             <DialogTitle>Tickets de ventas sincronizadas</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-500">
-            La sincronización finalizó. Ya puedes descargar o enviar cada ticket.
+            La sincronización finalizó. Revisa cada ticket para descargarlo o compartirlo.
           </p>
           <div className="space-y-4 pt-2 max-h-96 overflow-y-auto">
             {syncedSaleIds.map((saleId) => (

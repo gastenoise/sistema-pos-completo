@@ -762,7 +762,8 @@ export default function Reports() {
               )}
 
               <div className="pt-4 border-t">
-                <h3 className="font-medium mb-2">Ticket</h3>
+                <h3 className="font-medium mb-1">Ticket</h3>
+                <p className="text-xs text-slate-500 mb-2">Abre la vista previa para descargar o compartir el ticket.</p>
                 <TicketActions
                   saleId={selectedSale.id}
                   customerEmail={selectedSale.customer_email}
