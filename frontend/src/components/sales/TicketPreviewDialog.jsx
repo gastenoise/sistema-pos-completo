@@ -7,8 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getSaleTicket, getSaleTicketWhatsappShare, sendSaleTicketEmail } from '@/api/salesTickets';
-import { downloadTicketPdfFromNode } from '@/utils/ticketPdf';
+import {
+  getSaleTicket,
+  getSaleTicketWhatsappShare,
+  sendSaleTicketEmail,
+  uploadSaleTicketWhatsappFile,
+} from '@/api/salesTickets';
+import { downloadTicketPdfFromNode, generateTicketFileName, generateTicketPdfBlobFromNode } from '@/utils/ticketPdf';
 
 const resolveErrorMessage = (error, fallbackMessage) => {
   return error?.message || error?.data?.message || fallbackMessage;
@@ -162,14 +167,43 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
 
     try {
       setIsLoadingWhatsapp(true);
-      const payload = await getSaleTicketWhatsappShare(saleId);
+      const pdfBlob = await generateTicketPdfBlobFromNode({
+        saleId,
+        ticketNode: ticketContentRef.current,
+      });
+
+      let uploadedFileUrl = null;
+
+      try {
+        const uploadResponse = await uploadSaleTicketWhatsappFile(
+          saleId,
+          new File([pdfBlob], generateTicketFileName(saleId), { type: 'application/pdf' }),
+        );
+
+        uploadedFileUrl = uploadResponse?.data?.file_url || uploadResponse?.file_url || null;
+      } catch (uploadError) {
+        notifyTicketActionError(
+          'No se pudo subir el PDF. Se abrirá WhatsApp con solo texto (sin adjunto automático).',
+          uploadError,
+        );
+      }
+
+      const payload = await getSaleTicketWhatsappShare(saleId, {
+        file_url: uploadedFileUrl || undefined,
+      });
       const whatsappUrl = payload?.whatsapp_url;
+      const capabilityNote = payload?.channel_notice;
 
       if (!whatsappUrl) {
         throw new Error('No se pudo obtener el enlace de WhatsApp.');
       }
 
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+
+      if (capabilityNote) {
+        toast.message(capabilityNote);
+      }
+
       notifyTicketActionSuccess('Enlace de WhatsApp generado.');
     } catch (shareError) {
       notifyTicketActionError('No se pudo preparar el ticket para WhatsApp.', shareError);
@@ -283,6 +317,10 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
               Enviar por e-mail
             </Button>
           </div>
+          <p className="text-xs text-slate-500">
+            WhatsApp Web/móvil no permite adjuntar archivos automáticamente desde <code>wa.me</code>. Se abrirá un mensaje
+            con texto y, cuando esté disponible, un enlace al PDF para compartir manualmente.
+          </p>
         </DialogContent>
       </Dialog>
 

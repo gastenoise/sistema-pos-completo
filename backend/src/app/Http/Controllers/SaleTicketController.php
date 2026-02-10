@@ -12,6 +12,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class SaleTicketController extends Controller
 {
@@ -140,7 +142,38 @@ class SaleTicketController extends Controller
         ]);
     }
 
-    public function shareWhatsapp(Sale $sale): JsonResponse
+    public function uploadWhatsappFile(Request $request, Sale $sale): JsonResponse
+    {
+        if ($response = $this->validateBusinessAccess($sale)) {
+            return $response;
+        }
+
+        $request->validate([
+            'pdf_file' => 'required|file|mimetypes:application/pdf|max:5120',
+        ]);
+
+        $file = $request->file('pdf_file');
+
+        if (!$file || !$file->isValid()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se recibió un archivo PDF válido.',
+            ], 422);
+        }
+
+        $storedFilename = sprintf('sale-%d-%s.pdf', $sale->id, Str::lower(Str::random(16)));
+        $relativePath = $file->storeAs('tickets/whatsapp-temp', $storedFilename, 'public');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'file_url' => Storage::disk('public')->url($relativePath),
+                'path' => $relativePath,
+            ],
+        ]);
+    }
+
+    public function shareWhatsapp(Request $request, Sale $sale): JsonResponse
     {
         if ($response = $this->validateBusinessAccess($sale)) {
             return $response;
@@ -148,13 +181,19 @@ class SaleTicketController extends Controller
 
         $sale->loadMissing('business');
 
-        $shareText = $this->buildWhatsappShareText($sale);
+        $validated = $request->validate([
+            'file_url' => 'nullable|url|max:2048',
+        ]);
+
+        $shareText = $this->buildWhatsappShareText($sale, $validated['file_url'] ?? null);
 
         return response()->json([
             'success' => true,
             'data' => [
                 'share_text' => $shareText,
+                'file_url' => $validated['file_url'] ?? null,
                 'whatsapp_url' => sprintf('https://wa.me/?text=%s', rawurlencode($shareText)),
+                'channel_notice' => 'WhatsApp no permite adjuntar archivos automáticamente desde este enlace. Si hay URL del ticket, compartila manualmente al abrir el chat.',
             ],
         ]);
     }
@@ -278,7 +317,7 @@ class SaleTicketController extends Controller
         return $clean !== '' ? $clean : $fallback;
     }
 
-    private function buildWhatsappShareText(Sale $sale): string
+    private function buildWhatsappShareText(Sale $sale, ?string $fileUrl = null): string
     {
         $businessName = $sale->business?->name ?? 'Negocio';
         $ticketDate = optional($sale->closed_at ?? $sale->created_at)->format('Y-m-d H:i:s');
@@ -289,7 +328,7 @@ class SaleTicketController extends Controller
             sprintf('Ticket: #%d', $sale->id),
             sprintf('Fecha: %s', $ticketDate),
             sprintf('Total: %s', $totalAmount),
-            'PDF: adjunto en el email o generado en front-end.',
+            $fileUrl ? sprintf('PDF: %s', $fileUrl) : 'PDF: se enviará sin adjunto automático en WhatsApp.',
         ]);
     }
 }
