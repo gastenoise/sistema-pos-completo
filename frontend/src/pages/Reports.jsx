@@ -239,8 +239,8 @@ export default function Reports() {
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:gap-4">
+              <div className="flex flex-wrap gap-2 w-full lg:w-auto">
                 <Button
                   variant={dateMode === 'today' ? "default" : "outline"}
                   size="sm"
@@ -272,24 +272,24 @@ export default function Reports() {
                 </Button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+                <div className="flex w-full items-center gap-2 sm:w-auto">
                   <Label className="text-xs text-slate-600">From</Label>
                   <Input
                     type="date"
                     value={dateMode === 'custom' ? tempDateFrom : dateFrom}
                     onChange={(e) => setTempDateFrom(e.target.value)}
-                    className="w-full sm:w-40"
+                    className="w-full sm:w-36"
                     disabled={dateMode !== 'custom'}
                   />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex w-full items-center gap-2 sm:w-auto">
                   <Label className="text-xs text-slate-600">To</Label>
                   <Input
                     type="date"
                     value={dateMode === 'custom' ? tempDateTo : dateTo}
                     onChange={(e) => setTempDateTo(e.target.value)}
-                    className="w-full sm:w-40"
+                    className="w-full sm:w-36"
                     disabled={dateMode !== 'custom'}
                   />
                 </div>
@@ -297,12 +297,13 @@ export default function Reports() {
                   size="sm"
                   onClick={handleApplyCustomDates}
                   disabled={dateMode !== 'custom'}
+                  className="w-full sm:w-auto"
                 >
                   Apply
                 </Button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end lg:ml-auto">
                 <Button
                   type="button"
                   variant="outline"
