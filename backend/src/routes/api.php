@@ -29,6 +29,7 @@ Route::prefix('protected')->group(function () {
     Route::post('auth/register', [AuthController::class, 'register']);
 
     Route::post('mercadopago/preferencia', [MercadoPagoController::class, 'crearPreferencia']);
+    Route::post('mercadopago/webhook', [MercadoPagoController::class, 'webhook']);
 
     /*
     |--------------------------------------------------------------------------

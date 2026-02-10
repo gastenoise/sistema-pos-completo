@@ -2,7 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PaymentWebhookEvent;
+use App\Models\PaymentMethod;
+use App\Models\Sale;
+use App\Models\SalePayment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MercadoPago\MercadoPagoConfig;
 use MercadoPago\Client\Preference\PreferenceClient;
@@ -89,93 +94,139 @@ class MercadoPagoController extends Controller
     /**
      * Webhook de notificaciones de Mercado Pago
      * Esta es la ÚNICA fuente confiable para cerrar una venta en tu sistema.
-     * 
-     * Mercado Pago enviará POST a esta URL con datos sobre el pago realizado.
-     * Haz la validación con X-Signature (si tienes el secret, puedes implementarla aquí).
-     * Usando data.id (el ID del pago o topic), consulta la API de Mercado Pago para obtener detalles reales.
-     * Usa external_reference para buscar tu venta/pedido en tu base de datos y actualizar el estado.
      */
     public function webhook(Request $request)
     {
-        $accessToken = config('mercadopago.access_token');
-        MercadoPagoConfig::setAccessToken($accessToken);
+        if (!$this->isValidWebhookSignature($request)) {
+            Log::warning('mercadopago_webhook_invalid_signature', [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'has_signature_header' => (bool) ($request->header('X-Signature') ?? $request->header('x-signature')),
+            ]);
 
-        // 1. Validar X-Signature (muy recomendable en producción)
-        $signature = $request->header('X-Signature') ?? $request->header('x-signature');
-        // TODO: Implementa la validación de signature si usas el secret de Mercado Pago. 
-        // (No implementado aquí por simplicidad, solo log de ejemplo)
-        if ($signature) {
-            Log::info("Webhook MercadoPago: Recepción de X-Signature: $signature");
+            return response()->json([
+                'error' => true,
+                'message' => 'Invalid signature',
+            ], 401);
         }
 
-        // 2. Extraer datos de la notificación
         $payload = $request->all();
-
-        // La notificación puede tener diferentes estructuras; nos interesa el pago
         $type = $payload['type'] ?? $payload['topic'] ?? null;
-        $data_id = $payload['data']['id'] ?? null;
+        $dataId = $payload['data']['id'] ?? null;
 
-        if (!$type || !$data_id) {
-            Log::warning('Webhook MercadoPago: Notificación no reconocida', $payload);
-            return response()->json(['received' => true], 200);
-        }
-
-        // 3. Solo procesar payments (por seguridad y claridad)
         if ($type !== 'payment') {
-            Log::info('Webhook MercadoPago: Se recibió notificación de tipo no procesado', ['type' => $type]);
+            Log::info('mercadopago_webhook_ignored_type', [
+                'type' => $type,
+            ]);
+
             return response()->json(['received' => true], 200);
         }
+
+        if (!$dataId) {
+            Log::warning('mercadopago_webhook_missing_data_id', [
+                'payload_keys' => array_keys($payload),
+            ]);
+
+            return response()->json([
+                'error' => true,
+                'message' => 'Invalid payload',
+            ], 403);
+        }
+
+        $eventId = (string) ($payload['id'] ?? ('payment:' . $dataId));
 
         try {
-            // Consultar detalles del pago usando SDK
-            $paymentClient = new PaymentClient();
-            $payment = $paymentClient->get($data_id);
+            $alreadyProcessed = !PaymentWebhookEvent::createIfNotExists($eventId, $payload, $type);
 
-            // 4. Obtener el external_reference (debe usarse para identificar la venta en tu sistema)
-            $externalReference = $payment['external_reference'] ?? null;
-            $status = $payment['status'] ?? null;
-            $statusDetail = $payment['status_detail'] ?? null;
+            if ($alreadyProcessed) {
+                Log::info('mercadopago_webhook_duplicate_event', [
+                    'event_id' => $eventId,
+                    'type' => $type,
+                ]);
 
-            Log::info('Webhook MercadoPago: Detalle del pago obtenido', [
-                'payment_id'         => $data_id,
-                'external_reference' => $externalReference,
-                'status'             => $status,
-                'status_detail'      => $statusDetail,
-            ]);
-
-            // 5. Actualiza aquí el estado de tu venta/pedido en la base de datos usando $externalReference
-            // (EJEMPLO SIMPLIFICADO: Debes implementar tu lógica de negocio, consulta el modelo Venta/Pedido)
-            // Pseudocódigo:
-            /*
-            $pedido = Pedido::where('id', $externalReference)->first();
-            if ($pedido) {
-                switch($status) {
-                    case 'approved':
-                        $pedido->estado = 'aprobado';
-                        // Realiza acciones necesarias (descontar stock, enviar email, etc)
-                        break;
-                    case 'pending':
-                        $pedido->estado = 'pendiente';
-                        break;
-                    case 'rejected':
-                        $pedido->estado = 'rechazado';
-                        break;
-                    // otros estados posibles...
-                }
-                $pedido->save();
-            } else {
-                Log::warning('Webhook MercadoPago: No se encontró el pedido con external_reference', ['external_reference' => $externalReference]);
+                return response()->json(['received' => true, 'duplicate' => true], 200);
             }
-            */
 
-            // Responde rápido para no provocar retry
+            $accessToken = config('mercadopago.access_token');
+            MercadoPagoConfig::setAccessToken($accessToken);
+            $paymentMethod = PaymentMethod::where('code', 'mercado_pago')->first();
+
+            DB::transaction(function () use ($dataId, $eventId, $paymentMethod) {
+                $paymentClient = new PaymentClient();
+                $payment = $paymentClient->get($dataId);
+
+                $externalReference = $payment['external_reference'] ?? null;
+                $status = $payment['status'] ?? null;
+                $statusDetail = $payment['status_detail'] ?? null;
+
+                Log::info('mercadopago_webhook_payment_fetched', [
+                    'event_id' => $eventId,
+                    'payment_id' => $dataId,
+                    'external_reference' => $externalReference,
+                    'status' => $status,
+                    'status_detail' => $statusDetail,
+                ]);
+
+                if (!$externalReference) {
+                    return;
+                }
+
+                $sale = Sale::lockForUpdate()->find($externalReference);
+
+                if (!$sale) {
+                    Log::warning('mercadopago_webhook_sale_not_found', [
+                        'event_id' => $eventId,
+                        'external_reference' => $externalReference,
+                    ]);
+
+                    return;
+                }
+
+                $salePayment = SalePayment::query()
+                    ->where('sale_id', $sale->id)
+                    ->when($paymentMethod, fn ($query) => $query->where('payment_method_id', $paymentMethod->id))
+                    ->where('transaction_reference', (string) $dataId)
+                    ->first();
+
+                if (!$salePayment && $paymentMethod) {
+                    $salePayment = SalePayment::create([
+                        'sale_id' => $sale->id,
+                        'payment_method_id' => $paymentMethod->id,
+                        'amount' => (float) ($payment['transaction_amount'] ?? 0),
+                        'transaction_reference' => (string) $dataId,
+                        'status' => SalePayment::STATUS_PENDING,
+                    ]);
+                }
+
+                if ($salePayment) {
+                    if ($status === 'approved') {
+                        $salePayment->update([
+                            'status' => SalePayment::STATUS_CONFIRMED,
+                            'confirmed_at' => now(),
+                        ]);
+                    } elseif (in_array($status, ['rejected', 'cancelled'], true)) {
+                        $salePayment->update([
+                            'status' => SalePayment::STATUS_FAILED,
+                        ]);
+                    }
+                }
+
+                if ($status === 'approved' && $sale->status === 'open') {
+                    $sale->update([
+                        'status' => 'closed',
+                        'closed_at' => now(),
+                    ]);
+                }
+            });
+
             return response()->json(['received' => true], 200);
-
         } catch (\Throwable $e) {
-            Log::error('Webhook MercadoPago: Error procesando notificación', [
+            Log::error('mercadopago_webhook_processing_error', [
+                'event_id' => $eventId,
+                'payment_id' => $dataId,
                 'error' => $e->getMessage(),
-                'data_id' => $data_id ?? null,
             ]);
+
             return response()->json([
                 'error' => true,
                 'message' => 'Error procesando notificación',
@@ -183,12 +234,29 @@ class MercadoPagoController extends Controller
         }
     }
 
+    private function isValidWebhookSignature(Request $request): bool
+    {
+        $webhookSecret = config('mercadopago.webhook_secret');
+
+        if (!$webhookSecret) {
+            Log::warning('mercadopago_webhook_secret_not_configured');
+            return false;
+        }
+
+        $signature = $request->header('X-Signature') ?? $request->header('x-signature');
+
+        if (!$signature) {
+            return false;
+        }
+
+        $expectedSignature = hash_hmac('sha256', $request->getContent(), $webhookSecret);
+
+        return hash_equals($expectedSignature, trim($signature));
+    }
+
     /**
      * Muestra mensaje tras el regreso desde Mercado Pago (Back URLs)
      * NO actúa sobre la base de datos, solo muestra el estado al cliente.
-     * 
-     * Se recomienda que tu frontend/SPA consuma este endpoint y muestre el mensaje dinámicamente
-     * según el resultado (éxito, pendiente, fallido).
      */
     public function backUrlMessage(Request $request)
     {
@@ -200,8 +268,6 @@ class MercadoPagoController extends Controller
         ];
         $message = $messages[$status] ?? 'Estamos confirmando tu pago. La actualización llegará en breve.';
 
-        // Aquí podrías renderizar una vista Blade, retornar JSON para un SPA, etc.
-        // Para este ejemplo retornamos JSON.
         return response()->json([
             'success' => true,
             'status' => $status,
