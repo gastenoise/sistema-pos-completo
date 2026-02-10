@@ -7,6 +7,7 @@ import {
   DollarSign,
   Calendar, Loader2, FileText, Ban, Eye, Trash2
 } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -56,13 +57,15 @@ export default function Reports() {
   const [tempDateTo, setTempDateTo] = useState(today);
   const [selectedSale, setSelectedSale] = useState(null);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [isMoreFiltersOpen, setIsMoreFiltersOpen] = useState(false);
   const [statusTab, setStatusTab] = useState('closed');
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
+  const selectedCategory = categoryFilter !== 'all' ? categoryFilter : null;
 
   // Fetch sales
   const { data: sales = [], isLoading: loadingSales } = useQuery({
-    queryKey: ['sales', businessId, dateFrom, dateTo, statusTab, selectedPaymentMethod],
+    queryKey: ['sales', businessId, dateFrom, dateTo, statusTab, selectedPaymentMethod, selectedCategory],
     queryFn: async () => {
       if (!businessId) return [];
       try {
@@ -73,6 +76,9 @@ export default function Reports() {
         params.set('statuses', statusTab);
         if (selectedPaymentMethod) {
           params.set('payment_method', selectedPaymentMethod);
+        }
+        if (selectedCategory) {
+          params.set('category_id', selectedCategory);
         }
         const response = await apiClient.get(`/protected/reports/sales?${params.toString()}`);
         return normalizeListResponse(response, 'sales');
@@ -94,7 +100,7 @@ export default function Reports() {
   });
 
   const { data: salesSummary = {} } = useQuery({
-    queryKey: ['sales-summary', businessId, dateFrom, dateTo, selectedPaymentMethod],
+    queryKey: ['sales-summary', businessId, dateFrom, dateTo, selectedPaymentMethod, selectedCategory],
     queryFn: async () => {
       if (!businessId) return {};
       const params = new URLSearchParams({
@@ -103,6 +109,9 @@ export default function Reports() {
       });
       if (selectedPaymentMethod) {
         params.set('payment_method', selectedPaymentMethod);
+      }
+      if (selectedCategory) {
+        params.set('category_id', selectedCategory);
       }
       const response = await apiClient.get(`/protected/reports/summary?${params.toString()}`);
       return response?.data ?? response;
@@ -124,8 +133,35 @@ export default function Reports() {
     enabled: !!businessId
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ['report-categories', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const response = await apiClient.get('/protected/categories');
+      return normalizeListResponse(response, 'categories');
+    },
+    enabled: !!businessId
+  });
+
   const summary = salesSummary?.summary || {};
   const totalsByPaymentMethod = salesSummary?.totals_by_payment_method || [];
+  const totalsByCategory = (salesSummary?.totals_by_category || []).filter(
+    (category) => (parseFloat(category.total_amount) || 0) > 0
+  );
+  const resolveCategoryColor = (category) => {
+    const colorHex = typeof category?.color_hex === 'string' ? category.color_hex.trim() : '';
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorHex)) {
+      return colorHex;
+    }
+
+    const colorValue = typeof category?.color === 'string' ? category.color.trim() : '';
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorValue)) {
+      return colorValue;
+    }
+
+    return '#64748B';
+  };
+
   const paymentTotals = totalsByPaymentMethod.reduce((acc, method) => {
     acc[method.code] = parseFloat(method.total_amount) || 0;
     return acc;
@@ -155,6 +191,38 @@ export default function Reports() {
     return acc;
   }, {});
 
+  const getSalePaymentBreakdown = (sale) => {
+    const payments = Array.isArray(sale?.payments) ? sale.payments : [];
+
+    if (payments.length === 0) {
+      const fallbackCode = sale?.payment_method_type;
+      if (!fallbackCode) return [];
+      const fallbackMethod = paymentMethodLookup[fallbackCode] || {};
+      return [{
+        code: fallbackCode,
+        name: fallbackMethod.name || fallbackCode,
+        amount: parseFloat(sale?.total_amount ?? sale?.total ?? 0) || 0,
+      }];
+    }
+
+    return payments.map((payment) => {
+      const code = payment.payment_method_code || payment.code || payment.type || 'unknown';
+      const method = paymentMethodLookup[code] || {};
+      return {
+        code,
+        name: method.name || code,
+        amount: parseFloat(payment.amount) || 0,
+      };
+    });
+  };
+
+  const getSalePaymentMethodsLabel = (sale) => {
+    const breakdown = getSalePaymentBreakdown(sale);
+    if (breakdown.length === 0) return '—';
+
+    return [...new Set(breakdown.map((entry) => entry.name))].join(', ');
+  };
+
   const statusOptions = [
     { value: 'closed', label: 'Closed' },
     { value: 'open', label: 'Open' },
@@ -164,6 +232,7 @@ export default function Reports() {
   const clearFilters = () => {
     setQuickDate('today');
     setPaymentMethodFilter('all');
+    setCategoryFilter('all');
   };
 
   const handleExportCsv = async () => {
@@ -367,6 +436,22 @@ export default function Reports() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div>
+                <Label className="text-sm">Category</Label>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="uncategorized">Sin categoría</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -436,6 +521,46 @@ export default function Reports() {
                   );
                 })}
               </div>
+
+
+              {totalsByCategory.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Sales by category</p>
+                  <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+                    {totalsByCategory.map((category) => {
+                      const categoryColor = resolveCategoryColor(category);
+                      return (
+                        <div
+                          key={category.id ?? `uncategorized-${category.name}`}
+                          className="flex flex-col gap-1.5 rounded-lg border p-3"
+                          style={{
+                            borderColor: `${categoryColor}40`,
+                            backgroundColor: `${categoryColor}10`
+                          }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
+                              style={{ backgroundColor: `${categoryColor}30` }}
+                            >
+                              {(() => {
+                                const IconComponent = LucideIcons[category.icon] || LucideIcons.Package;
+                                return <IconComponent className="h-3.5 w-3.5" style={{ color: categoryColor }} aria-hidden="true" />;
+                              })()}
+                            </div>
+                            <p className="truncate text-[11px] font-medium" style={{ color: categoryColor }}>
+                              {category.name}
+                            </p>
+                          </div>
+                          <p className="text-sm font-bold text-slate-900">
+                            {formatPrice(category.total_amount || 0, currentBusiness)}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -507,7 +632,7 @@ export default function Reports() {
                               className="w-2 h-2 rounded-full"
                               style={{ backgroundColor: paymentMethodColorLookup[sale.payment_method_type] || '#6B7280' }}
                             />
-                            <span className="capitalize">{sale.payment_method_type || '—'}</span>
+                            <span className="text-sm">{getSalePaymentMethodsLabel(sale)}</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-medium">
@@ -570,10 +695,12 @@ export default function Reports() {
                     const unitPrice = item.unit_price ?? item.unit_price_snapshot ?? item.price ?? 0;
                     const subtotal = item.subtotal ?? item.total ?? (quantity * unitPrice);
                     const name = item.name ?? item.item_name_snapshot ?? item.item?.name ?? 'Item';
+                    const categoryName = item.category_name ?? item.item?.category?.name ?? 'Sin categoría';
                     return (
                       <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                         <div>
                           <p className="font-medium">{name}</p>
+                          <p className="text-[11px] text-slate-400">Categoría: {categoryName}</p>
                           <p className="text-sm text-slate-500">Qty: {quantity} × {formatPrice(unitPrice, currentBusiness)}</p>
                         </div>
                         <p className="font-medium">{formatPrice(subtotal, currentBusiness)}</p>
@@ -601,11 +728,18 @@ export default function Reports() {
                     <span className="font-bold">Total</span>
                     <span className="font-bold text-lg">{formatPrice(selectedSale.total_amount ?? selectedSale.total ?? 0, currentBusiness)}</span>
                   </div>
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-slate-600">Payment Method</span>
-                    <Badge variant="outline" className="capitalize">
-                      {selectedSale.payment_method_type || 'N/A'}
-                    </Badge>
+                  <div className="space-y-2 pt-2">
+                    <span className="text-slate-600">Payment Methods</span>
+                    <div className="space-y-2">
+                      {getSalePaymentBreakdown(selectedSale).map((payment, idx) => (
+                        <div key={`${payment.code}-${idx}`} className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2">
+                          <Badge variant="outline" className="capitalize">
+                            {payment.name}
+                          </Badge>
+                          <span className="font-medium">{formatPrice(payment.amount, currentBusiness)}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   {selectedSale.payment_reference && (
                     <div className="flex justify-between">

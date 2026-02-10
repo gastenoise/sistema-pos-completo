@@ -17,11 +17,12 @@ class ReportController extends Controller
         $endDate = $request->input('end_date');
         $includeVoided = $request->boolean('include_voided');
         $paymentMethod = $request->input('payment_method');
+        $categoryId = $request->input('category_id');
         $statuses = collect(explode(',', (string) $request->input('statuses', '')))
             ->map(fn ($status) => trim($status))
             ->filter();
 
-        $query = Sale::with(['items', 'payments.paymentMethod', 'user'])
+        $query = Sale::with(['items.item.category', 'payments.paymentMethod', 'user'])
             ->where('business_id', $businessId);
 
         if ($startDate) {
@@ -40,9 +41,24 @@ class ReportController extends Controller
                 $paymentQuery->where('code', $paymentMethod);
             });
         }
+        if ($categoryId) {
+            $query->whereHas('items.item', function ($itemQuery) use ($categoryId) {
+                if ($categoryId === 'uncategorized') {
+                    $itemQuery->whereNull('items.category_id');
+                } else {
+                    $itemQuery->where('items.category_id', $categoryId);
+                }
+            });
+        }
 
         $sales = $query->get()->map(function (Sale $sale) {
             $primaryPayment = $sale->payments->first();
+            $paymentMethodTypes = $sale->payments
+                ->map(fn ($payment) => $payment->paymentMethod?->code)
+                ->filter()
+                ->values()
+                ->unique()
+                ->values();
 
             return [
                 'id' => $sale->id,
@@ -50,7 +66,11 @@ class ReportController extends Controller
                 'total_amount' => $sale->total_amount,
                 'created_at' => $sale->created_at,
                 'closed_at' => $sale->closed_at,
-                'items' => $sale->items,
+                'items' => $sale->items->map(function ($saleItem) {
+                    $itemData = $saleItem->toArray();
+                    $itemData['category_name'] = $saleItem->item?->category?->name;
+                    return $itemData;
+                }),
                 'payments' => $sale->payments->map(function ($payment) {
                     return [
                         'id' => $payment->id,
@@ -62,6 +82,7 @@ class ReportController extends Controller
                     ];
                 }),
                 'payment_method_type' => $primaryPayment?->paymentMethod?->code,
+                'payment_method_types' => $paymentMethodTypes,
             ];
         });
 
@@ -75,6 +96,7 @@ class ReportController extends Controller
         $endDate = $request->input('end_date');
         $includeVoided = $request->boolean('include_voided');
         $paymentMethod = $request->input('payment_method');
+        $categoryId = $request->input('category_id');
         $statuses = collect(explode(',', (string) $request->input('statuses', '')))
             ->map(fn ($status) => trim($status))
             ->filter();
@@ -96,6 +118,15 @@ class ReportController extends Controller
         if ($paymentMethod) {
             $salesQuery->whereHas('payments.paymentMethod', function ($paymentQuery) use ($paymentMethod) {
                 $paymentQuery->where('code', $paymentMethod);
+            });
+        }
+        if ($categoryId) {
+            $salesQuery->whereHas('items.item', function ($itemQuery) use ($categoryId) {
+                if ($categoryId === 'uncategorized') {
+                    $itemQuery->whereNull('items.category_id');
+                } else {
+                    $itemQuery->where('items.category_id', $categoryId);
+                }
             });
         }
 
@@ -123,13 +154,23 @@ class ReportController extends Controller
         if ($endDate) {
             $paymentsQuery->whereDate('sales.created_at', '<=', $endDate);
         }
-        if ($statuses->isNotEmpty()) {
-            $paymentsQuery->whereIn('sales.status', $statuses->all());
-        } elseif (!$includeVoided) {
-            $paymentsQuery->where('sales.status', '!=', 'voided');
-        }
+        $paymentsQuery->where('sales.status', 'closed');
         if ($paymentMethod) {
             $paymentsQuery->where('payment_methods.code', $paymentMethod);
+        }
+        if ($categoryId) {
+            $paymentsQuery->whereExists(function ($query) use ($categoryId) {
+                $query->selectRaw('1')
+                    ->from('sale_items')
+                    ->join('items', 'sale_items.item_id', '=', 'items.id')
+                    ->whereColumn('sale_items.sale_id', 'sales.id');
+
+                if ($categoryId === 'uncategorized') {
+                    $query->whereNull('items.category_id');
+                } else {
+                    $query->where('items.category_id', $categoryId);
+                }
+            });
         }
 
         $totalsByPaymentMethod = $paymentsQuery
@@ -142,6 +183,50 @@ class ReportController extends Controller
             ->groupBy('payment_methods.code', 'payment_methods.name')
             ->get();
 
+        $totalsByCategoryQuery = DB::table('sales')
+            ->join('sale_items', 'sales.id', '=', 'sale_items.sale_id')
+            ->join('items', 'sale_items.item_id', '=', 'items.id')
+            ->leftJoin('categories', 'items.category_id', '=', 'categories.id')
+            ->where('sales.business_id', $businessId);
+
+        if ($startDate) {
+            $totalsByCategoryQuery->whereDate('sales.created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $totalsByCategoryQuery->whereDate('sales.created_at', '<=', $endDate);
+        }
+        $totalsByCategoryQuery->where('sales.status', 'closed');
+        if ($paymentMethod) {
+            $totalsByCategoryQuery->whereExists(function ($query) use ($paymentMethod) {
+                $query->selectRaw('1')
+                    ->from('sale_payments')
+                    ->join('payment_methods', 'sale_payments.payment_method_id', '=', 'payment_methods.id')
+                    ->whereColumn('sale_payments.sale_id', 'sales.id')
+                    ->where('payment_methods.code', $paymentMethod);
+            });
+        }
+        if ($categoryId) {
+            if ($categoryId === 'uncategorized') {
+                $totalsByCategoryQuery->whereNull('items.category_id');
+            } else {
+                $totalsByCategoryQuery->where('items.category_id', $categoryId);
+            }
+        }
+
+        $totalsByCategory = $totalsByCategoryQuery
+            ->select(
+                'categories.id',
+                DB::raw("COALESCE(categories.name, 'Sin categoría') as name"),
+                'categories.color',
+                'categories.color_hex',
+                DB::raw("COALESCE(categories.icon, 'Package') as icon"),
+                DB::raw('SUM(sale_items.total) as total_amount')
+            )
+            ->groupBy('categories.id', 'categories.name', 'categories.color', 'categories.color_hex', 'categories.icon')
+            ->havingRaw('SUM(sale_items.total) > 0')
+            ->orderByDesc('total_amount')
+            ->get();
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -152,6 +237,7 @@ class ReportController extends Controller
                 ],
                 'totals_by_status' => $totalsByStatus,
                 'totals_by_payment_method' => $totalsByPaymentMethod,
+                'totals_by_category' => $totalsByCategory,
             ],
         ]);
     }
@@ -191,7 +277,7 @@ class ReportController extends Controller
             ->map(fn ($status) => trim($status))
             ->filter();
 
-        $query = Sale::with(['items', 'payments.paymentMethod', 'user'])
+        $query = Sale::with(['items.item.category', 'payments.paymentMethod', 'user'])
             ->where('business_id', $businessId);
 
         if ($startDate) {
@@ -208,6 +294,12 @@ class ReportController extends Controller
         if ($wantsJson) {
             $sales = $query->get()->map(function (Sale $sale) {
                 $primaryPayment = $sale->payments->first();
+                $paymentMethodTypes = $sale->payments
+                    ->map(fn ($payment) => $payment->paymentMethod?->code)
+                    ->filter()
+                    ->values()
+                    ->unique()
+                    ->values();
 
                 return [
                     'id' => $sale->id,
@@ -215,7 +307,11 @@ class ReportController extends Controller
                     'total_amount' => $sale->total_amount,
                     'created_at' => $sale->created_at,
                     'closed_at' => $sale->closed_at,
-                    'items' => $sale->items,
+                    'items' => $sale->items->map(function ($saleItem) {
+                        $itemData = $saleItem->toArray();
+                        $itemData['category_name'] = $saleItem->item?->category?->name;
+                        return $itemData;
+                    }),
                     'payments' => $sale->payments->map(function ($payment) {
                         return [
                             'id' => $payment->id,
@@ -227,6 +323,7 @@ class ReportController extends Controller
                         ];
                     }),
                     'payment_method_type' => $primaryPayment?->paymentMethod?->code,
+                    'payment_method_types' => $paymentMethodTypes,
                 ];
             });
 
