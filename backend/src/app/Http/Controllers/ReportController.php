@@ -143,11 +143,7 @@ class ReportController extends Controller
         if ($endDate) {
             $paymentsQuery->whereDate('sales.created_at', '<=', $endDate);
         }
-        if ($statuses->isNotEmpty()) {
-            $paymentsQuery->whereIn('sales.status', $statuses->all());
-        } elseif (!$includeVoided) {
-            $paymentsQuery->where('sales.status', '!=', 'voided');
-        }
+        $paymentsQuery->where('sales.status', 'closed');
         if ($paymentMethod) {
             $paymentsQuery->where('payment_methods.code', $paymentMethod);
         }
@@ -188,11 +184,7 @@ class ReportController extends Controller
         if ($endDate) {
             $totalsByCategoryQuery->whereDate('sales.created_at', '<=', $endDate);
         }
-        if ($statuses->isNotEmpty()) {
-            $totalsByCategoryQuery->whereIn('sales.status', $statuses->all());
-        } elseif (!$includeVoided) {
-            $totalsByCategoryQuery->where('sales.status', '!=', 'voided');
-        }
+        $totalsByCategoryQuery->where('sales.status', 'closed');
         if ($paymentMethod) {
             $totalsByCategoryQuery->whereExists(function ($query) use ($paymentMethod) {
                 $query->selectRaw('1')
