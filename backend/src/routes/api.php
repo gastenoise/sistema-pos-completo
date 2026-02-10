@@ -112,6 +112,7 @@ Route::prefix('protected')->group(function () {
                     Route::post('{sale}/void', [SaleController::class, 'void']);
                     Route::get('{sale}/ticket', [SaleTicketController::class, 'show']);
                     Route::get('{sale}/ticket/pdf', [SaleTicketController::class, 'pdf']);
+                    Route::post('{sale}/ticket/email', [SaleTicketController::class, 'email']);
                 });
 
                 // Reportes

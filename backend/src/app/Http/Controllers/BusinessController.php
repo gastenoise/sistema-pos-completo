@@ -9,10 +9,15 @@ use App\Models\User;
 use App\Models\Business;
 use App\Models\BusinessSmtpSetting;
 use App\Services\BusinessContext;
+use App\Services\BusinessSmtpRuntimeConfigurator;
 use Illuminate\Support\Facades\Mail;
 
 class BusinessController extends Controller
 {
+    public function __construct(
+        private readonly BusinessSmtpRuntimeConfigurator $smtpRuntimeConfigurator,
+    ) {}
+
     /**
      * Devuelve los negocios asociados al usuario autenticado.
      */
@@ -168,22 +173,7 @@ class BusinessController extends Controller
             return response()->json(['success' => false, 'message' => 'SMTP configuration not found'], 404);
         }
 
-        $config = [
-            'host' => $validated['host'] ?? $smtp?->host,
-            'port' => $validated['port'] ?? $smtp?->port,
-            'username' => $validated['username'] ?? $smtp?->username,
-            'password' => $validated['password'] ?? $smtp?->password,
-            'encryption' => $validated['encryption'] ?? $smtp?->encryption,
-            'from_email' => $validated['from_email'] ?? $smtp?->from_email,
-            'from_name' => $validated['from_name'] ?? $smtp?->from_name,
-        ];
-
-        if (!$config['from_email']) {
-            $config['from_email'] = $business->email;
-        }
-        if (!$config['from_name']) {
-            $config['from_name'] = $business->name;
-        }
+        $config = $this->smtpRuntimeConfigurator->buildConfig($business, $validated);
 
         $toEmail = $validated['to_email'] ?? Auth::user()?->email;
         if (!$toEmail) {
@@ -194,21 +184,7 @@ class BusinessController extends Controller
             return response()->json(['success' => false, 'message' => 'Incomplete SMTP configuration'], 422);
         }
 
-        $scheme = match ($config['encryption']) {
-            'ssl' => 'smtps',
-            default => 'smtp',
-        };
-
-        config([
-            'mail.default' => 'smtp',
-            'mail.mailers.smtp.host' => $config['host'],
-            'mail.mailers.smtp.port' => (int) $config['port'],
-            'mail.mailers.smtp.username' => $config['username'],
-            'mail.mailers.smtp.password' => $config['password'],
-            'mail.mailers.smtp.scheme' => $scheme,
-            'mail.from.address' => $config['from_email'],
-            'mail.from.name' => $config['from_name'] ?: $business->name,
-        ]);
+        $this->smtpRuntimeConfigurator->apply($config);
 
         try {
             Mail::mailer('smtp')->raw(

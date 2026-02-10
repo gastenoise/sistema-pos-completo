@@ -1561,6 +1561,45 @@
               ]
             }
           }
+        },
+        {
+          "name": "Send Ticket Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Business-Id",
+                "value": "{{business_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_email\": \"cliente@ejemplo.com\",\n  \"subject\": \"Tu ticket de compra\",\n  \"message\": \"Gracias por tu compra. Te compartimos el comprobante adjunto.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/protected/sales/{{sale_id}}/ticket/email",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "protected",
+                "sales",
+                "{{sale_id}}",
+                "ticket",
+                "email"
+              ]
+            },
+            "description": "Response 200:\n{\n  \"success\": true,\n  \"message\": \"Ticket enviado correctamente por email.\"\n}\n\nResponse 422 (SMTP inactivo/incompleto):\n{\n  \"success\": false,\n  \"message\": \"No hay una configuración SMTP activa para este negocio.\"\n}"
+          }
         }
       ]
     },
