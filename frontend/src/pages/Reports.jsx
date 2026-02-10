@@ -272,9 +272,9 @@ export default function Reports() {
                 </Button>
               </div>
 
-              <div className="flex flex-wrap items-end gap-3">
-                <div>
-                  <Label className="text-xs">From</Label>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-slate-600">From</Label>
                   <Input
                     type="date"
                     value={dateMode === 'custom' ? tempDateFrom : dateFrom}
@@ -283,8 +283,8 @@ export default function Reports() {
                     disabled={dateMode !== 'custom'}
                   />
                 </div>
-                <div>
-                  <Label className="text-xs">To</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-slate-600">To</Label>
                   <Input
                     type="date"
                     value={dateMode === 'custom' ? tempDateTo : dateTo}
