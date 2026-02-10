@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\ResolveBusiness;
 use App\Http\Middleware\AuthenticateApiKey;
 use App\Http\Middleware\EnsureTokenIsFresh;
+use App\Http\Middleware\EnsureBusinessRole;
 use Illuminate\Http\Middleware\HandleCors;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'resolve.business' => \App\Http\Middleware\ResolveBusiness::class,
             'auth.apikey' => AuthenticateApiKey::class,
             'ensure.token.fresh' => EnsureTokenIsFresh::class,
+            'business.role' => EnsureBusinessRole::class,
             // otros middlewares...
         ]);
     })

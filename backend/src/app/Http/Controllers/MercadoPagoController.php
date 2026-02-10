@@ -15,15 +15,19 @@ class MercadoPagoController extends Controller
      */
     public function testConfig()
     {
-        // Set access token from config/mercadopago.php
+        if (!app()->environment(['local', 'testing'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Endpoint unavailable.',
+            ], 404);
+        }
+
         $accessToken = config('mercadopago.access_token');
         MercadoPagoConfig::setAccessToken($accessToken);
 
-        // Return access token for testing purposes
         return response()->json([
             'success' => true,
-            'message' => 'MercadoPago SDK configured successfully.',
-            'access_token' => $accessToken ? '****' . substr($accessToken, -6) : null,
+            'message' => 'MercadoPago test executed.',
         ]);
     }
 
