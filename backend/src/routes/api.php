@@ -25,7 +25,7 @@ use App\Http\Controllers\{
 |--------------------------------------------------------------------------
 */
 Route::prefix('protected')->group(function () {
-    Route::post('auth/login', [AuthController::class, 'login'])->name('login');
+    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login');
     Route::post('auth/register', [AuthController::class, 'register']);
 
     Route::get('mercadopago/test', [MercadoPagoController::class, 'testConfig']);
