@@ -4,14 +4,19 @@
     <meta charset="UTF-8">
     <title>Ticket Venta #{{ $ticket['id'] }}</title>
     <style>
+        @page {
+            margin: 4mm;
+        }
+
         body {
+            margin: 0;
             font-family: DejaVu Sans, sans-serif;
-            font-size: 12px;
+            font-size: 11px;
             color: #111;
         }
 
         .ticket {
-            width: 280px;
+            width: 72mm;
             margin: 0 auto;
         }
 
