@@ -8,6 +8,12 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SaleTicketPdfService
 {
+    private const DOMPDF_RUNTIME_DIRECTORIES = [
+        'tmp',
+        'font',
+        'font-cache',
+    ];
+
     public function __construct(
         private readonly SaleTicketService $saleTicketService,
     ) {}
@@ -20,7 +26,15 @@ class SaleTicketPdfService
         $ticket = $this->saleTicketService->build($sale);
         $filename = sprintf('ticket-venta-%d.pdf', $sale->id);
 
-        $pdf = Pdf::loadView('tickets.sale', [
+        $this->ensureRuntimeDirectories();
+        $runtimeBasePath = storage_path('app/dompdf');
+
+        $pdf = Pdf::setOption([
+            'tempDir' => $runtimeBasePath.'/tmp',
+            'fontDir' => $runtimeBasePath.'/font',
+            'fontCache' => $runtimeBasePath.'/font-cache',
+            'chroot' => base_path(),
+        ])->loadView('tickets.sale', [
             'ticket' => $ticket,
         ]);
 
@@ -43,5 +57,22 @@ class SaleTicketPdfService
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => sprintf('inline; filename="%s"', $ticketPdf['filename']),
             ]);
+    }
+
+    private function ensureRuntimeDirectories(): void
+    {
+        $basePath = storage_path('app/dompdf');
+
+        if (!is_dir($basePath)) {
+            mkdir($basePath, 0775, true);
+        }
+
+        foreach (self::DOMPDF_RUNTIME_DIRECTORIES as $directory) {
+            $absolutePath = $basePath.'/'.$directory;
+
+            if (!is_dir($absolutePath)) {
+                mkdir($absolutePath, 0775, true);
+            }
+        }
     }
 }
