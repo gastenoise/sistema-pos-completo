@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Sale;
 use App\Models\Item;
 use App\Models\SaleItem;
-use App\Models\SalePayment;
 use App\Models\CashRegisterSession;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,11 +34,11 @@ class SaleController extends Controller
                 ->latest()
                 ->first();
         }
-            
+
         if (!$session) {
             return response()->json([
-                'success' => false, 
-                'error' => 'No active cash session', 
+                'success' => false,
+                'error' => 'No active cash session',
                 'code' => 'CASH_CLOSED'
             ], 422);
         }
@@ -55,12 +54,79 @@ class SaleController extends Controller
     }
 
     /**
+     * Iniciar venta y cargar ítems en una sola acción.
+     */
+    public function start(Request $request)
+    {
+        $validated = $request->validate([
+            'cash_register_session_id' => 'nullable|integer|exists:cash_register_sessions,id',
+            'items' => 'required|array|min:1',
+            'items.*.item_id' => 'required|integer|exists:items,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.unit_price_override' => 'nullable|numeric|min:0',
+        ]);
+
+        $businessId = app(BusinessContext::class)->getBusinessId();
+
+        $sessionQuery = CashRegisterSession::where('status', 'open')
+            ->where('opened_by', Auth::id())
+            ->where('business_id', $businessId);
+
+        if (!empty($validated['cash_register_session_id'])) {
+            $session = $sessionQuery
+                ->where('id', $validated['cash_register_session_id'])
+                ->first();
+        } else {
+            $session = $sessionQuery
+                ->latest()
+                ->first();
+        }
+
+        if (!$session) {
+            return response()->json([
+                'success' => false,
+                'error' => 'No active cash session',
+                'code' => 'CASH_CLOSED'
+            ], 422);
+        }
+
+        $sale = DB::transaction(function () use ($session, $validated) {
+            $sale = Sale::create([
+                'cash_register_session_id' => $session->id,
+                'user_id' => Auth::id(),
+                'status' => 'open',
+                'total_amount' => 0,
+            ]);
+
+            foreach ($validated['items'] as $rawItem) {
+                $item = Item::findOrFail($rawItem['item_id']);
+                $price = $rawItem['unit_price_override'] ?? $item->price;
+                $quantity = (int) $rawItem['quantity'];
+
+                $sale->items()->create([
+                    'item_id' => $item->id,
+                    'item_name_snapshot' => $item->name,
+                    'unit_price_snapshot' => $price,
+                    'quantity' => $quantity,
+                    'total' => $price * $quantity,
+                ]);
+            }
+
+            $sale->calculateTotal();
+
+            return $sale->fresh()->load('items');
+        });
+
+        return response()->json(['success' => true, 'data' => $sale]);
+    }
+
+    /**
      * Obtener detalle de una venta
      */
     public function show(Sale $sale)
     {
         return response()->json([
-            'success' => true, 
+            'success' => true,
             'data' => $sale->load(['items', 'payments.paymentMethod'])
         ]);
     }
@@ -73,7 +139,7 @@ class SaleController extends Controller
         if ($sale->status !== 'open') {
             return response()->json(['success' => false, 'message' => 'Sale is not editable'], 400);
         }
-        
+
         $validated = $request->validate([
             'item_id' => 'required|exists:items,id',
             'quantity' => 'required|integer|min:1',
@@ -81,11 +147,11 @@ class SaleController extends Controller
         ]);
 
         $item = Item::findOrFail($validated['item_id']);
-        
+
         $price = $validated['unit_price_override'] ?? $item->price;
         $total = $price * $validated['quantity'];
 
-        $saleItem = $sale->items()->create([
+        $sale->items()->create([
             'item_id' => $item->id,
             'item_name_snapshot' => $item->name,
             'unit_price_snapshot' => $price,
@@ -104,35 +170,11 @@ class SaleController extends Controller
     public function removeItem(Sale $sale, SaleItem $saleItem)
     {
         if ($sale->status !== 'open') abort(400, 'Sale is not editable');
-        
+
         $saleItem->delete();
         $sale->calculateTotal();
 
         return response()->json(['success' => true, 'data' => $sale->load('items')]);
-    }
-
-    /**
-     * Registrar un pago (Permite pagos parciales)
-     */
-    public function addPayment(Request $request, Sale $sale)
-    {
-        $request->validate([
-            'payment_method_id' => 'required|exists:payment_methods,id',
-            'amount' => 'required|numeric|min:0.01',
-            'transaction_reference' => 'nullable|string|max:255'
-        ]);
-
-        if ($sale->status !== 'open') {
-            return response()->json(['success' => false, 'message' => 'Cannot add payments to a closed sale'], 400);
-        }
-
-        $payment = $sale->payments()->create([
-            'payment_method_id' => $request->payment_method_id,
-            'amount' => $request->amount,
-            'transaction_reference' => $request->transaction_reference
-        ]);
-
-        return response()->json(['success' => true, 'data' => $payment]);
     }
 
     /**
@@ -161,18 +203,25 @@ class SaleController extends Controller
             return response()->json(['success' => false, 'message' => 'Cannot close an empty sale'], 422);
         }
 
-        // Opcional: Validar que la suma de pagos sea >= total
-        $totalPaid = $sale->payments()->sum('amount');
+        $unconfirmedPayments = $sale->payments()->where('status', '!=', 'confirmed')->count();
+        if ($unconfirmedPayments > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'All payments must be confirmed before closing sale',
+            ], 422);
+        }
+
+        $totalPaid = $sale->payments()->where('status', 'confirmed')->sum('amount');
         if ($totalPaid < $sale->total_amount) {
             return response()->json([
-                'success' => false, 
-                'message' => 'Insufficient payments', 
+                'success' => false,
+                'message' => 'Insufficient confirmed payments',
                 'pending' => $sale->total_amount - $totalPaid
             ], 422);
         }
 
         $sale->update([
-            'status' => 'closed', 
+            'status' => 'closed',
             'closed_at' => now()
         ]);
 
