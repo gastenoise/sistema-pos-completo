@@ -344,9 +344,9 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
 
                 {/* Mensaje de gracias y aclaración al pie */}
                 <div className="pt-4">
-                  <p className="text-center text-neutral-800 uppercase">Gracias por su compra</p>
+                  <strong className="text-center block text-neutral-800 uppercase">Gracias por su compra</strong>
                   <p
-                    className="text-center text-[9px] mt-2 text-neutral-800"
+                    className="text-center text-[10px] mt-2 text-neutral-800"
                   >
                     Comprobante no válido como factura.<br/>Sin validez fiscal.
                   </p>
