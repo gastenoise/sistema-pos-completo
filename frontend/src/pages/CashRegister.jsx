@@ -3,8 +3,7 @@ import { apiClient } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { 
-  DollarSign, Lock, Unlock, Clock, TrendingUp, 
-  Loader2, AlertCircle, CheckCircle, ChevronDown
+  Lock, Unlock, Loader2, AlertCircle, CheckCircle, ChevronDown
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,7 @@ import { formatPrice } from '@/lib/formatPrice';
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
 import TopNav from '../components/pos/TopNav';
+import CashRegisterOpenModal from '../components/pos/CashRegisterOpenModal';
 
 export default function CashRegister() {
   const { businessId, currentBusiness } = useBusiness();
@@ -38,7 +38,6 @@ export default function CashRegister() {
   
   const [showOpenDialog, setShowOpenDialog] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
-  const [openingAmount, setOpeningAmount] = useState('');
   const [realCash, setRealCash] = useState('');
   const [loading, setLoading] = useState(false);
   const [showRecentSessions, setShowRecentSessions] = useState(false);
@@ -122,15 +121,14 @@ export default function CashRegister() {
   const expectedCash = expectedTotals?.expected_cash
     ?? (currentSession?.opening_cash_amount || 0) + cashSalesTotal;
 
-  const handleOpenRegister = async () => {
+  const handleOpenRegister = async (amount = null) => {
     setLoading(true);
     try {
       await apiClient.post('/protected/cash-register/open', {
-        amount: parseFloat(openingAmount) || 0
+        amount: Number(amount) || 0
       });
       await refetchSession();
       setShowOpenDialog(false);
-      setOpeningAmount('');
       toast.success('Cash register opened');
     } catch (error) {
       toast.error('Failed to open register');
@@ -407,38 +405,16 @@ export default function CashRegister() {
       </div>
 
       {/* Open Dialog */}
-      <Dialog open={showOpenDialog} onOpenChange={setShowOpenDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Open Cash Register</DialogTitle>
-            <DialogDescription>
-              Enter the starting cash amount in the register
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Opening Cash Amount</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={openingAmount}
-                onChange={(e) => setOpeningAmount(e.target.value)}
-                placeholder="0.00"
-                autoFocus
-              />
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setShowOpenDialog(false)}>
-                Cancel
-              </Button>
-              <Button className="flex-1" onClick={handleOpenRegister} disabled={loading}>
-                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Open Register
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CashRegisterOpenModal
+        open={showOpenDialog}
+        onClose={() => setShowOpenDialog(false)}
+        onConfirm={(amount) => {
+          handleOpenRegister(amount);
+        }}
+        loading={loading}
+        title="Open Cash Register"
+        description="Enter the starting cash amount in the register"
+      />
 
       {/* Close Dialog */}
       <Dialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>

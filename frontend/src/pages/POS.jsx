@@ -320,13 +320,13 @@ function POSContent() {
       toast.error('Cart is empty');
       return;
     }
-    
-    // Check cash register status
+
     if (cashRegisterStatus?.status === 'closed') {
+      setPendingPayment({ requestedAt: Date.now() });
       setShowCashOpenModal(true);
       return;
     }
-    
+
     setShowWizard(true);
   };
 
@@ -336,11 +336,13 @@ function POSContent() {
         amount: openingAmount
       });
       await refetchCashStatus();
+
+      const shouldContinuePayment = Boolean(pendingPayment);
       setShowCashOpenModal(false);
+      setPendingPayment(null);
       toast.success('Cash register opened');
-      
-      // If there was a pending payment, continue
-      if (pendingPayment) {
+
+      if (shouldContinuePayment) {
         setShowWizard(true);
       }
     } catch (error) {
@@ -379,6 +381,7 @@ function POSContent() {
       
     } catch (error) {
       if (error.message?.includes('cash') || error.message?.includes('closed')) {
+        setPendingPayment({ requestedAt: Date.now() });
         setShowCashOpenModal(true);
         setShowWizard(false);
       } else {
@@ -566,9 +569,18 @@ function POSContent() {
       {/* Cash Register Open Modal */}
       <CashRegisterOpenModal
         open={showCashOpenModal}
-        onClose={() => setShowCashOpenModal(false)}
+        onClose={() => {
+          setShowCashOpenModal(false);
+          setPendingPayment(null);
+        }}
         onConfirm={handleOpenCashRegister}
-        showWarning={pendingPayment !== null}
+        title="Open Cash Register"
+        description="Enter the starting cash amount in the register"
+        warningMessage={
+          pendingPayment
+            ? 'The cash register is closed. Open it to continue with payment.'
+            : null
+        }
       />
 
       {/* Network Indicator */}

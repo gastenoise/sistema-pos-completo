@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { DollarSign, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,11 @@ export default function CashRegisterOpenModal({
   onClose, 
   onConfirm,
   loading = false,
-  showWarning = false
+  title = 'Open Cash Register',
+  description = 'Enter the starting cash amount in the register',
+  warningMessage = null,
+  cancelLabel = 'Cancel',
+  confirmLabel = 'Open Register'
 }) {
   const [openingAmount, setOpeningAmount] = useState('');
 
@@ -31,17 +35,28 @@ export default function CashRegisterOpenModal({
     }
   };
 
+  useEffect(() => {
+    if (!open) {
+      setOpeningAmount('');
+    }
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-sm" onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
-            Open Cash Register
+            {title}
           </DialogTitle>
-          {showWarning && (
+          {warningMessage && (
             <DialogDescription className="text-amber-600">
-              The cash register is closed. Open it to process sales.
+              {warningMessage}
+            </DialogDescription>
+          )}
+          {!warningMessage && description && (
+            <DialogDescription>
+              {description}
             </DialogDescription>
           )}
         </DialogHeader>
@@ -60,13 +75,13 @@ export default function CashRegisterOpenModal({
               autoFocus
             />
             <p className="text-xs text-slate-500 mt-1">
-              Enter the starting cash amount in the register
+              {description}
             </p>
           </div>
 
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={onClose}>
-              Cancel
+              {cancelLabel}
             </Button>
             <Button 
               className="flex-1"
@@ -74,7 +89,7 @@ export default function CashRegisterOpenModal({
               disabled={loading}
             >
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Open Register
+              {confirmLabel}
             </Button>
           </div>
         </div>
