@@ -269,25 +269,51 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
             )}
 
             {!isLoading && !isError && ticket && (
-              <div className="space-y-4 font-mono text-xs text-slate-700">
+              <div className="space-y-4 font-mono text-xs">
                 <div className="text-center">
                   <p className="font-semibold uppercase">{ticket?.business?.name || 'Negocio'}</p>
-                  <p>{ticket?.business?.address || '-'}</p>
-                  <p>Tel: {ticket?.business?.phone || '-'}</p>
-                  <p>CUIT: {ticket?.business?.tax_id || '-'}</p>
+                  {ticket?.business?.address && <p>{ticket.business.address}</p>}
+                  {ticket?.business?.phone && <p>Tel: {ticket.business.phone}</p>}
+                  {ticket?.business?.tax_id && <p>CUIT: {ticket.business.tax_id}</p>}
                 </div>
 
-                <div className="border-t border-b border-dashed py-2 space-y-1">
-                  <p>Ticket #{ticket?.id || saleId}</p>
-                  <p>Fecha: {formatDate(ticket?.date?.closed_at || ticket?.date?.created_at)}</p>
-                  <p>Vendedor: {ticket?.seller?.name || '-'}</p>
-                  <p>Caja: {ticket?.cash_register?.session_id || '-'}</p>
+                <div className="border-t border-b border-dashed pb-3 space-y-1">
+                  <p><strong>Ticket #{ticket?.id || saleId}</strong></p>
+                  <div className="flex justify-between">
+                    <span className="text-left">
+                      Fecha: {(() => {
+                        const dateStr = ticket?.date?.closed_at || ticket?.date?.created_at;
+                        if (!dateStr) return '-';
+                        const date = new Date(dateStr);
+                        if (Number.isNaN(date.getTime())) return '-';
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        return `${day}/${month}/${year}`;
+                      })()}
+                    </span>
+                    <span className="text-right">
+                      Hora: {(() => {
+                        const dateStr = ticket?.date?.closed_at || ticket?.date?.created_at;
+                        if (!dateStr) return '-';
+                        const date = new Date(dateStr);
+                        if (Number.isNaN(date.getTime())) return '-';
+                        // Mostrar en formato 24hs H:i:s
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        const seconds = String(date.getSeconds()).padStart(2, '0');
+                        return `${hours}:${minutes}:${seconds}`;
+                      })()}
+                    </span>
+                  </div>
+                  <p>Vendedor: {(ticket?.seller?.name?.split(' ')[0]) || '-'}</p>
+                  {/* <p>Caja: {ticket?.cash_register?.session_id || '-'}</p> */}
                 </div>
 
                 <div className="space-y-1">
                   {Array.isArray(ticket?.items) && ticket.items.length > 0 ? (
                     ticket.items.map((item) => (
-                      <div key={item.id} className="space-y-1 border-b border-dotted pb-1">
+                      <div key={item.id} className="space-y-1  pb-1">
                         <p className="font-semibold">{item.name}</p>
                         <div className="flex justify-between">
                           <span>
@@ -314,6 +340,16 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
                 <div className="flex justify-between border-t pt-2 text-sm font-bold">
                   <span>TOTAL</span>
                   <span>{formatCurrency(ticket?.total?.amount)}</span>
+                </div>
+
+                {/* Mensaje de gracias y aclaración al pie */}
+                <div className="pt-4">
+                  <strong className="text-center block text-neutral-800 uppercase">Gracias por su compra</strong>
+                  <p
+                    className="text-center text-[10px] mt-2 text-neutral-800"
+                  >
+                    Comprobante no válido como factura.<br/>Sin validez fiscal.
+                  </p>
                 </div>
               </div>
             )}

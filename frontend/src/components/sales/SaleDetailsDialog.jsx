@@ -109,11 +109,11 @@ export default function SaleDetailsDialog({
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4 pb-4 border-b">
               <div>
-                <p className="text-sm text-slate-500">Date</p>
-                <p className="font-medium">{saleDate ? format(saleDate, 'PPpp') : '—'}</p>
+                <p className="text-sm text-slate-500">Fecha</p>
+                <p className="font-medium">{saleDate ? format(saleDate, 'dd/MM/yyyy HH:mm:ss') : '—'}</p>
               </div>
               <div>
-                <p className="text-sm text-slate-500">Status</p>
+                <p className="text-sm text-slate-500">Estado</p>
                 <Badge
                   variant={sale.status === 'closed' ? 'default' : 'secondary'}
                   className={
@@ -150,13 +150,20 @@ export default function SaleDetailsDialog({
               </div>
             </div>
 
-            <div className="pt-4 border-t">
-              <h3 className="font-medium mb-3">Payment Details</h3>
+            <div>
+            {/* className="pt-4 border-t" */}
+              {/* <h3 className="font-medium mb-3">Payment Details</h3> */}
               <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Subtotal</span>
-                  <span className="font-medium">{formatPrice(sale.subtotal ?? sale.total_amount ?? 0, currentBusiness)}</span>
-                </div>
+                {(() => {
+                  const subtotal = sale.subtotal ?? sale.total_amount ?? 0;
+                  const total = sale.total_amount ?? sale.total ?? 0;
+                  return subtotal !== total ? (
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Subtotal</span>
+                      <span className="font-medium">{formatPrice(subtotal, currentBusiness)}</span>
+                    </div>
+                  ) : null;
+                })()}
                 {sale.tax > 0 && (
                   <div className="flex justify-between">
                     <span className="text-slate-600">Tax</span>
@@ -199,9 +206,9 @@ export default function SaleDetailsDialog({
               </div>
             )}
 
-            <div className="pt-4 border-t">
-              <h3 className="font-medium mb-1">Ticket</h3>
-              <p className="text-xs text-slate-500 mb-2">Abre la vista previa para descargar o compartir el ticket.</p>
+            <div className="pt-5 border-t">
+              {/* <h3 className="font-medium mb-1">Ticket</h3>
+              <p className="text-xs text-slate-500 mb-2">Abre la vista previa para descargar o compartir el ticket.</p> */}
               <TicketActions
                 saleId={sale.id}
                 customerEmail={sale.customer_email}
