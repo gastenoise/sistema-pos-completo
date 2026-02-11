@@ -35,7 +35,7 @@ import TicketActions from '../components/sales/TicketActions';
 
 function POSContent() {
   const { businessId, currentBusiness, businesses } = useBusiness();
-  const { addToCart, cartItems, clearCart, isOnline, addToOfflineQueue, offlineQueue, clearOfflineQueue } = useCart();
+  const { addToCart, cartItems, clearCart, offlineQueue, clearOfflineQueue } = useCart();
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
   
@@ -219,51 +219,42 @@ function POSContent() {
     );
   };
 
-  const createSaleFlow = async ({ sale, items, payments }) => {
-    const saleResponse = await apiClient.post('/protected/sales', sale);
+  const mapSalePayments = (payments = []) => {
+    return payments.map((payment) => ({
+      ...payment,
+      payment_method_id: payment.payment_method_id,
+      payment_method_type: payment.paymentMethod?.type || payment.paymentMethod?.code,
+      method: payment.paymentMethod || paymentMethods.find((method) => String(method.id) === String(payment.payment_method_id))
+    }));
+  };
+
+  const startSaleWithItemsAndPayments = async ({ cashRegisterSessionId, items, payments }) => {
+    const saleResponse = await apiClient.post('/protected/sales/start', {
+      cash_register_session_id: cashRegisterSessionId,
+      items: items.map((item) => ({
+        item_id: item.item_id,
+        quantity: item.quantity,
+        unit_price_override: item.unit_price
+      })),
+      payments: payments.map((payment) => ({
+        payment_method_id: payment.payment_method_id,
+        amount: payment.amount,
+        ...(payment.payment_reference && { transaction_reference: payment.payment_reference })
+      }))
+    });
+
     const saleId = extractSaleId(saleResponse);
     if (!saleId) {
       throw new Error('Sale ID missing from response');
     }
 
-    await Promise.all(
-      items.map((item) =>
-        apiClient.post(`/protected/sales/${saleId}/items`, {
-          item_id: item.item_id,
-          quantity: item.quantity,
-          unit_price_override: item.unit_price
-        })
-      )
-    );
+    const saleEntity = normalizeEntityResponse(saleResponse);
+    const salePayments = mapSalePayments(saleEntity?.payments || []);
 
-    const createdPayments = await Promise.all(
-      payments.map(async (payment) => {
-        const response = await apiClient.post(`/protected/sales/${saleId}/payments`, {
-          amount: payment.amount,
-          payment_method_id: payment.payment_method_id,
-          ...(payment.payment_reference && { transaction_reference: payment.payment_reference })
-        });
-        return { payment, response };
-      })
-    );
+    return { saleId, salePayments };
+  };
 
-    await Promise.all(
-      createdPayments
-        .filter(({ payment }) => payment.status === 'confirmed')
-        .map(({ payment, response }) => {
-          const createdPayment = normalizeEntityResponse(response);
-          if (!createdPayment?.id) {
-            throw new Error('Payment ID missing from response');
-          }
-          return apiClient.post(
-            `/protected/sales/${saleId}/payments/${createdPayment.id}/confirm`,
-            {
-              ...(payment.payment_reference && { transaction_reference: payment.payment_reference })
-            }
-          );
-        })
-    );
-
+  const closeSaleFlow = async (saleId) => {
     await apiClient.post(`/protected/sales/${saleId}/close`, {
       notes: 'Venta completada'
     });
@@ -272,6 +263,26 @@ function POSContent() {
     const saleDetail = normalizeEntityResponse(saleDetailResponse);
 
     return { saleId, saleDetail };
+  };
+
+  const createSaleFlow = async ({ sale, items, payments }) => {
+    const { saleId, salePayments: createdPayments } = await startSaleWithItemsAndPayments({
+      cashRegisterSessionId: sale?.cash_register_session_id,
+      items,
+      payments,
+    });
+
+    await Promise.all(
+      createdPayments
+        .filter((payment, index) => (payments[index]?.status || 'pending') === 'confirmed')
+        .map((payment, index) =>
+          apiClient.post(`/protected/sales/${saleId}/payments/${payment.id}/confirm`, {
+            ...(payments[index]?.payment_reference && { transaction_reference: payments[index].payment_reference })
+          })
+        )
+    );
+
+    return closeSaleFlow(saleId);
   };
 
   const normalizeQueuedSale = (queuedSale) => {
@@ -363,35 +374,47 @@ function POSContent() {
     }
   };
 
-  const handleWizardComplete = async (persistedPayments) => {
-    const total = cartItems.reduce((sum, item) => sum + item.subtotal, 0);
-    
-    const saleBase = {
-      business_id: businessId,
-      cash_register_session_id: cashRegisterStatus?.id,
-      status: 'open',
-      subtotal: total,
-      total: total
+  const handleInitializeSale = async (paymentsDraft) => {
+    const { saleId, salePayments } = await startSaleWithItemsAndPayments({
+      cashRegisterSessionId: cashRegisterStatus?.id,
+      items: cartItems,
+      payments: paymentsDraft.map((payment) => ({
+        payment_method_id: payment.method.id,
+        amount: payment.amount,
+      }))
+    });
+
+    return {
+      saleId,
+      payments: salePayments,
     };
+  };
 
+  const handleConfirmPayment = async ({ saleId, paymentId, status, reference }) => {
+    if (status !== 'confirmed') {
+      return null;
+    }
+
+    const response = await apiClient.post(`/protected/sales/${saleId}/payments/${paymentId}/confirm`, {
+      ...(reference && { transaction_reference: reference })
+    });
+
+    const confirmed = normalizeEntityResponse(response);
+
+    return {
+      ...confirmed,
+      method: confirmed?.paymentMethod || paymentMethods.find((method) => String(method.id) === String(confirmed?.payment_method_id)),
+      payment_method_type: confirmed?.paymentMethod?.type || confirmed?.paymentMethod?.code,
+    };
+  };
+
+  const handleWizardComplete = async ({ saleId }) => {
     try {
-      const salePayload = {
-        sale: saleBase,
-        items: cartItems,
-        payments: persistedPayments
-      };
-
-      if (!isOnline) {
-        addToOfflineQueue(salePayload);
-      } else {
-        const { saleId, saleDetail } = await createSaleFlow(salePayload);
-        const normalizedSale = saleDetail ? { ...saleDetail, id: saleDetail.id ?? saleId } : { id: saleId };
-        queryClient.setQueryData(['latest-closed-sale', businessId], normalizedSale);
-        setIsLastSaleDialogOpen(shouldAutoOpenLastSale);
-      }
-      
+      const { saleDetail } = await closeSaleFlow(saleId);
+      const normalizedSale = saleDetail ? { ...saleDetail, id: saleDetail.id ?? saleId } : { id: saleId };
+      queryClient.setQueryData(['latest-closed-sale', businessId], normalizedSale);
+      setIsLastSaleDialogOpen(shouldAutoOpenLastSale);
       clearCart();
-      
     } catch (error) {
       if (error.message?.includes('cash') || error.message?.includes('closed')) {
         setPendingPayment({ requestedAt: Date.now() });
@@ -588,10 +611,11 @@ function POSContent() {
         open={showWizard}
         onClose={() => setShowWizard(false)}
         total={cartItems.reduce((sum, item) => sum + item.subtotal, 0)}
-        businessId={businessId}
         businessData={currentBusiness}
         bankAccountData={bankAccountData}
         paymentMethods={paymentMethods}
+        onInitializeSale={handleInitializeSale}
+        onConfirmPayment={handleConfirmPayment}
         onComplete={handleWizardComplete}
       />
 

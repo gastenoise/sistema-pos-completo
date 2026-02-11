@@ -21,7 +21,7 @@ class SalePaymentController extends Controller
             ->where('business_id', $businessId)
             ->firstOrFail();
 
-        $payments = $sale->payments()->get()->map(function($p) {
+        $payments = $sale->payments()->get()->map(function ($p) {
             return [
                 'id' => $p->id,
                 'payment_method_id' => $p->payment_method_id,
@@ -33,6 +33,57 @@ class SalePaymentController extends Controller
         });
 
         return response()->json(['success' => true, 'data' => $payments]);
+    }
+
+    // POST /protected/sales/{sale}/payments/bulk
+    public function bulkStore(Request $request, $saleId)
+    {
+        $validated = $request->validate([
+            'payments' => 'required|array|min:1',
+            'payments.*.payment_method_id' => 'required|integer|exists:payment_methods,id',
+            'payments.*.amount' => 'required|numeric|min:0.01',
+            'payments.*.transaction_reference' => 'nullable|string|max:255',
+        ]);
+
+        $businessId = app(BusinessContext::class)->getBusinessId();
+
+        $sale = Sale::where('id', $saleId)
+            ->where('business_id', $businessId)
+            ->firstOrFail();
+
+        if ($sale->status !== 'open') {
+            return response()->json(['success' => false, 'message' => 'Cannot add payments to a closed sale'], 400);
+        }
+
+        if ($sale->payments()->exists()) {
+            return response()->json(['success' => false, 'message' => 'Payments already initialized for this sale'], 409);
+        }
+
+        $totalRequested = collect($validated['payments'])->sum(fn ($payment) => (float) $payment['amount']);
+        if (abs($totalRequested - (float) $sale->total_amount) > 0.01) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment division must match sale total',
+                'sale_total' => (float) $sale->total_amount,
+                'payment_total' => $totalRequested,
+            ], 422);
+        }
+
+        $created = DB::transaction(function () use ($sale, $validated) {
+            $payments = [];
+            foreach ($validated['payments'] as $payload) {
+                $payments[] = $sale->payments()->create([
+                    'payment_method_id' => $payload['payment_method_id'],
+                    'amount' => $payload['amount'],
+                    'status' => SalePayment::STATUS_PENDING,
+                    'transaction_reference' => $payload['transaction_reference'] ?? null,
+                ]);
+            }
+
+            return collect($payments)->map(fn ($payment) => $payment->fresh()->load('paymentMethod'));
+        });
+
+        return response()->json(['success' => true, 'data' => $created]);
     }
 
     // POST /protected/sales/{sale}/payments/{payment}/confirm
@@ -62,7 +113,7 @@ class SalePaymentController extends Controller
         }
         $payment->save();
 
-        return response()->json(['success' => true, 'data' => $payment]);
+        return response()->json(['success' => true, 'data' => $payment->fresh()->load('paymentMethod')]);
     }
 
     // POST /protected/sales/{sale}/payments/{payment}/fail
