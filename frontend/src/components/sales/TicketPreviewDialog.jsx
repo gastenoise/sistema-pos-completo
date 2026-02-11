@@ -269,19 +269,45 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
             )}
 
             {!isLoading && !isError && ticket && (
-              <div className="space-y-4 font-mono text-xs text-slate-700">
+              <div className="space-y-4 font-mono text-xs ">
                 <div className="text-center">
                   <p className="font-semibold uppercase">{ticket?.business?.name || 'Negocio'}</p>
-                  <p>{ticket?.business?.address || '-'}</p>
-                  <p>Tel: {ticket?.business?.phone || '-'}</p>
-                  <p>CUIT: {ticket?.business?.tax_id || '-'}</p>
+                  {ticket?.business?.address && <p>{ticket.business.address}</p>}
+                  {ticket?.business?.phone && <p>Tel: {ticket.business.phone}</p>}
+                  {ticket?.business?.tax_id && <p>CUIT: {ticket.business.tax_id}</p>}
                 </div>
 
                 <div className="border-t border-b border-dashed py-2 space-y-1">
                   <p>Ticket #{ticket?.id || saleId}</p>
-                  <p>Fecha: {formatDate(ticket?.date?.closed_at || ticket?.date?.created_at)}</p>
-                  <p>Vendedor: {ticket?.seller?.name || '-'}</p>
-                  <p>Caja: {ticket?.cash_register?.session_id || '-'}</p>
+                  <div className="flex justify-between">
+                    <span className="text-left">
+                      Fecha: {(() => {
+                        const dateStr = ticket?.date?.closed_at || ticket?.date?.created_at;
+                        if (!dateStr) return '-';
+                        const date = new Date(dateStr);
+                        if (Number.isNaN(date.getTime())) return '-';
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        return `${day}/${month}/${year}`;
+                      })()}
+                    </span>
+                    <span className="text-right">
+                      Hora: {(() => {
+                        const dateStr = ticket?.date?.closed_at || ticket?.date?.created_at;
+                        if (!dateStr) return '-';
+                        const date = new Date(dateStr);
+                        if (Number.isNaN(date.getTime())) return '-';
+                        // Mostrar en formato 24hs H:i:s
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        const seconds = String(date.getSeconds()).padStart(2, '0');
+                        return `${hours}:${minutes}:${seconds}`;
+                      })()}
+                    </span>
+                  </div>
+                  <p>Vendedor: {(ticket?.seller?.name?.split(' ')[0]) || '-'}</p>
+                  {/* <p>Caja: {ticket?.cash_register?.session_id || '-'}</p> */}
                 </div>
 
                 <div className="space-y-1">
