@@ -5,7 +5,7 @@ import {
   Search, Package, Loader2, ShoppingBag, Coffee,
   Utensils, Shirt, Laptop, Smartphone, Book, Wrench, Home, Car, Heart,
   Gamepad, Pizza, Apple, Cake, Watch, Glasses, Plane, Music,
-  Camera, Dumbbell, Paintbrush, Hammer, Scissors, Zap, Star, Gift, Tag, CreditCard
+  Camera, Dumbbell, Paintbrush, Hammer, Scissors, Zap, Star, Gift, Tag, CreditCard, Eye
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import {
@@ -29,6 +29,7 @@ import CashRegisterOpenModal from '../components/pos/CashRegisterOpenModal';
 import QuickAddForm from '../components/pos/QuickAddForm';
 import NetworkIndicator from '../components/pos/NetworkIndicator';
 import GenericItemForm from '../components/pos/GenericItemForm';
+import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import TicketActions from '../components/sales/TicketActions';
 
 function POSContent() {
@@ -41,7 +42,8 @@ function POSContent() {
   const [showWizard, setShowWizard] = useState(false);
   const [showCashOpenModal, setShowCashOpenModal] = useState(false);
   const [pendingPayment, setPendingPayment] = useState(null);
-  const [lastCompletedSaleId, setLastCompletedSaleId] = useState(null);
+  const [lastCompletedSale, setLastCompletedSale] = useState(null);
+  const [isLastSaleDialogOpen, setIsLastSaleDialogOpen] = useState(false);
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
   
   const searchInputRef = useRef(null);
@@ -109,6 +111,17 @@ function POSContent() {
     },
     enabled: !!businessId
   });
+
+
+  const paymentMethodLookup = paymentMethods.reduce((acc, method) => {
+    if (method.code) {
+      acc[method.code] = method;
+    }
+    if (method.type) {
+      acc[method.type] = method;
+    }
+    return acc;
+  }, {});
 
   // Fetch bank account data
   const { data: bankAccountData } = useQuery({
@@ -201,7 +214,10 @@ function POSContent() {
       notes: 'Venta completada'
     });
 
-    return { saleId };
+    const saleDetailResponse = await apiClient.get(`/protected/sales/${saleId}`);
+    const saleDetail = normalizeEntityResponse(saleDetailResponse);
+
+    return { saleId, saleDetail };
   };
 
   const normalizeQueuedSale = (queuedSale) => {
@@ -312,8 +328,8 @@ function POSContent() {
       if (!isOnline) {
         addToOfflineQueue(salePayload);
       } else {
-        const { saleId } = await createSaleFlow(salePayload);
-        setLastCompletedSaleId(saleId);
+        const { saleId, saleDetail } = await createSaleFlow(salePayload);
+        setLastCompletedSale(saleDetail ? { ...saleDetail, id: saleDetail.id ?? saleId } : { id: saleId });
       }
       
       clearCart();
@@ -472,7 +488,18 @@ function POSContent() {
         {/* Cart Panel */}
         <div className="w-full lg:w-[450px] bg-white border-l border-slate-200 flex flex-col">
           <div className="p-4 border-b border-slate-200">
-            <h2 className="text-lg font-bold text-slate-900">Current Sale</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg font-bold text-slate-900">Current Sale</h2>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 disabled:text-slate-400"
+                disabled={!lastCompletedSale?.id}
+                onClick={() => setIsLastSaleDialogOpen(true)}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Última venta
+              </button>
+            </div>
             {cashRegisterStatus?.status === 'closed' && (
               <p className="text-xs text-amber-600 mt-1">Cash register is closed</p>
             )}
@@ -504,15 +531,17 @@ function POSContent() {
       {/* Network Indicator */}
       <NetworkIndicator onSyncQueue={handleSyncOfflineQueue} />
 
-      <Dialog open={!!lastCompletedSaleId} onOpenChange={(open) => !open && setLastCompletedSaleId(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Venta cerrada correctamente</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-slate-500">Puedes ver el ticket y acceder a sus acciones.</p>
-          <TicketActions saleId={lastCompletedSaleId} className="pt-2" />
-        </DialogContent>
-      </Dialog>
+      <SaleDetailsDialog
+        open={isLastSaleDialogOpen && !!lastCompletedSale}
+        onOpenChange={setIsLastSaleDialogOpen}
+        sale={lastCompletedSale}
+        currentBusiness={currentBusiness}
+        paymentMethodLookup={paymentMethodLookup}
+        canVoid={currentBusiness?.pivot?.role === 'admin'}
+        onVoided={() => {
+          setLastCompletedSale((prev) => (prev ? { ...prev, status: 'voided' } : prev));
+        }}
+      />
 
       <Dialog open={syncedSaleIds.length > 0} onOpenChange={(open) => !open && setSyncedSaleIds([])}>
         <DialogContent className="max-w-lg">
