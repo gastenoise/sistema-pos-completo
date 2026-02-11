@@ -25,8 +25,12 @@ class ResolveBusiness
         $businessId = $request->header('X-Business-Id');
 
         if (!$businessId) {
-            // Si no hay business seteado en sesión, retornar error en JSON
-            return response()->json(['message' => 'Business context required'], 403);
+            return response()->json([
+                'message' => 'Business context required',
+                'error' => 'business_context_required',
+                'code' => 'BUSINESS_CONTEXT_REQUIRED',
+                'auth_status' => 'authenticated',
+            ], 403);
         }
 
         // Validar que el usuario pertenece al negocio
@@ -37,8 +41,13 @@ class ResolveBusiness
         if ($exists) {
             $this->context->setBusinessId((int)$businessId);
         } else {
-            // Si intenta acceder a un negocio que no es suyo, prohibido
-            return response()->json(['message' => 'Invalid Business Context'], 403);
+            return response()->json([
+                'message' => 'Invalid business selection for this user',
+                'error' => 'invalid_business_context',
+                'code' => 'INVALID_BUSINESS_CONTEXT',
+                'auth_status' => 'authenticated',
+                'business_id' => (int) $businessId,
+            ], 403);
         }
 
         return $next($request);

@@ -38,6 +38,8 @@ function HomeContent() {
       if (businesses.length === 0) {
         selectBusiness(null);
         window.location.href = createPageUrl('BusinessSelect');
+      } else if (hasCurrentBusiness) {
+        window.location.href = createPageUrl('POS');
       } else if (businesses.length === 1) {
         // Auto-select single business
         await apiClient.post('/protected/businesses/select', { business_id: businesses[0].id });

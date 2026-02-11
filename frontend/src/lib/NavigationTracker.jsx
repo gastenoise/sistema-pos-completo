@@ -3,10 +3,12 @@ import { useLocation } from 'react-router-dom';
 import { apiClient } from '@/api/client';
 import { useAuth } from './AuthContext';
 import { pagesConfig } from '@/pages.config';
+import { useBusiness } from '@/components/pos/BusinessContext';
 
 export default function NavigationTracker() {
     const location = useLocation();
     const { isAuthenticated } = useAuth();
+    const { businessId } = useBusiness();
     const { Pages, mainPage } = pagesConfig;
     const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 
@@ -31,7 +33,7 @@ export default function NavigationTracker() {
             pageName = matchedKey || null;
         }
 
-        if (isAuthenticated && pageName) {
+        if (isAuthenticated && pageName && businessId) {
             apiClient.post('/protected/navigation-events', {
                 path: pathname,
                 screen: pageName,
@@ -43,7 +45,7 @@ export default function NavigationTracker() {
                 // Silently fail - logging shouldn't break the app
             });
         }
-    }, [location, isAuthenticated, Pages, mainPageKey]);
+    }, [location, isAuthenticated, businessId, Pages, mainPageKey]);
 
     return null;
 }

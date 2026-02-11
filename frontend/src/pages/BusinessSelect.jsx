@@ -9,7 +9,7 @@ import { useBusiness } from '../components/pos/BusinessContext';
 import { normalizeListResponse } from '@/lib/normalizeResponse';
 
 export default function BusinessSelect() {
-  const { selectBusiness, setBusinesses } = useBusiness();
+  const { currentBusiness, selectBusiness, setBusinesses } = useBusiness();
   const [businesses, setLocalBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectingId, setSelectingId] = useState(null);
@@ -24,7 +24,22 @@ export default function BusinessSelect() {
       const list = normalizeListResponse(response, 'businesses');
       setLocalBusinesses(list);
       setBusinesses(list);
-      
+
+      const currentBusinessId = currentBusiness?.business_id ?? currentBusiness?.id ?? null;
+      const matchedCurrentBusiness = currentBusinessId
+        ? list.find((business) => business.id === currentBusinessId || business.business_id === currentBusinessId)
+        : null;
+
+      if (matchedCurrentBusiness) {
+        selectBusiness(matchedCurrentBusiness);
+        window.location.href = createPageUrl('POS');
+        return;
+      }
+
+      if (currentBusinessId) {
+        selectBusiness(null);
+      }
+
       // If only one business, auto-select
       if (list.length === 1) {
         handleSelectBusiness(list[0]);
