@@ -231,6 +231,7 @@ class BusinessController extends Controller
             'currency' => 'nullable|string|in:ARS,USD',
             'tax_id' => 'nullable|string|max:20',
             'preferred_payment_method_id' => 'nullable|integer|exists:payment_methods,id',
+            'show_closed_sale_automatically' => 'nullable|boolean',
         ]);
 
         $business->fill($validated);

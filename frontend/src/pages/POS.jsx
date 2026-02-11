@@ -135,6 +135,11 @@ function POSContent() {
 
   const canVoidSales = currentBusinessRole === 'admin';
 
+  const shouldAutoOpenLastSale = Boolean(
+    currentBusiness?.show_closed_sale_automatically
+    ?? selectedBusiness?.show_closed_sale_automatically
+  );
+
   const { data: lastCompletedSale = null } = useQuery({
     queryKey: ['latest-closed-sale', businessId],
     queryFn: async () => {
@@ -353,7 +358,7 @@ function POSContent() {
         const { saleId, saleDetail } = await createSaleFlow(salePayload);
         const normalizedSale = saleDetail ? { ...saleDetail, id: saleDetail.id ?? saleId } : { id: saleId };
         queryClient.setQueryData(['latest-closed-sale', businessId], normalizedSale);
-        setIsLastSaleDialogOpen(true);
+        setIsLastSaleDialogOpen(shouldAutoOpenLastSale);
       }
       
       clearCart();

@@ -54,7 +54,8 @@ export default function Settings() {
     address: '',
     phone: '',
     tax_id: '',
-    currency: 'ARS'
+    currency: 'ARS',
+    show_closed_sale_automatically: false
   });
   const [savingBusiness, setSavingBusiness] = useState(false);
   const businessFormRef = useRef(null);
@@ -131,7 +132,8 @@ export default function Settings() {
         address: currentBusiness.address || '',
         phone: currentBusiness.phone || '',
         tax_id: currentBusiness.tax_id || '',
-        currency: currentBusiness.currency || 'ARS'
+        currency: currentBusiness.currency || 'ARS',
+        show_closed_sale_automatically: Boolean(currentBusiness.show_closed_sale_automatically)
       });
     }
   }, [currentBusiness]);
@@ -266,7 +268,8 @@ export default function Settings() {
         phone: businessData.phone,
         tax_id: businessData.tax_id,
         currency: businessData.currency,
-        email: businessData.business_email || undefined
+        email: businessData.business_email || undefined,
+        show_closed_sale_automatically: businessData.show_closed_sale_automatically
       };
       const updated = await apiClient.put('/protected/business', payload);
       const updatedBusiness = normalizeEntityResponse(updated);
@@ -278,7 +281,8 @@ export default function Settings() {
         address: mergedBusiness.address || '',
         phone: mergedBusiness.phone || '',
         tax_id: mergedBusiness.tax_id || '',
-        currency: mergedBusiness.currency || 'ARS'
+        currency: mergedBusiness.currency || 'ARS',
+        show_closed_sale_automatically: Boolean(mergedBusiness.show_closed_sale_automatically)
       });
       toast.success('Business settings saved');
     } catch (error) {
@@ -570,6 +574,26 @@ export default function Settings() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <Card className="bg-slate-50 border-slate-200">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Extra Business Options</CardTitle>
+                        <CardDescription>
+                          Optional behavior for how the POS should react when closing a sale.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium text-slate-900">Mostrar venta cerrada automáticamente</p>
+                            <p className="text-xs text-slate-500">Si se activa, al cerrar una venta se abrirá automáticamente el detalle de la última venta.</p>
+                          </div>
+                          <Switch
+                            checked={businessData.show_closed_sale_automatically}
+                            onCheckedChange={(checked) => setBusinessData({ ...businessData, show_closed_sale_automatically: checked })}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                   <Button type="submit" disabled={savingBusiness}>
                     {savingBusiness ? (

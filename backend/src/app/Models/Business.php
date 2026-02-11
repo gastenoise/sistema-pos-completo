@@ -17,6 +17,11 @@ class Business extends Model
         'currency',
         'tax_id',
         'preferred_payment_method_id',
+        'show_closed_sale_automatically',
+    ];
+
+    protected $casts = [
+        'show_closed_sale_automatically' => 'boolean',
     ];
 
     /**
