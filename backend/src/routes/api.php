@@ -105,6 +105,7 @@ Route::prefix('protected')->group(function () {
                 // Ventas (Sales)
                 Route::prefix('sales')->group(function () {
                     Route::post('/', [SaleController::class, 'store']);
+                    Route::get('latest-closed', [SaleController::class, 'latestClosed']);
                     Route::get('{sale}', [SaleController::class, 'show']);
                     Route::post('{sale}/items', [SaleController::class, 'addItem']);
                     Route::delete('{sale}/items/{saleItem}', [SaleController::class, 'removeItem']);
@@ -164,6 +165,7 @@ Route::prefix('public')->middleware(['auth.apikey', 'throttle:public-api'])->gro
 
     Route::prefix('sales')->group(function() {
         Route::post('/', [SaleController::class, 'store']);
+        Route::get('latest-closed', [SaleController::class, 'latestClosed']);
         Route::get('{sale}', [SaleController::class, 'show']);
         Route::post('{sale}/items', [SaleController::class, 'addItem']);
         Route::delete('{sale}/items/{saleItem}', [SaleController::class, 'removeItem']);

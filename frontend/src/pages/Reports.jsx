@@ -46,7 +46,7 @@ import CsvExportButton from '../components/pos/CsvExportButton';
 import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 
 export default function Reports() {
-  const { businessId, currentBusiness } = useBusiness();
+  const { businessId, currentBusiness, businesses } = useBusiness();
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
 
@@ -64,6 +64,19 @@ export default function Reports() {
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
   const selectedCategory = categoryFilter !== 'all' ? categoryFilter : null;
 
+
+  const selectedBusiness = businesses.find((business) => {
+    const id = business?.business_id ?? business?.id;
+    return String(id) === String(businessId);
+  });
+
+  const currentBusinessRole = currentBusiness?.pivot?.role
+    || currentBusiness?.role
+    || selectedBusiness?.pivot?.role
+    || selectedBusiness?.role
+    || null;
+
+  const canVoidSales = currentBusinessRole === 'admin';
   // Fetch sales
   const { data: sales = [], isLoading: loadingSales } = useQuery({
     queryKey: ['sales', businessId, dateFrom, dateTo, statusTab, selectedPaymentMethod, selectedCategory],
@@ -678,7 +691,7 @@ export default function Reports() {
         sale={selectedSale}
         currentBusiness={currentBusiness}
         paymentMethodLookup={paymentMethodLookup}
-        canVoid={currentBusiness?.pivot?.role === 'admin'}
+        canVoid={canVoidSales}
         onVoided={() => {
           setSelectedSale((prev) => (prev ? { ...prev, status: 'voided' } : prev));
           queryClient.invalidateQueries({ queryKey: ['sales', businessId] });

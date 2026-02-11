@@ -179,6 +179,35 @@ class SaleController extends Controller
         return response()->json(['success' => true, 'message' => 'Sale finalized']);
     }
 
+
+    /**
+     * Obtener la última venta cerrada/voided del negocio actual
+     */
+    public function latestClosed(Request $request)
+    {
+        $businessId = app(BusinessContext::class)->getBusinessId();
+
+        if (!$businessId) {
+            return response()->json(['success' => false, 'message' => 'Business not selected'], 403);
+        }
+
+        $sale = Sale::with(['items.item.category', 'payments.paymentMethod', 'user'])
+            ->where('business_id', $businessId)
+            ->whereIn('status', ['closed', 'voided'])
+            ->orderByRaw('COALESCE(closed_at, created_at) DESC')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$sale) {
+            return response()->json(['success' => true, 'data' => null]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $sale,
+        ]);
+    }
+
     /**
      * Anular venta (Void)
      */

@@ -33,7 +33,7 @@ import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import TicketActions from '../components/sales/TicketActions';
 
 function POSContent() {
-  const { businessId, currentBusiness } = useBusiness();
+  const { businessId, currentBusiness, businesses } = useBusiness();
   const { addToCart, cartItems, clearCart, isOnline, addToOfflineQueue, offlineQueue, clearOfflineQueue } = useCart();
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
@@ -42,7 +42,6 @@ function POSContent() {
   const [showWizard, setShowWizard] = useState(false);
   const [showCashOpenModal, setShowCashOpenModal] = useState(false);
   const [pendingPayment, setPendingPayment] = useState(null);
-  const [lastCompletedSale, setLastCompletedSale] = useState(null);
   const [isLastSaleDialogOpen, setIsLastSaleDialogOpen] = useState(false);
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
   
@@ -122,6 +121,29 @@ function POSContent() {
     }
     return acc;
   }, {});
+
+  const selectedBusiness = businesses.find((business) => {
+    const id = business?.business_id ?? business?.id;
+    return String(id) === String(businessId);
+  });
+
+  const currentBusinessRole = currentBusiness?.pivot?.role
+    || currentBusiness?.role
+    || selectedBusiness?.pivot?.role
+    || selectedBusiness?.role
+    || null;
+
+  const canVoidSales = currentBusinessRole === 'admin';
+
+  const { data: lastCompletedSale = null } = useQuery({
+    queryKey: ['latest-closed-sale', businessId],
+    queryFn: async () => {
+      if (!businessId) return null;
+      const response = await apiClient.get('/protected/sales/latest-closed');
+      return normalizeEntityResponse(response);
+    },
+    enabled: !!businessId
+  });
 
   // Fetch bank account data
   const { data: bankAccountData } = useQuery({
@@ -329,7 +351,9 @@ function POSContent() {
         addToOfflineQueue(salePayload);
       } else {
         const { saleId, saleDetail } = await createSaleFlow(salePayload);
-        setLastCompletedSale(saleDetail ? { ...saleDetail, id: saleDetail.id ?? saleId } : { id: saleId });
+        const normalizedSale = saleDetail ? { ...saleDetail, id: saleDetail.id ?? saleId } : { id: saleId };
+        queryClient.setQueryData(['latest-closed-sale', businessId], normalizedSale);
+        setIsLastSaleDialogOpen(true);
       }
       
       clearCart();
@@ -537,9 +561,9 @@ function POSContent() {
         sale={lastCompletedSale}
         currentBusiness={currentBusiness}
         paymentMethodLookup={paymentMethodLookup}
-        canVoid={currentBusiness?.pivot?.role === 'admin'}
+        canVoid={canVoidSales}
         onVoided={() => {
-          setLastCompletedSale((prev) => (prev ? { ...prev, status: 'voided' } : prev));
+          queryClient.setQueryData(['latest-closed-sale', businessId], (prev) => (prev ? { ...prev, status: 'voided' } : prev));
         }}
       />
 
