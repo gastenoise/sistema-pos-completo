@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\SaleTicketMail;
+use App\Jobs\SendSaleTicketEmailJob;
 use App\Models\Business;
 use App\Models\Sale;
+use App\Models\SaleTicketEmailStatus;
 use App\Services\BusinessContext;
 use App\Services\BusinessSmtpRuntimeConfigurator;
 use App\Services\SaleTicketService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -76,7 +76,7 @@ class SaleTicketController extends Controller
             'ticket_pdf' => 'required|file|mimetypes:application/pdf|max:5120',
         ]);
 
-        $business = Business::find($sale->business_id);
+        $business = Business::with('smtpSettings')->find($sale->business_id);
         if (!$business) {
             return response()->json([
                 'success' => false,
@@ -107,36 +107,77 @@ class SaleTicketController extends Controller
             ], 422);
         }
 
-        $this->smtpRuntimeConfigurator->apply($smtpValidation['config']);
+        $requestId = (string) Str::uuid();
+        $pdfStoragePath = sprintf('tickets/email-temp/sale-%d-%s.pdf', $sale->id, Str::lower(Str::random(24)));
+        Storage::disk('local')->put($pdfStoragePath, $pdfContent);
 
-        try {
-            Mail::mailer('smtp')->to($validated['to_email'])->send(new SaleTicketMail(
-                sale: $sale,
-                clientPdfContent: $pdfContent,
-                clientPdfFilename: $pdfFilename,
-                customMessage: $validated['message'] ?? null,
-                customSubject: $validated['subject'] ?? null,
-            ));
-
-            $this->logEmailAudit($sale, $business->id, $validated['to_email'], 'sent', [
+        SaleTicketEmailStatus::create([
+            'request_id' => $requestId,
+            'business_id' => $business->id,
+            'sale_id' => $sale->id,
+            'to_email' => $validated['to_email'],
+            'subject' => $validated['subject'] ?? null,
+            'status' => 'queued',
+            'error_message' => null,
+            'meta' => [
                 'file' => $fileMetadata,
-            ]);
-        } catch (\Throwable $exception) {
-            $this->logEmailAudit($sale, $business->id, $validated['to_email'], 'failed', [
-                'error' => $exception->getMessage(),
-                'file' => $fileMetadata,
-            ]);
+            ],
+            'queued_at' => now(),
+        ]);
 
+        SendSaleTicketEmailJob::dispatch(
+            saleId: $sale->id,
+            businessId: $business->id,
+            toEmail: $validated['to_email'],
+            subject: $validated['subject'] ?? null,
+            message: $validated['message'] ?? null,
+            pdfPath: $pdfStoragePath,
+            pdfFilename: $pdfFilename,
+            requestId: $requestId,
+        )->onQueue('emails');
+
+        $this->logEmailAudit($sale, $business->id, $validated['to_email'], 'queued', [
+            'request_id' => $requestId,
+            'file' => $fileMetadata,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'El ticket quedó en cola y se enviará en segundo plano.',
+            'data' => [
+                'request_id' => $requestId,
+                'status' => 'queued',
+                'to_email' => $validated['to_email'],
+            ],
+        ]);
+    }
+
+    public function emailStatus(Sale $sale, string $requestId): JsonResponse
+    {
+        if ($response = $this->validateBusinessAccess($sale)) {
+            return $response;
+        }
+
+        $status = SaleTicketEmailStatus::query()
+            ->where('sale_id', $sale->id)
+            ->where('request_id', $requestId)
+            ->first();
+
+        if (!$status) {
             return response()->json([
                 'success' => false,
-                'message' => 'No se pudo enviar el ticket por email.',
-                'error' => $exception->getMessage(),
-            ], 422);
+                'message' => 'No se encontró el estado del envío solicitado.',
+            ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Ticket enviado correctamente por email.',
+            'data' => [
+                'status' => $status->status,
+                'to_email' => $status->to_email,
+                'error_message' => $status->error_message,
+                'updated_at' => optional($status->processed_at ?? $status->updated_at)->toIso8601String(),
+            ],
         ]);
     }
 
@@ -273,10 +314,14 @@ class SaleTicketController extends Controller
         return $clean !== '' ? $clean : $fallback;
     }
 
+
     private function buildWhatsappShareText(Sale $sale, ?string $fileUrl = null): string
     {
         $businessName = $sale->business?->name ?? 'Negocio';
-        $ticketDate = optional($sale->closed_at ?? $sale->created_at)->format('Y-m-d H:i:s');
+        $ticketDate = optional($sale->closed_at ?? $sale->created_at)
+            ?->copy()
+            ->setTimezone('America/Argentina/Buenos_Aires')
+            ->format('Y-m-d H:i:s');
         $totalAmount = number_format((float) $sale->total_amount, 2, '.', '');
 
         return implode("\n", [

@@ -13,8 +13,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getSaleTicket, sendSaleTicketEmail } from '@/api/salesTickets';
+import { getSaleTicket, getSaleTicketEmailStatus, sendSaleTicketEmail } from '@/api/salesTickets';
 import { downloadTicketPdfFromNode, generateTicketFileName, generateTicketPdfBlobFromNode } from '@/utils/ticketPdf';
+import { formatTicketDatePartsAR, formatDateTimeAR } from '@/lib/dateTime';
+import { useBusiness } from '@/components/pos/BusinessContext';
 
 const resolveErrorMessage = (error, fallbackMessage) => {
   return error?.message || error?.data?.message || fallbackMessage;
@@ -37,13 +39,6 @@ const formatCurrency = (value) => {
   }).format(amount);
 };
 
-const formatDate = (value) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('es-AR');
-};
-
 const normalizeWhatsappNumber = (rawValue) => {
   if (!rawValue) return '';
   return rawValue.replace(/[^\d]/g, '');
@@ -52,7 +47,7 @@ const normalizeWhatsappNumber = (rawValue) => {
 const buildWhatsappTicketText = (ticket, saleId) => {
   const businessName = ticket?.business?.name || 'Negocio';
   const ticketNumber = ticket?.id || saleId;
-  const ticketDate = formatDate(ticket?.date?.closed_at || ticket?.date?.created_at);
+  const ticketDate = formatDateTimeAR(ticket?.date?.closed_at || ticket?.date?.created_at, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
   const seller = ticket?.seller?.name || '-';
   const lines = [
     `${businessName} te comparte tu ticket.`,
@@ -84,6 +79,7 @@ function TicketEmailDialog({
   defaultMessage,
   isSending,
   onSend,
+  smtpMessage,
 }) {
   const [form, setForm] = useState({
     to_email: defaultEmail || '',
@@ -148,6 +144,10 @@ function TicketEmailDialog({
             />
           </div>
 
+          {smtpMessage && (
+            <p className="text-xs text-amber-700">{smtpMessage}</p>
+          )}
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSending}>
               Cancelar
@@ -199,7 +199,6 @@ function TicketWhatsappDialog({ open, onOpenChange, isSharing, onConfirm }) {
             />
             <p className="text-xs text-slate-500">Solo números. Ejemplo Argentina: 54911...</p>
           </div>
-
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSharing}>
               Cancelar
@@ -222,6 +221,8 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const ticketContentRef = useRef(null);
+  const { smtpStatus, isCheckingSmtpStatus } = useBusiness();
+  const isSmtpValid = smtpStatus?.is_valid === true;
 
   const defaultEmail = useMemo(() => customerEmail || '', [customerEmail]);
 
@@ -267,8 +268,40 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
     }
   };
 
+  const pollEmailDeliveryStatus = async ({ requestId, toEmail }) => {
+    const maxAttempts = 30;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      try {
+        const statusResponse = await getSaleTicketEmailStatus(saleId, requestId);
+        const currentStatus = statusResponse?.status;
+
+        if (currentStatus === 'sent') {
+          notifyTicketActionSuccess(`Ticket enviado correctamente a ${statusResponse?.to_email || toEmail}.`);
+          return;
+        }
+
+        if (currentStatus === 'failed') {
+          notifyTicketActionError(statusResponse?.error_message || 'No se pudo enviar el ticket por e-mail.');
+          return;
+        }
+      } catch (statusError) {
+        if (attempt === maxAttempts - 1) {
+          notifyTicketActionError('No se pudo confirmar el estado del envío de e-mail.', statusError);
+        }
+      }
+    }
+  };
+
   const handleSendEmail = async (formPayload) => {
-    if (!saleId) return;
+    if (!saleId || isSendingEmail) return;
+
+    if (!isSmtpValid) {
+      notifyTicketActionError(smtpStatus?.message || 'Configurá un SMTP activo para habilitar el envío por e-mail.');
+      return;
+    }
 
     try {
       setIsSendingEmail(true);
@@ -293,15 +326,22 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
       formData.append('ticket_pdf', new File([pdfBlob], generateTicketFileName(saleId), { type: 'application/pdf' }));
 
       const response = await sendSaleTicketEmail(saleId, formData);
+      const requestId = response?.request_id;
+      const toEmail = response?.to_email || formPayload.to_email.trim();
 
-      notifyTicketActionSuccess(response?.message || 'Ticket enviado correctamente por e-mail.');
+      notifyTicketActionSuccess(response?.message || 'El correo quedó en cola y se enviará en segundo plano.');
       setIsEmailDialogOpen(false);
+
+      if (requestId) {
+        pollEmailDeliveryStatus({ requestId, toEmail });
+      }
     } catch (sendError) {
       notifyTicketActionError('No se pudo enviar el ticket por e-mail.', sendError);
     } finally {
       setIsSendingEmail(false);
     }
   };
+
 
   return (
     <>
@@ -339,28 +379,10 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
                   <p><strong>Ticket #{ticket?.id || saleId}</strong></p>
                   <div className="flex justify-between">
                     <span className="text-left">
-                      Fecha: {(() => {
-                        const dateStr = ticket?.date?.closed_at || ticket?.date?.created_at;
-                        if (!dateStr) return '-';
-                        const date = new Date(dateStr);
-                        if (Number.isNaN(date.getTime())) return '-';
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const year = date.getFullYear();
-                        return `${day}/${month}/${year}`;
-                      })()}
+                      Fecha: {formatTicketDatePartsAR(ticket?.date?.closed_at || ticket?.date?.created_at).date}
                     </span>
                     <span className="text-right">
-                      Hora: {(() => {
-                        const dateStr = ticket?.date?.closed_at || ticket?.date?.created_at;
-                        if (!dateStr) return '-';
-                        const date = new Date(dateStr);
-                        if (Number.isNaN(date.getTime())) return '-';
-                        const hours = String(date.getHours()).padStart(2, '0');
-                        const minutes = String(date.getMinutes()).padStart(2, '0');
-                        const seconds = String(date.getSeconds()).padStart(2, '0');
-                        return `${hours}:${minutes}:${seconds}`;
-                      })()}
+                      Hora: {formatTicketDatePartsAR(ticket?.date?.closed_at || ticket?.date?.created_at).time}
                     </span>
                   </div>
                   <p>Vendedor: {(ticket?.seller?.name?.split(' ')[0]) || '-'}</p>
@@ -415,7 +437,7 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" disabled={!saleId || isLoadingWhatsapp || isSendingEmail}>
+                <Button type="button" disabled={!saleId || isLoadingWhatsapp || isSendingEmail || isCheckingSmtpStatus}>
                   <ChevronDown className="mr-2 h-4 w-4" />
                   Compartir
                 </Button>
@@ -425,7 +447,7 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Enviar por WhatsApp
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsEmailDialogOpen(true)}>
+                <DropdownMenuItem onClick={() => setIsEmailDialogOpen(true)} disabled={!isSmtpValid}>
                   <Mail className="mr-2 h-4 w-4" />
                   Enviar por e-mail
                 </DropdownMenuItem>
@@ -446,8 +468,9 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
         open={isEmailDialogOpen}
         onOpenChange={setIsEmailDialogOpen}
         defaultEmail={defaultEmail}
-        isSending={isSendingEmail}
+        isSending={isSendingEmail || isCheckingSmtpStatus || !isSmtpValid}
         onSend={handleSendEmail}
+        smtpMessage={!isSmtpValid ? (smtpStatus?.message || 'Configurá un SMTP activo para enviar correos.') : ''}
       />
     </>
   );

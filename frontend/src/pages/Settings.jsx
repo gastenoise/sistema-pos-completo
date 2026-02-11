@@ -441,6 +441,7 @@ export default function Settings() {
       await apiClient.put('/protected/business/smtp', payload);
       toast.success('SMTP configuration saved');
       queryClient.invalidateQueries({ queryKey: ['smtpConfig', businessId] });
+      queryClient.invalidateQueries({ queryKey: ['smtpStatus', businessId] });
     } catch (error) {
       toast.error('Failed to save SMTP configuration');
     } finally {

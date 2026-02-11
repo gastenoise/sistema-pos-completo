@@ -6,6 +6,8 @@ use App\Models\Sale;
 
 class SaleTicketService
 {
+    private const ARGENTINA_TIMEZONE = 'America/Argentina/Buenos_Aires';
+
     public function build(Sale $sale): array
     {
         $sale->loadMissing([
@@ -27,13 +29,13 @@ class SaleTicketService
                 'tax_id' => $sale->business?->tax_id,
             ],
             'date' => [
-                'created_at' => optional($sale->created_at)->toDateTimeString(),
-                'closed_at' => optional($sale->closed_at)->toDateTimeString(),
+                'created_at' => $this->toArgentinaIsoDate($sale->created_at),
+                'closed_at' => $this->toArgentinaIsoDate($sale->closed_at),
             ],
             'cash_register' => [
                 'session_id' => $sale->cashRegisterSession?->id,
-                'opened_at' => optional($sale->cashRegisterSession?->opened_at)->toDateTimeString(),
-                'closed_at' => optional($sale->cashRegisterSession?->closed_at)->toDateTimeString(),
+                'opened_at' => $this->toArgentinaIsoDate($sale->cashRegisterSession?->opened_at),
+                'closed_at' => $this->toArgentinaIsoDate($sale->cashRegisterSession?->closed_at),
                 'status' => $sale->cashRegisterSession?->status,
             ],
             'seller' => [
@@ -55,11 +57,20 @@ class SaleTicketService
                 'status' => $payment->status,
                 'amount' => (float) $payment->amount,
                 'transaction_reference' => $payment->transaction_reference,
-                'confirmed_at' => optional($payment->confirmed_at)->toDateTimeString(),
+                'confirmed_at' => $this->toArgentinaIsoDate($payment->confirmed_at),
             ])->values()->all(),
             'total' => [
                 'amount' => (float) $sale->total_amount,
             ],
         ];
+    }
+
+    private function toArgentinaIsoDate($date): ?string
+    {
+        if (!$date) {
+            return null;
+        }
+
+        return $date->copy()->setTimezone(self::ARGENTINA_TIMEZONE)->toIso8601String();
     }
 }
