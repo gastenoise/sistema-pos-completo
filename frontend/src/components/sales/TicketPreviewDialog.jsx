@@ -313,7 +313,7 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
                 <div className="space-y-1">
                   {Array.isArray(ticket?.items) && ticket.items.length > 0 ? (
                     ticket.items.map((item) => (
-                      <div key={item.id} className="space-y-1 border-b border-dotted pb-1">
+                      <div key={item.id} className="space-y-1  pb-1">
                         <p className="font-semibold">{item.name}</p>
                         <div className="flex justify-between">
                           <span>
