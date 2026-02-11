@@ -47,6 +47,7 @@ export function CartProvider({ children }) {
         item_id: item.id,
         name: item.name,
         unit_price: item.price,
+        category_id: item.category_id ?? null,
         quantity,
         subtotal: item.price * quantity
       }];

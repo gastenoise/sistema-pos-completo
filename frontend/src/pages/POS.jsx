@@ -51,13 +51,26 @@ function POSContent() {
   const updateItemsCache = (response) => {
     const list = mapCatalogIsActive(normalizeListResponse(response, 'items'));
     if (list.length > 0) {
-      queryClient.setQueryData(['items', businessId], list);
+      queryClient.setQueryData(
+        ['items', businessId],
+        list.map((item) => ({
+          ...item,
+          category_id: item.category_id !== null && item.category_id !== undefined
+            ? Number(item.category_id)
+            : null
+        }))
+      );
       return true;
     }
 
     const entity = normalizeEntityResponse(response);
     if (entity?.id) {
-      const normalizedEntity = withCatalogIsActive(entity);
+      const normalizedEntity = {
+        ...withCatalogIsActive(entity),
+        category_id: entity.category_id !== null && entity.category_id !== undefined
+          ? Number(entity.category_id)
+          : null
+      };
       queryClient.setQueryData(['items', businessId], (prev = []) => {
         const safePrev = Array.isArray(prev) ? prev : [];
         const exists = safePrev.find((item) => item.id === normalizedEntity.id);
@@ -389,16 +402,32 @@ function POSContent() {
 
   const handleQuickAdd = async (itemData) => {
     try {
-      const newItem = await apiClient.post('/protected/items', {
+      const payload = {
         ...itemData,
         is_active: true
-      });
+      };
+      const newItem = await apiClient.post('/protected/items', payload);
       const createdItem = normalizeEntityResponse(newItem);
-      if (!updateItemsCache(newItem)) {
+      const resolvedCategoryId = createdItem?.category_id !== null && createdItem?.category_id !== undefined
+        ? Number(createdItem.category_id)
+        : (payload.category_id ?? null);
+      if (!updateItemsCache({
+        ...newItem,
+        category_id: resolvedCategoryId,
+        item: newItem?.item
+          ? { ...newItem.item, category_id: resolvedCategoryId }
+          : undefined,
+        data: newItem?.data
+          ? { ...newItem.data, category_id: resolvedCategoryId }
+          : undefined
+      })) {
         queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       }
       if (createdItem) {
-        addToCart(createdItem);
+        addToCart({
+          ...createdItem,
+          category_id: resolvedCategoryId
+        });
       }
       toast.success(`Created and added ${itemData.name}`);
     } catch (error) {
@@ -481,7 +510,7 @@ function POSContent() {
                 className="pl-10 h-12 text-lg"
               />
             </div>
-            <QuickAddForm onAdd={handleQuickAdd} />
+            <QuickAddForm onAdd={handleQuickAdd} categories={categories} />
             <GenericItemForm onAdd={(item) => { addToCart(item); toast.success(`Added ${item.name}`); }} />
           </div>
 

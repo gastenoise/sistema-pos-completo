@@ -16,13 +16,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-export default function QuickAddForm({ onAdd, loading = false }) {
+export default function QuickAddForm({ onAdd, categories = [], loading = false }) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     price: '',
-    type: 'product'
+    type: 'product',
+    category_id: 'none'
   });
 
   const handleSubmit = async (e) => {
@@ -34,10 +35,11 @@ export default function QuickAddForm({ onAdd, loading = false }) {
       await onAdd({
         name: formData.name,
         price: parseFloat(formData.price),
-        type: formData.type
+        type: formData.type,
+        ...(formData.category_id !== 'none' && { category_id: Number(formData.category_id) })
       });
       toast.success('Item agregado');
-      setFormData({ name: '', price: '', type: 'product' });
+      setFormData({ name: '', price: '', type: 'product', category_id: 'none' });
       setOpen(false);
     } catch (error) {
       toast.error('No se pudo agregar el item');
@@ -87,6 +89,23 @@ export default function QuickAddForm({ onAdd, loading = false }) {
               <SelectItem value="product">Product</SelectItem>
               <SelectItem value="service">Service</SelectItem>
               <SelectItem value="fee">Fee</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={formData.category_id}
+            onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Category (optional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sin categoría</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={String(category.id)}>
+                  {category.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           
