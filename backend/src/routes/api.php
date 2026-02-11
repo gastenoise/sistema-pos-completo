@@ -117,9 +117,9 @@ Route::prefix('protected')->group(function () {
                     Route::post('{sale}/void', [SaleController::class, 'void']);
                     // Fuente de datos oficial para renderizar tickets en front-end.
                     Route::get('{sale}/ticket', [SaleTicketController::class, 'show']);
-                    // Route::post('{sale}/ticket/email', [SaleTicketController::class, 'email']);
-                    // Route::post('{sale}/ticket/share/whatsapp/file', [SaleTicketController::class, 'uploadWhatsappFile']);
-                    // Route::post('{sale}/ticket/share/whatsapp', [SaleTicketController::class, 'shareWhatsapp']);
+                    Route::post('{sale}/ticket/email', [SaleTicketController::class, 'email']);
+                    Route::post('{sale}/ticket/share/whatsapp/file', [SaleTicketController::class, 'uploadWhatsappFile']);
+                    Route::post('{sale}/ticket/share/whatsapp', [SaleTicketController::class, 'shareWhatsapp']);
                 });
 
                 // Reportes
