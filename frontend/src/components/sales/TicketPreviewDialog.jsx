@@ -341,6 +341,16 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
                   <span>TOTAL</span>
                   <span>{formatCurrency(ticket?.total?.amount)}</span>
                 </div>
+
+                {/* Mensaje de gracias y aclaración al pie */}
+                <div className="pt-4">
+                  <p className="text-center text-neutral-800 uppercase">Gracias por su compra</p>
+                  <p
+                    className="text-center text-[9px] mt-2 text-neutral-800"
+                  >
+                    Comprobante no válido como factura.<br/>Sin validez fiscal.
+                  </p>
+                </div>
               </div>
             )}
           </div>
