@@ -5,6 +5,8 @@ import { useAuth } from './AuthContext';
 import { pagesConfig } from '@/pages.config';
 import { useBusiness } from '@/components/pos/BusinessContext';
 
+const EXCLUDED_NAVIGATION_PAGES = new Set(['BusinessSelect']);
+
 export default function NavigationTracker() {
     const location = useLocation();
     const { isAuthenticated } = useAuth();
@@ -33,7 +35,9 @@ export default function NavigationTracker() {
             pageName = matchedKey || null;
         }
 
-        if (isAuthenticated && pageName && businessId) {
+        const isExcludedPage = pageName ? EXCLUDED_NAVIGATION_PAGES.has(pageName) : false;
+
+        if (isAuthenticated && pageName && businessId && !isExcludedPage) {
             apiClient.post('/protected/navigation-events', {
                 path: pathname,
                 screen: pageName,

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BusinessUser;
 use App\Models\NavigationEvent;
-use App\Services\BusinessContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,13 +17,32 @@ class NavigationEventController extends Controller
             'metadata' => 'nullable|array',
         ]);
 
-        $businessId = app(BusinessContext::class)->check()
-            ? app(BusinessContext::class)->getBusinessId()
-            : null;
+        $authUserId = Auth::id();
+        $headerBusinessId = $request->header('X-Business-Id');
+
+        if (!is_numeric($headerBusinessId)) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Navigation event skipped: business context header is missing.',
+            ], 202);
+        }
+
+        $businessId = (int) $headerBusinessId;
+
+        $membershipExists = BusinessUser::where('user_id', $authUserId)
+            ->where('business_id', $businessId)
+            ->exists();
+
+        if (!$membershipExists) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Navigation event skipped: invalid business context for current user.',
+            ], 202);
+        }
 
         $event = NavigationEvent::create([
             'business_id' => $businessId,
-            'user_id' => Auth::id(),
+            'user_id' => $authUserId,
             'path' => $validated['path'],
             'screen' => $validated['screen'] ?? null,
             'metadata' => $validated['metadata'] ?? null,
