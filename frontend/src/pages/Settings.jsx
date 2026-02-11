@@ -58,8 +58,9 @@ export default function Settings() {
     currency: 'ARS',
     business_parameters: {}
   });
-  const [savingBusiness, setSavingBusiness] = useState(false);
-  const businessFormRef = useRef(null);
+  const [savingBusinessInfo, setSavingBusinessInfo] = useState(false);
+  const [savingBusinessParameters, setSavingBusinessParameters] = useState(false);
+  const businessInfoFormRef = useRef(null);
   
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -254,14 +255,27 @@ export default function Settings() {
     }
   }, [bankAccount]);
 
-  const handleSaveBusiness = async (event) => {
+  const syncBusinessState = (nextBusiness) => {
+    selectBusiness(nextBusiness);
+    setBusinessData({
+      name: nextBusiness.name || '',
+      business_email: nextBusiness.email || nextBusiness.business_email || '',
+      address: nextBusiness.address || '',
+      phone: nextBusiness.phone || '',
+      tax_id: nextBusiness.tax_id || '',
+      currency: nextBusiness.currency || 'ARS',
+      business_parameters: normalizeBusinessParameters(nextBusiness)
+    });
+  };
+
+  const handleSaveBusinessInfo = async (event) => {
     event?.preventDefault();
-    const form = businessFormRef.current;
+    const form = businessInfoFormRef.current;
     if (form && !form.reportValidity()) {
       return;
     }
     if (!currentBusiness) return;
-    setSavingBusiness(true);
+    setSavingBusinessInfo(true);
     try {
       const payload = {
         name: businessData.name,
@@ -270,26 +284,36 @@ export default function Settings() {
         tax_id: businessData.tax_id,
         currency: businessData.currency,
         email: businessData.business_email || undefined,
+      };
+      const updated = await apiClient.put('/protected/business', payload);
+      const updatedBusiness = normalizeEntityResponse(updated);
+      const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
+      syncBusinessState(mergedBusiness);
+      toast.success('Business information saved');
+    } catch (error) {
+      toast.error('Failed to save business information');
+    } finally {
+      setSavingBusinessInfo(false);
+    }
+  };
+
+  const handleSaveBusinessParameters = async (event) => {
+    event?.preventDefault();
+    if (!currentBusiness) return;
+    setSavingBusinessParameters(true);
+    try {
+      const payload = {
         business_parameters: businessData.business_parameters
       };
       const updated = await apiClient.put('/protected/business', payload);
       const updatedBusiness = normalizeEntityResponse(updated);
       const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
-      selectBusiness(mergedBusiness);
-      setBusinessData({
-        name: mergedBusiness.name || '',
-        business_email: mergedBusiness.email || mergedBusiness.business_email || '',
-        address: mergedBusiness.address || '',
-        phone: mergedBusiness.phone || '',
-        tax_id: mergedBusiness.tax_id || '',
-        currency: mergedBusiness.currency || 'ARS',
-        business_parameters: normalizeBusinessParameters(mergedBusiness)
-      });
-      toast.success('Business settings saved');
+      syncBusinessState(mergedBusiness);
+      toast.success('Business options saved');
     } catch (error) {
-      toast.error('Failed to save settings');
+      toast.error('Failed to save business options');
     } finally {
-      setSavingBusiness(false);
+      setSavingBusinessParameters(false);
     }
   };
 
@@ -502,14 +526,14 @@ export default function Settings() {
           </TabsList>
 
           {/* Business Tab */}
-          <TabsContent value="business">
-            <form ref={businessFormRef} className="space-y-4" onSubmit={handleSaveBusiness}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Business Information</CardTitle>
-                  <CardDescription>Update your business details</CardDescription>
-                </CardHeader>
-                <CardContent>
+          <TabsContent value="business" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Business Information</CardTitle>
+                <CardDescription>Update your business details</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form ref={businessInfoFormRef} className="space-y-4" onSubmit={handleSaveBusinessInfo}>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
                       <Label>Business Name</Label>
@@ -552,8 +576,8 @@ export default function Settings() {
                     </div>
                     <div>
                       <Label>Currency</Label>
-                      <Select 
-                        value={businessData.currency} 
+                      <Select
+                        value={businessData.currency}
                         onValueChange={(v) => setBusinessData({ ...businessData, currency: v })}
                       >
                         <SelectTrigger>
@@ -566,47 +590,60 @@ export default function Settings() {
                       </Select>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Extra Business Options</CardTitle>
-                  <CardDescription>
-                    Optional behavior toggles for this business.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {BUSINESS_BOOLEAN_PARAMETERS.map((parameter) => (
-                    <div key={parameter.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{parameter.label}</p>
-                        <p className="text-xs text-slate-500">{parameter.description}</p>
+                  <Button type="submit" disabled={savingBusinessInfo}>
+                    {savingBusinessInfo ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Save Business Information
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Extra Business Options</CardTitle>
+                <CardDescription>
+                  Optional behavior toggles for this business.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={handleSaveBusinessParameters}>
+                  <div className="space-y-4">
+                    {BUSINESS_BOOLEAN_PARAMETERS.map((parameter) => (
+                      <div key={parameter.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">{parameter.label}</p>
+                          <p className="text-xs text-slate-500">{parameter.description}</p>
+                        </div>
+                        <Switch
+                          checked={Boolean(businessData.business_parameters?.[parameter.id])}
+                          onCheckedChange={(checked) => setBusinessData((prev) => ({
+                            ...prev,
+                            business_parameters: {
+                              ...(prev.business_parameters || {}),
+                              [parameter.id]: checked
+                            }
+                          }))}
+                        />
                       </div>
-                      <Switch
-                        checked={Boolean(businessData.business_parameters?.[parameter.id])}
-                        onCheckedChange={(checked) => setBusinessData((prev) => ({
-                          ...prev,
-                          business_parameters: {
-                            ...(prev.business_parameters || {}),
-                            [parameter.id]: checked
-                          }
-                        }))}
-                      />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+                    ))}
+                  </div>
 
-              <Button type="submit" disabled={savingBusiness}>
-                {savingBusiness ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4 mr-2" />
-                )}
-                Save Changes
-              </Button>
-            </form>
+                  <Button type="submit" disabled={savingBusinessParameters}>
+                    {savingBusinessParameters ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Save Business Options
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Categories Tab */}
