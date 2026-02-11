@@ -221,6 +221,40 @@ class BusinessController extends Controller
     }
 
     /**
+     * PUT /protected/business/currency
+     * Actualiza únicamente la moneda del negocio seleccionado.
+     */
+    public function updateCurrency(Request $request)
+    {
+        $businessId = app(BusinessContext::class)->getBusinessId();
+        if (!$businessId) {
+            return response()->json(['success' => false, 'message' => 'Business not selected'], 403);
+        }
+
+        $business = Business::find($businessId);
+        if (!$business) {
+            return response()->json(['success' => false, 'message' => 'Business not found'], 404);
+        }
+
+        $validated = $request->validate([
+            'currency' => 'required|string|in:ARS,USD',
+        ]);
+
+        $business->currency = $validated['currency'];
+        $business->save();
+
+        $refreshedBusiness = $business->fresh();
+        if ($this->canUseBusinessParameters()) {
+            $refreshedBusiness->load('parameters');
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->withBusinessParameters($refreshedBusiness)
+        ]);
+    }
+
+    /**
      * PUT /protected/business
      * Actualiza datos básicos del negocio seleccionado.
      */
@@ -241,7 +275,6 @@ class BusinessController extends Controller
             'address' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',
-            'currency' => 'nullable|string|in:ARS,USD',
             'tax_id' => 'nullable|string|max:20',
             'preferred_payment_method_id' => 'nullable|integer|exists:payment_methods,id',
             'business_parameters' => 'nullable|array',
