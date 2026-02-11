@@ -503,20 +503,16 @@ export default function Settings() {
 
           {/* Business Tab */}
           <TabsContent value="business">
-            <Card>
-              <CardHeader>
-                <CardTitle>Business Information</CardTitle>
-                <CardDescription>Update your business details</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form ref={businessFormRef} className="space-y-4" onSubmit={handleSaveBusiness}>
+            <form ref={businessFormRef} className="space-y-4" onSubmit={handleSaveBusiness}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Business Information</CardTitle>
+                  <CardDescription>Update your business details</CardDescription>
+                </CardHeader>
+                <CardContent>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
                       <Label>Business Name</Label>
-                      {/* <Input
-                        value={businessData.name}
-                        onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
-                      /> */}
                       <Input
                         disabled
                         value={businessData.name}
@@ -525,12 +521,6 @@ export default function Settings() {
                     </div>
                     <div className="col-span-2">
                       <Label>Business Email</Label>
-                      {/* <Input
-                        type="email"
-                        value={businessData.business_email}
-                        onChange={(e) => setBusinessData({ ...businessData, business_email: e.target.value })}
-                        placeholder="contact@business.com"
-                      /> */}
                       <Input
                         disabled
                         type="email"
@@ -575,46 +565,48 @@ export default function Settings() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Card className="bg-slate-50 border-slate-200">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Extra Business Options</CardTitle>
-                        <CardDescription>
-                          Optional behavior for how the POS should react when closing a sale.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {BUSINESS_BOOLEAN_PARAMETERS.map((parameter) => (
-                          <div key={parameter.id} className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-medium text-slate-900">{parameter.label}</p>
-                              <p className="text-xs text-slate-500">{parameter.description}</p>
-                            </div>
-                            <Switch
-                              checked={Boolean(businessData.business_parameters?.[parameter.id])}
-                              onCheckedChange={(checked) => setBusinessData((prev) => ({
-                                ...prev,
-                                business_parameters: {
-                                  ...(prev.business_parameters || {}),
-                                  [parameter.id]: checked
-                                }
-                              }))}
-                            />
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
                   </div>
-                  <Button type="submit" disabled={savingBusiness}>
-                    {savingBusiness ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4 mr-2" />
-                    )}
-                    Save Changes
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Extra Business Options</CardTitle>
+                  <CardDescription>
+                    Optional behavior toggles for this business.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {BUSINESS_BOOLEAN_PARAMETERS.map((parameter) => (
+                    <div key={parameter.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{parameter.label}</p>
+                        <p className="text-xs text-slate-500">{parameter.description}</p>
+                      </div>
+                      <Switch
+                        checked={Boolean(businessData.business_parameters?.[parameter.id])}
+                        onCheckedChange={(checked) => setBusinessData((prev) => ({
+                          ...prev,
+                          business_parameters: {
+                            ...(prev.business_parameters || {}),
+                            [parameter.id]: checked
+                          }
+                        }))}
+                      />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Button type="submit" disabled={savingBusiness}>
+                {savingBusiness ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                Save Changes
+              </Button>
+            </form>
           </TabsContent>
 
           {/* Categories Tab */}
