@@ -8,6 +8,7 @@ use App\Models\BusinessUser;
 use App\Models\User;
 use App\Models\Business;
 use App\Models\BusinessSmtpSetting;
+use App\Models\BusinessParameter;
 use App\Services\BusinessContext;
 use App\Services\BusinessSmtpRuntimeConfigurator;
 use Illuminate\Support\Facades\Mail;
@@ -27,7 +28,13 @@ class BusinessController extends Controller
         $user = User::find(Auth::id());
 
         // Carga los negocios con el rol asociado en la pivot table
-        $businesses = $user->businesses()->withPivot('role')->get();
+        $businesses = $user->businesses()
+            ->withPivot('role')
+            ->with('parameters')
+            ->get()
+            ->map(function (Business $business) {
+                return $this->withBusinessParameters($business);
+            });
 
         return response()->json([
             'data' => $businesses
@@ -231,15 +238,39 @@ class BusinessController extends Controller
             'currency' => 'nullable|string|in:ARS,USD',
             'tax_id' => 'nullable|string|max:20',
             'preferred_payment_method_id' => 'nullable|integer|exists:payment_methods,id',
-            'show_closed_sale_automatically' => 'nullable|boolean',
+            'business_parameters' => 'nullable|array',
+            'business_parameters.*' => 'boolean',
         ]);
+
+        $parametersPayload = $validated['business_parameters'] ?? null;
+        unset($validated['business_parameters']);
 
         $business->fill($validated);
         $business->save();
 
+        if (is_array($parametersPayload)) {
+            foreach ($parametersPayload as $parameterId => $enabled) {
+                if (!$enabled) {
+                    $business->parameters()->where('parameter_id', $parameterId)->delete();
+                    continue;
+                }
+
+                $business->parameters()->updateOrCreate(
+                    ['parameter_id' => $parameterId],
+                    []
+                );
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'data' => $business->fresh()
+            'data' => $this->withBusinessParameters($business->fresh()->load('parameters'))
         ]);
+    }
+
+    private function withBusinessParameters(Business $business): Business
+    {
+        $business->setAttribute('business_parameters', $business->business_parameters_map);
+        return $business;
     }
 }

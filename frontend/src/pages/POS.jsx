@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
 import { mapCatalogIsActive, withCatalogIsActive } from '@/lib/catalogNaming';
 import { formatPrice } from '@/lib/formatPrice';
+import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useCart, CartProvider } from '../components/pos/CartContext';
@@ -135,9 +136,13 @@ function POSContent() {
 
   const canVoidSales = currentBusinessRole === 'admin';
 
+  const currentBusinessParameters = {
+    ...normalizeBusinessParameters(selectedBusiness),
+    ...normalizeBusinessParameters(currentBusiness),
+  };
+
   const shouldAutoOpenLastSale = Boolean(
-    currentBusiness?.show_closed_sale_automatically
-    ?? selectedBusiness?.show_closed_sale_automatically
+    currentBusinessParameters[BUSINESS_PARAMETER_IDS.SHOW_CLOSED_SALE_AUTOMATICALLY]
   );
 
   const { data: lastCompletedSale = null } = useQuery({
