@@ -12,31 +12,36 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export default function GenericItemForm({ onAdd }) {
+export default function GenericItemForm({ onAdd, categories = [], categoryRequired = false }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+    category_id: '',
     price: ''
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.price) return;
+    if (!formData.price || (categoryRequired && !formData.category_id)) return;
+
+    const selectedCategory = categories.find((category) => String(category.id) === String(formData.category_id));
+    const customLabel = selectedCategory?.name || 'Ítem personalizado';
     
     setLoading(true);
     try {
       await onAdd({
-        id: `generic-${Date.now()}`,
-        name: formData.name,
+        id: `custom-${Date.now()}`,
+        name: customLabel,
         price: parseFloat(formData.price),
-        isGeneric: true
+        is_custom: true,
+        custom_label: customLabel,
+        category_id: formData.category_id ? Number(formData.category_id) : null
       });
-      toast.success('Item creado y agregado');
-      setFormData({ name: '', price: '' });
+      toast.success('Ítem efímero agregado');
+      setFormData({ category_id: '', price: '' });
       setOpen(false);
     } catch (error) {
-      toast.error('No se pudo crear el item');
+      toast.error('No se pudo agregar el ítem efímero');
     } finally {
       setLoading(false);
     }
@@ -52,20 +57,27 @@ export default function GenericItemForm({ onAdd }) {
       </DialogTrigger>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Add Custom Item</DialogTitle>
+          <DialogTitle>Agregar línea efímera</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label>Description</Label>
-            <Input
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Item description"
+            <Label>Categoría {categoryRequired ? '*' : '(opcional)'}</Label>
+            <select
+              value={formData.category_id}
+              onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
               autoFocus
-            />
+            >
+              <option value="">Seleccionar categoría</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
-            <Label>Price</Label>
+            <Label>Monto</Label>
             <Input
               type="number"
               step="0.01"
@@ -87,10 +99,10 @@ export default function GenericItemForm({ onAdd }) {
             <Button 
               type="submit" 
               className="flex-1"
-              disabled={loading || !formData.name || !formData.price}
+              disabled={loading || !formData.price || (categoryRequired && !formData.category_id)}
             >
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Add to Cart
+              Agregar
             </Button>
           </div>
         </form>

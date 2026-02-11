@@ -10,6 +10,7 @@ class SaleItem extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
+        'category_id_snapshot' => 'integer',
         'unit_price_snapshot' => 'decimal:2',
         'total' => 'decimal:2',
         'quantity' => 'integer',

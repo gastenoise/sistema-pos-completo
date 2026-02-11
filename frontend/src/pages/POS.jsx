@@ -227,13 +227,26 @@ function POSContent() {
     }
 
     await Promise.all(
-      items.map((item) =>
-        apiClient.post(`/protected/sales/${saleId}/items`, {
-          item_id: item.item_id,
+      items.map((item) => {
+        const payload = {
           quantity: item.quantity,
-          unit_price_override: item.unit_price
-        })
-      )
+          unit_price_override: item.unit_price,
+          is_custom: Boolean(item.is_custom),
+          category_id: item.category_id ?? null,
+        };
+
+        if (item.is_custom) {
+          return apiClient.post(`/protected/sales/${saleId}/items`, {
+            ...payload,
+            item_name_snapshot: item.custom_label || item.name,
+          });
+        }
+
+        return apiClient.post(`/protected/sales/${saleId}/items`, {
+          ...payload,
+          item_id: item.item_id,
+        });
+      })
     );
 
     const createdPayments = await Promise.all(
@@ -514,7 +527,11 @@ function POSContent() {
               />
             </div>
             <QuickAddForm onAdd={handleQuickAdd} categories={categories} />
-            <GenericItemForm onAdd={(item) => { addToCart(item); toast.success(`Added ${item.name}`); }} />
+            <GenericItemForm
+              onAdd={(item) => { addToCart(item); toast.success(`Added ${item.name}`); }}
+              categories={categories}
+              categoryRequired={false}
+            />
           </div>
 
           {/* Items Grid */}

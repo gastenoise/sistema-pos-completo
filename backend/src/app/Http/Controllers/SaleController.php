@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Sale;
 use App\Models\Item;
+use App\Models\Category;
 use App\Models\SaleItem;
 use App\Models\SalePayment;
 use App\Models\CashRegisterSession;
@@ -75,19 +76,43 @@ class SaleController extends Controller
         }
         
         $validated = $request->validate([
-            'item_id' => 'required|exists:items,id',
+            'is_custom' => 'nullable|boolean',
+            'item_id' => 'nullable|exists:items,id',
+            'item_name_snapshot' => 'required_if:is_custom,true|string|max:255',
             'quantity' => 'required|integer|min:1',
-            'unit_price_override' => 'nullable|numeric|min:0'
+            'unit_price_override' => 'required_if:is_custom,true|numeric|min:0',
+            'category_id' => 'nullable|exists:categories,id',
         ]);
 
-        $item = Item::findOrFail($validated['item_id']);
-        
-        $price = $validated['unit_price_override'] ?? $item->price;
+        $isCustom = (bool) ($validated['is_custom'] ?? false);
+        $item = null;
+
+        if (!$isCustom) {
+            if (empty($validated['item_id'])) {
+                return response()->json(['success' => false, 'message' => 'item_id is required for catalog items'], 422);
+            }
+            $item = Item::findOrFail($validated['item_id']);
+        }
+
+        $category = null;
+        $resolvedCategoryId = $validated['category_id'] ?? null;
+
+        if ($item && $resolvedCategoryId === null) {
+            $resolvedCategoryId = $item->category_id;
+        }
+
+        if ($resolvedCategoryId !== null) {
+            $category = Category::find($resolvedCategoryId);
+        }
+
+        $price = $validated['unit_price_override'] ?? $item?->price;
         $total = $price * $validated['quantity'];
 
         $saleItem = $sale->items()->create([
-            'item_id' => $item->id,
-            'item_name_snapshot' => $item->name,
+            'item_id' => $isCustom ? null : $item?->id,
+            'category_id_snapshot' => $resolvedCategoryId,
+            'category_name_snapshot' => $category?->name,
+            'item_name_snapshot' => $validated['item_name_snapshot'] ?? $item?->name,
             'unit_price_snapshot' => $price,
             'quantity' => $validated['quantity'],
             'total' => $total

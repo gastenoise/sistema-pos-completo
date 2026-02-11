@@ -44,7 +44,10 @@ class SaleTicketService
             'items' => $sale->items->map(fn ($item) => [
                 'id' => $item->id,
                 'item_id' => $item->item_id,
+                'is_custom' => $item->item_id === null,
                 'name' => $item->item_name_snapshot,
+                'category_id' => $item->category_id_snapshot,
+                'category_name' => $item->category_name_snapshot,
                 'quantity' => (int) $item->quantity,
                 'unit_price' => (float) $item->unit_price_snapshot,
                 'total' => (float) $item->total,

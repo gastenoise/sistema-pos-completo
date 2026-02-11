@@ -42,11 +42,11 @@ class ReportController extends Controller
             });
         }
         if ($categoryId) {
-            $query->whereHas('items.item', function ($itemQuery) use ($categoryId) {
+            $query->whereHas('items', function ($itemQuery) use ($categoryId) {
                 if ($categoryId === 'uncategorized') {
-                    $itemQuery->whereNull('items.category_id');
+                    $itemQuery->whereNull('sale_items.category_id_snapshot');
                 } else {
-                    $itemQuery->where('items.category_id', $categoryId);
+                    $itemQuery->where('sale_items.category_id_snapshot', $categoryId);
                 }
             });
         }
@@ -68,7 +68,7 @@ class ReportController extends Controller
                 'closed_at' => $sale->closed_at,
                 'items' => $sale->items->map(function ($saleItem) {
                     $itemData = $saleItem->toArray();
-                    $itemData['category_name'] = $saleItem->item?->category?->name;
+                    $itemData['category_name'] = $saleItem->category_name_snapshot ?? $saleItem->item?->category?->name;
                     return $itemData;
                 }),
                 'payments' => $sale->payments->map(function ($payment) {
@@ -121,11 +121,11 @@ class ReportController extends Controller
             });
         }
         if ($categoryId) {
-            $salesQuery->whereHas('items.item', function ($itemQuery) use ($categoryId) {
+            $salesQuery->whereHas('items', function ($itemQuery) use ($categoryId) {
                 if ($categoryId === 'uncategorized') {
-                    $itemQuery->whereNull('items.category_id');
+                    $itemQuery->whereNull('sale_items.category_id_snapshot');
                 } else {
-                    $itemQuery->where('items.category_id', $categoryId);
+                    $itemQuery->where('sale_items.category_id_snapshot', $categoryId);
                 }
             });
         }
@@ -162,13 +162,12 @@ class ReportController extends Controller
             $paymentsQuery->whereExists(function ($query) use ($categoryId) {
                 $query->selectRaw('1')
                     ->from('sale_items')
-                    ->join('items', 'sale_items.item_id', '=', 'items.id')
                     ->whereColumn('sale_items.sale_id', 'sales.id');
 
                 if ($categoryId === 'uncategorized') {
-                    $query->whereNull('items.category_id');
+                    $query->whereNull('sale_items.category_id_snapshot');
                 } else {
-                    $query->where('items.category_id', $categoryId);
+                    $query->where('sale_items.category_id_snapshot', $categoryId);
                 }
             });
         }
@@ -185,8 +184,7 @@ class ReportController extends Controller
 
         $totalsByCategoryQuery = DB::table('sales')
             ->join('sale_items', 'sales.id', '=', 'sale_items.sale_id')
-            ->join('items', 'sale_items.item_id', '=', 'items.id')
-            ->leftJoin('categories', 'items.category_id', '=', 'categories.id')
+            ->leftJoin('categories', 'sale_items.category_id_snapshot', '=', 'categories.id')
             ->where('sales.business_id', $businessId);
 
         if ($startDate) {
@@ -207,22 +205,22 @@ class ReportController extends Controller
         }
         if ($categoryId) {
             if ($categoryId === 'uncategorized') {
-                $totalsByCategoryQuery->whereNull('items.category_id');
+                $totalsByCategoryQuery->whereNull('sale_items.category_id_snapshot');
             } else {
-                $totalsByCategoryQuery->where('items.category_id', $categoryId);
+                $totalsByCategoryQuery->where('sale_items.category_id_snapshot', $categoryId);
             }
         }
 
         $totalsByCategory = $totalsByCategoryQuery
             ->select(
-                'categories.id',
-                DB::raw("COALESCE(categories.name, 'Sin categoría') as name"),
+                DB::raw('COALESCE(sale_items.category_id_snapshot, categories.id) as id'),
+                DB::raw("COALESCE(sale_items.category_name_snapshot, categories.name, 'Sin categoría') as name"),
                 'categories.color',
                 'categories.color_hex',
                 DB::raw("COALESCE(categories.icon, 'Package') as icon"),
                 DB::raw('SUM(sale_items.total) as total_amount')
             )
-            ->groupBy('categories.id', 'categories.name', 'categories.color', 'categories.color_hex', 'categories.icon')
+            ->groupBy('sale_items.category_id_snapshot', 'sale_items.category_name_snapshot', 'categories.id', 'categories.name', 'categories.color', 'categories.color_hex', 'categories.icon')
             ->havingRaw('SUM(sale_items.total) > 0')
             ->orderByDesc('total_amount')
             ->get();
@@ -309,7 +307,7 @@ class ReportController extends Controller
                     'closed_at' => $sale->closed_at,
                     'items' => $sale->items->map(function ($saleItem) {
                         $itemData = $saleItem->toArray();
-                        $itemData['category_name'] = $saleItem->item?->category?->name;
+                        $itemData['category_name'] = $saleItem->category_name_snapshot ?? $saleItem->item?->category?->name;
                         return $itemData;
                     }),
                     'payments' => $sale->payments->map(function ($payment) {

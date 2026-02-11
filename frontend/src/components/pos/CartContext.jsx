@@ -33,43 +33,60 @@ export function CartProvider({ children }) {
     };
   }, []);
 
+  const resolveCartLineId = (item) => {
+    if (item?.is_custom) {
+      return item.line_id || `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    return item.id;
+  };
+
   const addToCart = (item, quantity = 1) => {
+    const cartLineId = resolveCartLineId(item);
+
     setCartItems(prev => {
-      const existing = prev.find(i => i.item_id === item.id);
+      const existing = prev.find((i) => i.cart_line_id === cartLineId);
       if (existing) {
-        return prev.map(i => 
-          i.item_id === item.id 
+        return prev.map((i) =>
+          i.cart_line_id === cartLineId
             ? { ...i, quantity: i.quantity + quantity, subtotal: (i.quantity + quantity) * i.unit_price }
             : i
         );
       }
+
+      const normalizedPrice = Number(item.price ?? item.unit_price ?? 0);
+
       return [...prev, {
-        item_id: item.id,
+        cart_line_id: cartLineId,
+        item_id: item?.is_custom ? null : item.id,
+        is_custom: Boolean(item?.is_custom),
+        custom_label: item?.custom_label || null,
         name: item.name,
-        unit_price: item.price,
+        unit_price: normalizedPrice,
         category_id: item.category_id ?? null,
         quantity,
-        subtotal: item.price * quantity
+        subtotal: normalizedPrice * quantity
       }];
     });
   };
 
-  const updateQuantity = (itemId, quantity) => {
+  const updateQuantity = (cartLineId, quantity) => {
     if (quantity <= 0) {
-      removeFromCart(itemId);
+      removeFromCart(cartLineId);
       return;
     }
-    setCartItems(prev => 
-      prev.map(i => 
-        i.item_id === itemId 
+
+    setCartItems((prev) =>
+      prev.map((i) =>
+        i.cart_line_id === cartLineId
           ? { ...i, quantity, subtotal: quantity * i.unit_price }
           : i
       )
     );
   };
 
-  const removeFromCart = (itemId) => {
-    setCartItems(prev => prev.filter(i => i.item_id !== itemId));
+  const removeFromCart = (cartLineId) => {
+    setCartItems((prev) => prev.filter((i) => i.cart_line_id !== cartLineId));
   };
 
   const clearCart = () => {
