@@ -369,10 +369,10 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
               Enviar por e-mail
             </Button>
           </div>
-          <p className="text-xs text-slate-500">
+          {/* <p className="text-xs text-slate-500">
             WhatsApp Web/móvil no permite adjuntar archivos automáticamente desde <code>wa.me</code>. Se abrirá un mensaje
             con texto y, cuando esté disponible, un enlace al PDF para compartir manualmente.
-          </p>
+          </p> */}
         </DialogContent>
       </Dialog>
 
