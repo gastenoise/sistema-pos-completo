@@ -70,6 +70,34 @@ class BusinessController extends Controller
     }
 
     /**
+     * GET /protected/business/smtp/status
+     * Devuelve si existe una configuración SMTP activa y completa para el negocio actual.
+     */
+    public function smtpStatus(Request $request)
+    {
+        $businessId = app(BusinessContext::class)->getBusinessId();
+        if (!$businessId) {
+            return response()->json(['success' => false, 'message' => 'Business not selected'], 403);
+        }
+
+        $business = Business::find($businessId);
+
+        if (!$business) {
+            return response()->json(['success' => false, 'message' => 'Business not found'], 404);
+        }
+
+        $validation = $this->smtpRuntimeConfigurator->validateActiveAndCompleteConfig($business);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'is_valid' => (bool) ($validation['valid'] ?? false),
+                'message' => $validation['message'] ?? null,
+            ],
+        ]);
+    }
+
+    /**
      * GET /protected/business/smtp
      * Devuelve la configuración SMTP del negocio seleccionado.
      */

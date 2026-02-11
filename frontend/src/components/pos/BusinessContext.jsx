@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { setBusinessContext } from '@/api/client';
+import { getSmtpStatus } from '@/api/business';
 
 const BusinessContext = createContext(null);
 
@@ -14,7 +16,7 @@ const readStorage = (key) => {
   if (!raw) return null;
   try {
     return JSON.parse(raw);
-  } catch (error) {
+  } catch {
     return null;
   }
 };
@@ -47,13 +49,25 @@ export const BusinessProvider = ({ children }) => {
 
   const businessId = currentBusiness?.business_id ?? currentBusiness?.id ?? null;
 
+  const { data: smtpStatus, isFetching: isCheckingSmtpStatus } = useQuery({
+    queryKey: ['smtpStatus', businessId],
+    queryFn: getSmtpStatus,
+    enabled: !!businessId,
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: 1,
+  });
+
   const value = useMemo(() => ({
     businesses,
     currentBusiness,
     businessId,
     selectBusiness,
-    setBusinesses
-  }), [businesses, currentBusiness, businessId]);
+    setBusinesses,
+    smtpStatus,
+    isCheckingSmtpStatus,
+  }), [businesses, currentBusiness, businessId, smtpStatus, isCheckingSmtpStatus]);
 
   return (
     <BusinessContext.Provider value={value}>

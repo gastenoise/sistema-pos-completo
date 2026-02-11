@@ -63,6 +63,7 @@ Route::prefix('protected')->group(function () {
             */
             Route::middleware('resolve.business')->group(function () {
                 Route::get('business/smtp', [BusinessController::class, 'getSmtpSettings']);
+                Route::get('business/smtp/status', [BusinessController::class, 'smtpStatus']);
                 Route::put('business/smtp', [BusinessController::class, 'updateSmtpSettings']);
                 Route::post('business/smtp/test', [BusinessController::class, 'testSmtpSettings']);
                 Route::put('business/currency', [BusinessController::class, 'updateCurrency']);
@@ -121,6 +122,7 @@ Route::prefix('protected')->group(function () {
                     // Fuente de datos oficial para renderizar tickets en front-end.
                     Route::get('{sale}/ticket', [SaleTicketController::class, 'show']);
                     Route::post('{sale}/ticket/email', [SaleTicketController::class, 'email']);
+                    Route::get('{sale}/ticket/email-status/{requestId}', [SaleTicketController::class, 'emailStatus']);
                     Route::post('{sale}/ticket/share/whatsapp/file', [SaleTicketController::class, 'uploadWhatsappFile']);
                     Route::post('{sale}/ticket/share/whatsapp', [SaleTicketController::class, 'shareWhatsapp']);
                 });
