@@ -15,12 +15,12 @@ class ItemResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'business_id' => $this->business_id,
-            'category_id' => $this->category_id,
+            'id' => (int) $this->id,
+            'business_id' => (int) $this->business_id,
+            'category_id' => $this->category_id !== null ? (int) $this->category_id : null,
             'name' => $this->name,
             'sku' => $this->sku,
-            'price' => $this->price,
+            'price' => (float) $this->price,
             'type' => $this->type,
             'is_active' => (bool) $this->active,
             'created_at' => $this->created_at,
@@ -28,4 +28,3 @@ class ItemResource extends JsonResource
         ];
     }
 }
-

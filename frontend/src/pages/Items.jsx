@@ -138,8 +138,10 @@ export default function Items() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/categories');
-      const list = mapCatalogIsActive(normalizeListResponse(response, 'categories'));
-      return list.filter((category) => category.is_active !== false);
+      return mapCatalogIsActive(normalizeListResponse(response, 'categories')).map((category) => ({
+        ...category,
+        id: Number(category.id)
+      }));
     },
     enabled: !!businessId
   });
