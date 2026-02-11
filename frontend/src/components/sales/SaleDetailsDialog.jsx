@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -14,6 +14,26 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import TicketActions from '@/components/sales/TicketActions';
+
+
+const resolveSaleDate = (sale) => {
+  const rawDate = sale?.closed_at || sale?.created_at;
+  if (!rawDate) return null;
+
+  if (rawDate instanceof Date) {
+    return isValid(rawDate) ? rawDate : null;
+  }
+
+  if (typeof rawDate === 'string') {
+    const parsedIso = parseISO(rawDate);
+    if (isValid(parsedIso)) {
+      return parsedIso;
+    }
+  }
+
+  const parsedDate = new Date(rawDate);
+  return isValid(parsedDate) ? parsedDate : null;
+};
 
 const getSalePaymentBreakdown = (sale, paymentMethodLookup = {}) => {
   const payments = Array.isArray(sale?.payments) ? sale.payments : [];
@@ -59,6 +79,7 @@ export default function SaleDetailsDialog({
     () => getSalePaymentBreakdown(sale, paymentMethodLookup),
     [sale, paymentMethodLookup]
   );
+  const saleDate = useMemo(() => resolveSaleDate(sale), [sale]);
 
   const handleVoid = async () => {
     if (!sale?.id || !canVoid || sale?.status === 'voided') return;
@@ -89,7 +110,7 @@ export default function SaleDetailsDialog({
             <div className="grid grid-cols-2 gap-4 pb-4 border-b">
               <div>
                 <p className="text-sm text-slate-500">Date</p>
-                <p className="font-medium">{format(new Date(sale.closed_at || sale.created_at), 'PPpp')}</p>
+                <p className="font-medium">{saleDate ? format(saleDate, 'PPpp') : '—'}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-500">Status</p>
