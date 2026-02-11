@@ -2,8 +2,8 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
 const TICKET_WIDTH_MM = 80;
-const HORIZONTAL_PADDING_MM = 2;
-const IMAGE_SCALE = 2;
+const HORIZONTAL_PADDING_MM = 1;
+const IMAGE_SCALE = 3;
 
 const createPrintableWrapper = (sourceNode) => {
   const wrapper = document.createElement('div');

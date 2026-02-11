@@ -269,7 +269,7 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
             )}
 
             {!isLoading && !isError && ticket && (
-              <div className="space-y-4 font-mono text-xs ">
+              <div className="space-y-4 font-mono text-xs">
                 <div className="text-center">
                   <p className="font-semibold uppercase">{ticket?.business?.name || 'Negocio'}</p>
                   {ticket?.business?.address && <p>{ticket.business.address}</p>}
@@ -277,8 +277,8 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
                   {ticket?.business?.tax_id && <p>CUIT: {ticket.business.tax_id}</p>}
                 </div>
 
-                <div className="border-t border-b border-dashed py-2 space-y-1">
-                  <p>Ticket #{ticket?.id || saleId}</p>
+                <div className="border-t border-b border-dashed pb-3 space-y-1">
+                  <p><strong>Ticket #{ticket?.id || saleId}</strong></p>
                   <div className="flex justify-between">
                     <span className="text-left">
                       Fecha: {(() => {
