@@ -14,7 +14,6 @@ export default function PaymentCard({
   onUpdateStatus
 }) {
   const [showQrModal, setShowQrModal] = useState(false);
-  const [loading, setLoading] = useState(false);
   const { currentBusiness } = useBusiness();
 
   const statusConfig = {
@@ -29,24 +28,22 @@ export default function PaymentCard({
   const Icon = status.icon;
   const MethodIcon = getPaymentMethodIcon(payment.method?.icon);
 
-  const confirmPayment = async (statusValue) => {
-    setLoading(true);
-    try {
-      await onUpdateStatus(payment.id, statusValue);
-    } finally {
-      setLoading(false);
-    }
+  const handleConfirmCash = () => {
+    onUpdateStatus(payment.id, 'confirmed');
   };
-
-  const handleConfirmCash = () => confirmPayment('confirmed');
 
   const handleStartMercadoPago = () => {
     setShowQrModal(true);
+    onUpdateStatus(payment.id, 'processing');
   };
 
-  const handleConfirmTransfer = () => confirmPayment('confirmed');
+  const handleConfirmTransfer = () => {
+    onUpdateStatus(payment.id, 'confirmed');
+  };
 
-  const handleConfirmCard = () => confirmPayment('confirmed');
+  const handleConfirmCard = () => {
+    onUpdateStatus(payment.id, 'confirmed');
+  };
 
   const renderActions = () => {
     if (payment.status === 'confirmed') {
@@ -56,21 +53,20 @@ export default function PaymentCard({
     switch (payment.payment_method_type) {
       case 'cash':
         return (
-          <Button
+          <Button 
             size="sm"
             onClick={handleConfirmCash}
-            disabled={loading}
             className="bg-green-600 hover:bg-green-700"
           >
             <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
-            {loading ? 'Confirming...' : 'Confirm Cash Received'}
+            Confirm Cash Received
           </Button>
         );
-
+      
       case 'mercado_pago':
         if (payment.status === 'processing') {
           return (
-            <Button
+            <Button 
               size="sm"
               variant="outline"
               onClick={() => setShowQrModal(true)}
@@ -81,7 +77,7 @@ export default function PaymentCard({
           );
         }
         return (
-          <Button
+          <Button 
             size="sm"
             onClick={handleStartMercadoPago}
             className="bg-sky-600 hover:bg-sky-700"
@@ -90,7 +86,7 @@ export default function PaymentCard({
             Generate QR Code
           </Button>
         );
-
+      
       case 'transfer':
         return (
           <div className="space-y-2">
@@ -101,40 +97,37 @@ export default function PaymentCard({
                 {bankAccountData?.alias && <p><strong>Alias:</strong> {bankAccountData.alias}</p>}
               </div>
             )}
-            <Button
+            <Button 
               size="sm"
               onClick={handleConfirmTransfer}
-              disabled={loading}
               className="bg-amber-600 hover:bg-amber-700 w-full"
             >
               <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
-              {loading ? 'Confirming...' : 'Confirm Transfer Received'}
+              Confirm Transfer Received
             </Button>
           </div>
         );
-
+      
       case 'debit':
       case 'credit':
         return (
-          <Button
+          <Button 
             size="sm"
             onClick={handleConfirmCard}
-            disabled={loading}
             className="bg-blue-600 hover:bg-blue-700"
           >
             <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
-            {loading ? 'Confirming...' : 'Confirm Card Payment'}
+            Confirm Card Payment
           </Button>
         );
-
+      
       default:
         return (
-          <Button
+          <Button 
             size="sm"
-            onClick={() => confirmPayment('confirmed')}
-            disabled={loading}
+            onClick={() => onUpdateStatus(payment.id, 'confirmed')}
           >
-            {loading ? 'Confirming...' : 'Confirm Payment'}
+            Confirm Payment
           </Button>
         );
     }
@@ -142,13 +135,13 @@ export default function PaymentCard({
 
   return (
     <>
-      <div
+      <div 
         className="border-2 rounded-lg p-4"
         style={{ borderColor: color + '40', backgroundColor: color + '08' }}
       >
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div
+            <div 
               className="p-2 rounded-lg"
               style={{ backgroundColor: color + '20' }}
             >
@@ -161,7 +154,7 @@ export default function PaymentCard({
               </p>
             </div>
           </div>
-
+          
           <Badge className={status.color}>
             <Icon className={`w-3 h-3 mr-1 ${payment.status === 'processing' ? 'animate-spin' : ''}`} />
             {status.label}
@@ -178,8 +171,8 @@ export default function PaymentCard({
           open={showQrModal}
           onClose={() => setShowQrModal(false)}
           amount={payment.amount}
-          onConfirm={async () => {
-            await confirmPayment('confirmed');
+          onConfirm={() => {
+            onUpdateStatus(payment.id, 'confirmed');
             setShowQrModal(false);
           }}
         />

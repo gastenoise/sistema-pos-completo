@@ -12,136 +12,127 @@ import { toast } from 'sonner';
 import DivisionStep from './wizard/DivisionStep';
 import ProcessStep from './wizard/ProcessStep';
 
-export default function PaymentWizardNew({
-  open,
-  onClose,
+export default function PaymentWizardNew({ 
+  open, 
+  onClose, 
   total,
+  businessId,
   businessData,
   bankAccountData,
   paymentMethods,
-  onInitializeSale,
-  onConfirmPayment,
   onComplete
 }) {
   const [step, setStep] = useState(1); // 1: division, 2: process
-  const [saleId, setSaleId] = useState(null);
   const [paymentsDraft, setPaymentsDraft] = useState([]);
   const [persistedPayments, setPersistedPayments] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (open && paymentMethods.length > 0) {
-      const defaultMethod = paymentMethods.find((m) => m.is_default) || paymentMethods[0];
-      setPaymentsDraft([
-        {
-          id: Date.now(),
-          method: defaultMethod,
-          amount: total
-        }
-      ]);
-      setPersistedPayments([]);
-      setSaleId(null);
-      setStep(1);
+      // Default: Efectivo with full amount
+      const defaultMethod = paymentMethods.find(m => m.is_default) || paymentMethods[0];
+      setPaymentsDraft([{
+        id: Date.now(),
+        method: defaultMethod,
+        amount: total
+      }]);
     }
   }, [open, total, paymentMethods]);
 
   const handleAddPayment = (method) => {
-    setPaymentsDraft([
-      ...paymentsDraft,
-      {
-        id: Date.now(),
-        method,
-        amount: 0
-      }
-    ]);
+    setPaymentsDraft([...paymentsDraft, {
+      id: Date.now(),
+      method,
+      amount: 0
+    }]);
   };
 
   const handleRemovePayment = (id) => {
-    setPaymentsDraft(paymentsDraft.filter((p) => p.id !== id));
+    setPaymentsDraft(paymentsDraft.filter(p => p.id !== id));
   };
 
   const handleChangeMethod = (id, method) => {
-    setPaymentsDraft(paymentsDraft.map((p) => (p.id === id ? { ...p, method } : p)));
+    setPaymentsDraft(paymentsDraft.map(p => 
+      p.id === id ? { ...p, method } : p
+    ));
   };
 
   const handleChangeAmount = (id, amount) => {
-    setPaymentsDraft(paymentsDraft.map((p) => (p.id === id ? { ...p, amount: parseFloat(amount) || 0 } : p)));
+    setPaymentsDraft(paymentsDraft.map(p => 
+      p.id === id ? { ...p, amount: parseFloat(amount) || 0 } : p
+    ));
   };
 
   const handleConfirmDivision = async () => {
     setLoading(true);
     try {
-      const initialized = await onInitializeSale(paymentsDraft);
-      setSaleId(initialized.saleId);
-      setPersistedPayments(initialized.payments);
+      setPersistedPayments(
+        paymentsDraft.map((payment) => ({
+          id: payment.id,
+          method: payment.method,
+          amount: payment.amount,
+          payment_method_id: payment.method.id,
+          payment_method_type: payment.method.type || payment.method.code,
+          status: 'pending',
+          payment_reference: null
+        }))
+      );
       setStep(2);
     } catch (error) {
-      toast.error(error?.message || 'Failed to save payment division');
+      toast.error('Failed to save payment division');
     } finally {
       setLoading(false);
     }
   };
 
   const handleBackToDivision = () => {
-    toast.error('Payment division cannot be edited after sale initialization');
+    setStep(1);
+    // Reset persisted if needed or just go back
   };
 
   const handleUpdatePaymentStatus = async (paymentId, status, reference = null) => {
-    if (!saleId) {
-      toast.error('Sale is not initialized');
-      return;
-    }
-
     try {
-      const updatedPayment = await onConfirmPayment({
-        saleId,
-        paymentId,
-        status,
-        reference
-      });
-
-      setPersistedPayments((prev) => prev.map((p) => (p.id === paymentId ? { ...p, ...updatedPayment } : p)));
+      setPersistedPayments(persistedPayments.map(p =>
+        p.id === paymentId ? { ...p, status, payment_reference: reference } : p
+      ));
     } catch (error) {
-      toast.error(error?.message || 'Failed to update payment status');
+      toast.error('Failed to update payment status');
     }
   };
 
   const handleCloseSale = async () => {
-    if (!saleId) {
-      toast.error('Sale is not initialized');
-      return;
-    }
-
     setLoading(true);
     try {
-      await onComplete({ saleId });
+      await onComplete(persistedPayments);
       toast.success('Sale completed successfully!');
       onClose();
     } catch (error) {
-      toast.error(error?.message || 'Failed to close sale');
+      toast.error('Failed to close sale');
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancel = () => {
+    // TODO: Delete persisted payments if any
     setPaymentsDraft([]);
     setPersistedPayments([]);
-    setSaleId(null);
     setStep(1);
     onClose();
   };
 
   const totalDraft = paymentsDraft.reduce((sum, p) => sum + (p.amount || 0), 0);
   const isValidDivision = Math.abs(totalDraft - total) < 0.01;
-  const allConfirmed = persistedPayments.length > 0 && persistedPayments.every((p) => p.status === 'confirmed');
+  const allConfirmed = persistedPayments.every(p => p.status === 'confirmed');
 
   return (
     <Dialog open={open} onOpenChange={handleCancel}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle>{step === 1 ? 'Divide Payment' : 'Process Payments'}</DialogTitle>
+            <DialogTitle>
+              {step === 1 ? 'Divide Payment' : 'Process Payments'}
+            </DialogTitle>
             <button onClick={handleCancel} className="text-slate-400 hover:text-slate-600">
               <X className="w-5 h-5" />
             </button>
@@ -173,18 +164,25 @@ export default function PaymentWizardNew({
           />
         )}
 
+        {/* Footer Actions */}
         <div className="flex justify-between pt-4 border-t">
           <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
-
+          
           {step === 1 ? (
-            <Button onClick={handleConfirmDivision} disabled={!isValidDivision || loading || paymentsDraft.length === 0}>
+            <Button 
+              onClick={handleConfirmDivision}
+              disabled={!isValidDivision || loading || paymentsDraft.length === 0}
+            >
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Confirm Division
             </Button>
           ) : (
-            <Button onClick={handleCloseSale} disabled={!allConfirmed || loading}>
+            <Button 
+              onClick={handleCloseSale}
+              disabled={!allConfirmed || loading}
+            >
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Close Sale
             </Button>
