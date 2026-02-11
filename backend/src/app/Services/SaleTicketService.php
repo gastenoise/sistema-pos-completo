@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Sale;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 
 class SaleTicketService
 {
@@ -65,9 +67,17 @@ class SaleTicketService
         ];
     }
 
-    private function toArgentinaIsoDate($date): ?string
+    private function toArgentinaIsoDate(mixed $date): ?string
     {
         if (!$date) {
+            return null;
+        }
+
+        if (is_string($date)) {
+            $date = Carbon::parse($date);
+        }
+
+        if (!$date instanceof CarbonInterface) {
             return null;
         }
 
