@@ -59,6 +59,7 @@ export default function Settings() {
     business_parameters: {}
   });
   const [savingBusinessInfo, setSavingBusinessInfo] = useState(false);
+  const [savingCurrency, setSavingCurrency] = useState(false);
   const [savingBusinessParameters, setSavingBusinessParameters] = useState(false);
   const businessInfoFormRef = useRef(null);
   
@@ -282,7 +283,6 @@ export default function Settings() {
         address: businessData.address,
         phone: businessData.phone,
         tax_id: businessData.tax_id,
-        currency: businessData.currency,
         email: businessData.business_email || undefined,
       };
       const updated = await apiClient.put('/protected/business', payload);
@@ -294,6 +294,25 @@ export default function Settings() {
       toast.error('Failed to save business information');
     } finally {
       setSavingBusinessInfo(false);
+    }
+  };
+
+  const handleSaveCurrency = async (event) => {
+    event?.preventDefault();
+    if (!currentBusiness) return;
+    setSavingCurrency(true);
+    try {
+      const updated = await apiClient.put('/protected/business/currency', {
+        currency: businessData.currency
+      });
+      const updatedBusiness = normalizeEntityResponse(updated);
+      const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
+      syncBusinessState(mergedBusiness);
+      toast.success('Currency saved');
+    } catch (error) {
+      toast.error('Failed to save currency');
+    } finally {
+      setSavingCurrency(false);
     }
   };
 
@@ -513,7 +532,7 @@ export default function Settings() {
             </TabsTrigger>
             <TabsTrigger value="payments" className="gap-2">
               <CreditCard className="w-4 h-4" />
-              Payment Methods
+              Cobros y Pagos
             </TabsTrigger>
             <TabsTrigger value="integrations" className="gap-2">
               <Mail className="w-4 h-4" />
@@ -573,21 +592,6 @@ export default function Settings() {
                         value={businessData.tax_id}
                         onChange={(e) => setBusinessData({ ...businessData, tax_id: e.target.value })}
                       />
-                    </div>
-                    <div>
-                      <Label>Currency</Label>
-                      <Select
-                        value={businessData.currency}
-                        onValueChange={(v) => setBusinessData({ ...businessData, currency: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ARS">ARS - Argentine Peso</SelectItem>
-                          <SelectItem value="USD">USD - US Dollar</SelectItem>
-                        </SelectContent>
-                      </Select>
                     </div>
                   </div>
 
@@ -697,7 +701,42 @@ export default function Settings() {
           </TabsContent>
 
           {/* Payment Methods Tab */}
-          <TabsContent value="payments">
+          <TabsContent value="payments" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Currency</CardTitle>
+                <CardDescription>Set the currency used by your business</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={handleSaveCurrency}>
+                  <div className="max-w-sm">
+                    <Label>Currency</Label>
+                    <Select
+                      value={businessData.currency}
+                      onValueChange={(v) => setBusinessData({ ...businessData, currency: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ARS">ARS - Argentine Peso</SelectItem>
+                        <SelectItem value="USD">USD - US Dollar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button type="submit" disabled={savingCurrency}>
+                    {savingCurrency ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Save Currency
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Payment Methods</CardTitle>
@@ -772,7 +811,7 @@ export default function Settings() {
             </Card>
 
             {/* Bank Account Configuration */}
-            <Card className="mt-6">
+            <Card>
               <CardHeader>
                 <CardTitle>Bank Transfer Configuration</CardTitle>
                 <CardDescription>Configure your bank account details for transfer payments</CardDescription>

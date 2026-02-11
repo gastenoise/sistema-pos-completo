@@ -65,6 +65,7 @@ Route::prefix('protected')->group(function () {
                 Route::get('business/smtp', [BusinessController::class, 'getSmtpSettings']);
                 Route::put('business/smtp', [BusinessController::class, 'updateSmtpSettings']);
                 Route::post('business/smtp/test', [BusinessController::class, 'testSmtpSettings']);
+                Route::put('business/currency', [BusinessController::class, 'updateCurrency']);
                 Route::put('business', [BusinessController::class, 'update']);
 
                 Route::get('api-keys', [ApiKeyController::class, 'index'])
