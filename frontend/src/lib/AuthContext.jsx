@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { clearToken, fetchMe, login as loginRequest, updateMe } from '@/api/auth';
+import { clearBusinessContext } from '@/api/client';
 
 const AuthContext = createContext();
 
@@ -112,6 +113,11 @@ export const AuthProvider = ({ children }) => {
 
   const logout = (shouldRedirect = true) => {
     clearToken();
+    clearBusinessContext();
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('pos_current_business');
+      window.localStorage.removeItem('pos_businesses');
+    }
     setUser(null);
     setIsAuthenticated(false);
 

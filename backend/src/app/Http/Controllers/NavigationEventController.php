@@ -17,8 +17,12 @@ class NavigationEventController extends Controller
             'metadata' => 'nullable|array',
         ]);
 
+        $businessId = app(BusinessContext::class)->check()
+            ? app(BusinessContext::class)->getBusinessId()
+            : null;
+
         $event = NavigationEvent::create([
-            'business_id' => app(BusinessContext::class)->getBusinessId(),
+            'business_id' => $businessId,
             'user_id' => Auth::id(),
             'path' => $validated['path'],
             'screen' => $validated['screen'] ?? null,

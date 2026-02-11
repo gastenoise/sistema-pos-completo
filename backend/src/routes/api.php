@@ -53,6 +53,9 @@ Route::prefix('protected')->group(function () {
             Route::get('info/colors', [InformationController::class, 'colors']);
             Route::get('info/payment-methods', [InformationController::class, 'paymentMethods']);
 
+            // Eventos de navegación (autenticado, no requiere business obligatorio)
+            Route::post('navigation-events', [NavigationEventController::class, 'store']);
+
             /*
             |----------------------------------------------------------------------
             | Business Scoped Routes (Requieren business_id en sesión/header)
@@ -90,8 +93,6 @@ Route::prefix('protected')->group(function () {
                     Route::post('confirm', [ItemController::class, 'importConfirm']);
                 });
 
-                // Eventos de navegación
-                Route::post('navigation-events', [NavigationEventController::class, 'store']);
 
                 // Caja (Cash Register)
                 Route::prefix('cash-register')->group(function () {
