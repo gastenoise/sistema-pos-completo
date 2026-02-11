@@ -77,6 +77,12 @@ function POSContent() {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/items');
       return mapCatalogIsActive(normalizeListResponse(response, 'items'))
+        .map((item) => ({
+          ...item,
+          category_id: item.category_id !== null && item.category_id !== undefined
+            ? Number(item.category_id)
+            : null
+        }))
         .filter((item) => item.is_active !== false);
     },
     enabled: !!businessId
@@ -88,7 +94,10 @@ function POSContent() {
     queryFn: async () => {
       if (!businessId) return [];
       const response = await apiClient.get('/protected/categories');
-      return mapCatalogIsActive(normalizeListResponse(response, 'categories'));
+      return mapCatalogIsActive(normalizeListResponse(response, 'categories')).map((category) => ({
+        ...category,
+        id: Number(category.id)
+      }));
     },
     enabled: !!businessId
   });

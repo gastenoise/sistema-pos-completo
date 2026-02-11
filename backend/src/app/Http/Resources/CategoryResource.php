@@ -15,8 +15,8 @@ class CategoryResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'business_id' => $this->business_id,
+            'id' => (int) $this->id,
+            'business_id' => (int) $this->business_id,
             'name' => $this->name,
             'color' => $this->color,
             'color_hex' => $this->color_hex,

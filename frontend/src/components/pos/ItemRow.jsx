@@ -27,8 +27,10 @@ export default function ItemRow({
 }) {
   const { currentBusiness } = useBusiness();
 
+  const findCategory = () => categories.find((category) => String(category.id) === String(item.category_id));
+
   const getItemIcon = () => {
-    const category = categories.find(c => c.id === item.category_id);
+    const category = findCategory();
     const iconName = category?.icon || 'Package';
     const iconMap = {
       Package, ShoppingBag, Coffee, Utensils, Shirt, Laptop, Smartphone, 
@@ -75,7 +77,7 @@ export default function ItemRow({
         {item.category_id ? (
           <Badge variant="outline" className="gap-1">
             <Tag className="w-3 h-3" />
-            {categories.find(c => c.id === item.category_id)?.name || 'Unknown'}
+            {findCategory()?.name || 'Unknown'}
           </Badge>
         ) : (
           <span className="text-slate-400 text-sm">—</span>
