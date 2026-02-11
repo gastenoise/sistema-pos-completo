@@ -1,18 +1,19 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, Loader2, Mail, MessageCircle } from 'lucide-react';
+import { ChevronDown, Download, Loader2, Mail, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  getSaleTicket,
-  getSaleTicketWhatsappShare,
-  sendSaleTicketEmail,
-  uploadSaleTicketWhatsappFile,
-} from '@/api/salesTickets';
+import { getSaleTicket, sendSaleTicketEmail } from '@/api/salesTickets';
 import { downloadTicketPdfFromNode, generateTicketFileName, generateTicketPdfBlobFromNode } from '@/utils/ticketPdf';
 
 const resolveErrorMessage = (error, fallbackMessage) => {
@@ -41,6 +42,38 @@ const formatDate = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString('es-AR');
+};
+
+const normalizeWhatsappNumber = (rawValue) => {
+  if (!rawValue) return '';
+  return rawValue.replace(/[^\d]/g, '');
+};
+
+const buildWhatsappTicketText = (ticket, saleId) => {
+  const businessName = ticket?.business?.name || 'Negocio';
+  const ticketNumber = ticket?.id || saleId;
+  const ticketDate = formatDate(ticket?.date?.closed_at || ticket?.date?.created_at);
+  const seller = ticket?.seller?.name || '-';
+  const lines = [
+    `${businessName} te comparte tu ticket.`,
+    `Ticket: #${ticketNumber}`,
+    `Fecha: ${ticketDate}`,
+    `Vendedor: ${seller}`,
+    '',
+    'Detalle:',
+  ];
+
+  if (Array.isArray(ticket?.items) && ticket.items.length > 0) {
+    ticket.items.forEach((item) => {
+      lines.push(`- ${item.quantity} x ${item.name}: ${formatCurrency(item.total)}`);
+    });
+  } else {
+    lines.push('- Sin ítems');
+  }
+
+  lines.push('', `Total: ${formatCurrency(ticket?.total?.amount)}`);
+
+  return lines.join('\n');
 };
 
 function TicketEmailDialog({
@@ -130,9 +163,62 @@ function TicketEmailDialog({
   );
 }
 
+function TicketWhatsappDialog({ open, onOpenChange, isSharing, onConfirm }) {
+  const [phone, setPhone] = useState('');
+
+  React.useEffect(() => {
+    if (open) {
+      setPhone('');
+    }
+  }, [open]);
+
+  const normalizedPhone = normalizeWhatsappNumber(phone);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    await onConfirm(normalizedPhone);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Compartir ticket por WhatsApp</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="ticket-whatsapp-phone">Número (con código de país)</Label>
+            <Input
+              id="ticket-whatsapp-phone"
+              inputMode="tel"
+              placeholder="5491122334455"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              required
+            />
+            <p className="text-xs text-slate-500">Solo números. Ejemplo Argentina: 54911...</p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSharing}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSharing || normalizedPhone.length < 8}>
+              {isSharing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Abrir WhatsApp
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function TicketPreviewDialog({ open, onOpenChange, saleId, customerEmail }) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isLoadingWhatsapp, setIsLoadingWhatsapp] = useState(false);
+  const [isWhatsappDialogOpen, setIsWhatsappDialogOpen] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const ticketContentRef = useRef(null);
@@ -162,51 +248,20 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
     }
   };
 
-  const handleShareWhatsapp = async () => {
-    if (!saleId || isLoadingWhatsapp) return;
+  const handleShareWhatsapp = async (phoneNumber) => {
+    if (!saleId || isLoadingWhatsapp || !phoneNumber) return;
 
     try {
       setIsLoadingWhatsapp(true);
-      const pdfBlob = await generateTicketPdfBlobFromNode({
-        saleId,
-        ticketNode: ticketContentRef.current,
-      });
 
-      let uploadedFileUrl = null;
-
-      try {
-        const uploadResponse = await uploadSaleTicketWhatsappFile(
-          saleId,
-          new File([pdfBlob], generateTicketFileName(saleId), { type: 'application/pdf' }),
-        );
-
-        uploadedFileUrl = uploadResponse?.data?.file_url || uploadResponse?.file_url || null;
-      } catch (uploadError) {
-        notifyTicketActionError(
-          'No se pudo subir el PDF. Se abrirá WhatsApp con solo texto (sin adjunto automático).',
-          uploadError,
-        );
-      }
-
-      const payload = await getSaleTicketWhatsappShare(saleId, {
-        file_url: uploadedFileUrl || undefined,
-      });
-      const whatsappUrl = payload?.whatsapp_url;
-      const capabilityNote = payload?.channel_notice;
-
-      if (!whatsappUrl) {
-        throw new Error('No se pudo obtener el enlace de WhatsApp.');
-      }
+      const shareText = buildWhatsappTicketText(ticket, saleId);
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(shareText)}`;
 
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-
-      if (capabilityNote) {
-        toast.message(capabilityNote);
-      }
-
-      notifyTicketActionSuccess('Enlace de WhatsApp generado.');
+      setIsWhatsappDialogOpen(false);
+      notifyTicketActionSuccess('WhatsApp abierto con el ticket listo para enviar.');
     } catch (shareError) {
-      notifyTicketActionError('No se pudo preparar el ticket para WhatsApp.', shareError);
+      notifyTicketActionError('No se pudo abrir WhatsApp.', shareError);
     } finally {
       setIsLoadingWhatsapp(false);
     }
@@ -251,14 +306,17 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-md sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Vista previa del ticket</DialogTitle>
           </DialogHeader>
 
-          <div ref={ticketContentRef} className="rounded-lg border bg-slate-50 p-4 text-sm max-h-[60vh] overflow-y-auto">
+          <div
+            ref={ticketContentRef}
+            className="mx-auto w-full max-w-[340px] rounded-md border bg-white p-4 text-slate-900 shadow-sm"
+          >
             {isLoading && (
-              <div className="flex items-center justify-center py-8 text-slate-500">
+              <div className="flex items-center justify-center py-12 text-sm text-slate-500">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Cargando ticket...
               </div>
@@ -298,7 +356,6 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
                         if (!dateStr) return '-';
                         const date = new Date(dateStr);
                         if (Number.isNaN(date.getTime())) return '-';
-                        // Mostrar en formato 24hs H:i:s
                         const hours = String(date.getHours()).padStart(2, '0');
                         const minutes = String(date.getMinutes()).padStart(2, '0');
                         const seconds = String(date.getSeconds()).padStart(2, '0');
@@ -307,7 +364,6 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
                     </span>
                   </div>
                   <p>Vendedor: {(ticket?.seller?.name?.split(' ')[0]) || '-'}</p>
-                  {/* <p>Caja: {ticket?.cash_register?.session_id || '-'}</p> */}
                 </div>
 
                 <div className="space-y-1">
@@ -342,13 +398,10 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
                   <span>{formatCurrency(ticket?.total?.amount)}</span>
                 </div>
 
-                {/* Mensaje de gracias y aclaración al pie */}
                 <div className="pt-4">
                   <strong className="text-center block text-neutral-800 uppercase">Gracias por su compra</strong>
-                  <p
-                    className="text-center text-[10px] mt-2 text-neutral-800"
-                  >
-                    Comprobante no válido como factura.<br/>Sin validez fiscal.
+                  <p className="text-center text-[10px] mt-2 text-neutral-800">
+                    Comprobante no válido como factura.<br />Sin validez fiscal.
                   </p>
                 </div>
               </div>
@@ -360,21 +413,34 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
               {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
               Descargar PDF
             </Button>
-            <Button type="button" variant="outline" onClick={handleShareWhatsapp} disabled={!saleId || isLoadingWhatsapp}>
-              {isLoadingWhatsapp ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <MessageCircle className="mr-2 h-4 w-4" />}
-              Enviar por WhatsApp
-            </Button>
-            <Button type="button" onClick={() => setIsEmailDialogOpen(true)} disabled={!saleId || isSendingEmail}>
-              <Mail className="mr-2 h-4 w-4" />
-              Enviar por e-mail
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" disabled={!saleId || isLoadingWhatsapp || isSendingEmail}>
+                  <ChevronDown className="mr-2 h-4 w-4" />
+                  Compartir
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsWhatsappDialogOpen(true)}>
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Enviar por WhatsApp
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsEmailDialogOpen(true)}>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Enviar por e-mail
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          {/* <p className="text-xs text-slate-500">
-            WhatsApp Web/móvil no permite adjuntar archivos automáticamente desde <code>wa.me</code>. Se abrirá un mensaje
-            con texto y, cuando esté disponible, un enlace al PDF para compartir manualmente.
-          </p> */}
         </DialogContent>
       </Dialog>
+
+      <TicketWhatsappDialog
+        open={isWhatsappDialogOpen}
+        onOpenChange={setIsWhatsappDialogOpen}
+        isSharing={isLoadingWhatsapp}
+        onConfirm={handleShareWhatsapp}
+      />
 
       <TicketEmailDialog
         open={isEmailDialogOpen}
