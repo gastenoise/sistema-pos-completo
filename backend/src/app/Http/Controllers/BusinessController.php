@@ -12,6 +12,7 @@ use App\Models\BusinessParameter;
 use App\Services\BusinessContext;
 use App\Services\BusinessSmtpRuntimeConfigurator;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 
 class BusinessController extends Controller
 {
@@ -28,9 +29,14 @@ class BusinessController extends Controller
         $user = User::find(Auth::id());
 
         // Carga los negocios con el rol asociado en la pivot table
-        $businesses = $user->businesses()
-            ->withPivot('role')
-            ->with('parameters')
+        $businessesQuery = $user->businesses()
+            ->withPivot('role');
+
+        if ($this->canUseBusinessParameters()) {
+            $businessesQuery->with('parameters');
+        }
+
+        $businesses = $businessesQuery
             ->get()
             ->map(function (Business $business) {
                 return $this->withBusinessParameters($business);
@@ -248,7 +254,7 @@ class BusinessController extends Controller
         $business->fill($validated);
         $business->save();
 
-        if (is_array($parametersPayload)) {
+        if ($this->canUseBusinessParameters() && is_array($parametersPayload)) {
             foreach ($parametersPayload as $parameterId => $enabled) {
                 if (!$enabled) {
                     $business->parameters()->where('parameter_id', $parameterId)->delete();
@@ -262,15 +268,29 @@ class BusinessController extends Controller
             }
         }
 
+        $refreshedBusiness = $business->fresh();
+        if ($this->canUseBusinessParameters()) {
+            $refreshedBusiness->load('parameters');
+        }
+
         return response()->json([
             'success' => true,
-            'data' => $this->withBusinessParameters($business->fresh()->load('parameters'))
+            'data' => $this->withBusinessParameters($refreshedBusiness)
         ]);
     }
 
     private function withBusinessParameters(Business $business): Business
     {
-        $business->setAttribute('business_parameters', $business->business_parameters_map);
+        $business->setAttribute(
+            'business_parameters',
+            $this->canUseBusinessParameters() ? $business->business_parameters_map : []
+        );
+
         return $business;
+    }
+
+    private function canUseBusinessParameters(): bool
+    {
+        return Schema::hasTable('business_parameters');
     }
 }
