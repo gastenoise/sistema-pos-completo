@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Schema;
 
 class Business extends Model
 {
@@ -68,6 +69,29 @@ class Business extends Model
     public function apiKeys(): HasMany
     {
         return $this->hasMany(ApiKey::class);
+    }
+
+
+    public function parameters(): HasMany
+    {
+        return $this->hasMany(BusinessParameter::class);
+    }
+
+    public function getBusinessParametersMapAttribute(): array
+    {
+        if (!Schema::hasTable('business_parameters')) {
+            return [];
+        }
+
+        $parameters = $this->relationLoaded('parameters')
+            ? $this->parameters
+            : $this->parameters()->get();
+
+        return $parameters
+            ->pluck('parameter_id')
+            ->unique()
+            ->mapWithKeys(fn ($parameterId) => [$parameterId => true])
+            ->all();
     }
 
     public function preferredPaymentMethod()

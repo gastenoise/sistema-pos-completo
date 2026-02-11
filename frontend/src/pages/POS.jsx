@@ -5,7 +5,7 @@ import {
   Search, Package, Loader2, ShoppingBag, Coffee,
   Utensils, Shirt, Laptop, Smartphone, Book, Wrench, Home, Car, Heart,
   Gamepad, Pizza, Apple, Cake, Watch, Glasses, Plane, Music,
-  Camera, Dumbbell, Paintbrush, Hammer, Scissors, Zap, Star, Gift, Tag, CreditCard
+  Camera, Dumbbell, Paintbrush, Hammer, Scissors, Zap, Star, Gift, Tag, CreditCard, Eye
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import {
@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
 import { mapCatalogIsActive, withCatalogIsActive } from '@/lib/catalogNaming';
 import { formatPrice } from '@/lib/formatPrice';
+import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useCart, CartProvider } from '../components/pos/CartContext';
@@ -29,10 +30,11 @@ import CashRegisterOpenModal from '../components/pos/CashRegisterOpenModal';
 import QuickAddForm from '../components/pos/QuickAddForm';
 import NetworkIndicator from '../components/pos/NetworkIndicator';
 import GenericItemForm from '../components/pos/GenericItemForm';
+import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import TicketActions from '../components/sales/TicketActions';
 
 function POSContent() {
-  const { businessId, currentBusiness } = useBusiness();
+  const { businessId, currentBusiness, businesses } = useBusiness();
   const { addToCart, cartItems, clearCart, isOnline, addToOfflineQueue, offlineQueue, clearOfflineQueue } = useCart();
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
@@ -41,7 +43,7 @@ function POSContent() {
   const [showWizard, setShowWizard] = useState(false);
   const [showCashOpenModal, setShowCashOpenModal] = useState(false);
   const [pendingPayment, setPendingPayment] = useState(null);
-  const [lastCompletedSaleId, setLastCompletedSaleId] = useState(null);
+  const [isLastSaleDialogOpen, setIsLastSaleDialogOpen] = useState(false);
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
   
   const searchInputRef = useRef(null);
@@ -115,6 +117,49 @@ function POSContent() {
           type: method.type || method.code
         }))
         .filter((method) => (method.is_active ?? method.active) !== false);
+    },
+    enabled: !!businessId
+  });
+
+
+  const paymentMethodLookup = paymentMethods.reduce((acc, method) => {
+    if (method.code) {
+      acc[method.code] = method;
+    }
+    if (method.type) {
+      acc[method.type] = method;
+    }
+    return acc;
+  }, {});
+
+  const selectedBusiness = businesses.find((business) => {
+    const id = business?.business_id ?? business?.id;
+    return String(id) === String(businessId);
+  });
+
+  const currentBusinessRole = currentBusiness?.pivot?.role
+    || currentBusiness?.role
+    || selectedBusiness?.pivot?.role
+    || selectedBusiness?.role
+    || null;
+
+  const canVoidSales = currentBusinessRole === 'admin';
+
+  const currentBusinessParameters = {
+    ...normalizeBusinessParameters(selectedBusiness),
+    ...normalizeBusinessParameters(currentBusiness),
+  };
+
+  const shouldAutoOpenLastSale = Boolean(
+    currentBusinessParameters[BUSINESS_PARAMETER_IDS.SHOW_CLOSED_SALE_AUTOMATICALLY]
+  );
+
+  const { data: lastCompletedSale = null } = useQuery({
+    queryKey: ['latest-closed-sale', businessId],
+    queryFn: async () => {
+      if (!businessId) return null;
+      const response = await apiClient.get('/protected/sales/latest-closed');
+      return normalizeEntityResponse(response);
     },
     enabled: !!businessId
   });
@@ -210,7 +255,10 @@ function POSContent() {
       notes: 'Venta completada'
     });
 
-    return { saleId };
+    const saleDetailResponse = await apiClient.get(`/protected/sales/${saleId}`);
+    const saleDetail = normalizeEntityResponse(saleDetailResponse);
+
+    return { saleId, saleDetail };
   };
 
   const normalizeQueuedSale = (queuedSale) => {
@@ -321,8 +369,10 @@ function POSContent() {
       if (!isOnline) {
         addToOfflineQueue(salePayload);
       } else {
-        const { saleId } = await createSaleFlow(salePayload);
-        setLastCompletedSaleId(saleId);
+        const { saleId, saleDetail } = await createSaleFlow(salePayload);
+        const normalizedSale = saleDetail ? { ...saleDetail, id: saleDetail.id ?? saleId } : { id: saleId };
+        queryClient.setQueryData(['latest-closed-sale', businessId], normalizedSale);
+        setIsLastSaleDialogOpen(shouldAutoOpenLastSale);
       }
       
       clearCart();
@@ -481,7 +531,18 @@ function POSContent() {
         {/* Cart Panel */}
         <div className="w-full lg:w-[450px] bg-white border-l border-slate-200 flex flex-col">
           <div className="p-4 border-b border-slate-200">
-            <h2 className="text-lg font-bold text-slate-900">Current Sale</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg font-bold text-slate-900">Current Sale</h2>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 disabled:text-slate-400"
+                disabled={!lastCompletedSale?.id}
+                onClick={() => setIsLastSaleDialogOpen(true)}
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Última venta
+              </button>
+            </div>
             {cashRegisterStatus?.status === 'closed' && (
               <p className="text-xs text-amber-600 mt-1">Cash register is closed</p>
             )}
@@ -513,15 +574,17 @@ function POSContent() {
       {/* Network Indicator */}
       <NetworkIndicator onSyncQueue={handleSyncOfflineQueue} />
 
-      <Dialog open={!!lastCompletedSaleId} onOpenChange={(open) => !open && setLastCompletedSaleId(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Venta cerrada correctamente</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-slate-500">Puedes ver el ticket y acceder a sus acciones.</p>
-          <TicketActions saleId={lastCompletedSaleId} className="pt-2" />
-        </DialogContent>
-      </Dialog>
+      <SaleDetailsDialog
+        open={isLastSaleDialogOpen && !!lastCompletedSale}
+        onOpenChange={setIsLastSaleDialogOpen}
+        sale={lastCompletedSale}
+        currentBusiness={currentBusiness}
+        paymentMethodLookup={paymentMethodLookup}
+        canVoid={canVoidSales}
+        onVoided={() => {
+          queryClient.setQueryData(['latest-closed-sale', businessId], (prev) => (prev ? { ...prev, status: 'voided' } : prev));
+        }}
+      />
 
       <Dialog open={syncedSaleIds.length > 0} onOpenChange={(open) => !open && setSyncedSaleIds([])}>
         <DialogContent className="max-w-lg">

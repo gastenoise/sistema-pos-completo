@@ -179,17 +179,61 @@ class SaleController extends Controller
         return response()->json(['success' => true, 'message' => 'Sale finalized']);
     }
 
+
+    /**
+     * Obtener la última venta cerrada/voided del negocio actual
+     */
+    public function latestClosed(Request $request)
+    {
+        $businessId = app(BusinessContext::class)->getBusinessId();
+
+        if (!$businessId) {
+            return response()->json(['success' => false, 'message' => 'Business not selected'], 403);
+        }
+
+        $sale = Sale::with(['items.item.category', 'payments.paymentMethod', 'user'])
+            ->where('business_id', $businessId)
+            ->whereIn('status', ['closed', 'voided'])
+            ->orderByRaw('COALESCE(closed_at, created_at) DESC')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$sale) {
+            return response()->json(['success' => true, 'data' => null]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $sale,
+        ]);
+    }
+
     /**
      * Anular venta (Void)
      */
     public function void(Request $request, Sale $sale)
     {
+        $businessId = app(BusinessContext::class)->getBusinessId();
+        $user = Auth::user();
+
+        if (!$businessId || !$user || !$sale->business_id || (int) $sale->business_id !== (int) $businessId) {
+            return response()->json(['success' => false, 'message' => 'Sale not found'], 404);
+        }
+
+        if (!$user->hasRole('admin', $businessId)) {
+            return response()->json(['success' => false, 'message' => 'Only admins can void sales'], 403);
+        }
+
         $request->validate([
             'reason' => 'required|string|max:255'
         ]);
 
         if ($sale->status === 'voided') {
             return response()->json(['success' => false, 'message' => 'Sale already voided'], 400);
+        }
+
+        if ($sale->status !== 'closed') {
+            return response()->json(['success' => false, 'message' => 'Only closed sales can be voided'], 400);
         }
 
         $sale->update([

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { apiClient } from '@/api/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import {
   DollarSign,
@@ -43,10 +43,11 @@ import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
 import TopNav from '../components/pos/TopNav';
 import CsvExportButton from '../components/pos/CsvExportButton';
-import TicketActions from '../components/sales/TicketActions';
+import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 
 export default function Reports() {
-  const { businessId, currentBusiness } = useBusiness();
+  const { businessId, currentBusiness, businesses } = useBusiness();
+  const queryClient = useQueryClient();
   const { user, logout } = useAuth();
 
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -63,6 +64,19 @@ export default function Reports() {
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
   const selectedCategory = categoryFilter !== 'all' ? categoryFilter : null;
 
+
+  const selectedBusiness = businesses.find((business) => {
+    const id = business?.business_id ?? business?.id;
+    return String(id) === String(businessId);
+  });
+
+  const currentBusinessRole = currentBusiness?.pivot?.role
+    || currentBusiness?.role
+    || selectedBusiness?.pivot?.role
+    || selectedBusiness?.role
+    || null;
+
+  const canVoidSales = currentBusinessRole === 'admin';
   // Fetch sales
   const { data: sales = [], isLoading: loadingSales } = useQuery({
     queryKey: ['sales', businessId, dateFrom, dateTo, statusTab, selectedPaymentMethod, selectedCategory],
@@ -671,120 +685,19 @@ export default function Reports() {
       </div>
 
       {/* Sale Detail Dialog */}
-      <Dialog open={!!selectedSale} onOpenChange={() => setSelectedSale(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Sale Details</DialogTitle>
-          </DialogHeader>
-          {selectedSale && (
-            <div className="space-y-6">
-              {/* Sale Info */}
-              <div className="grid grid-cols-2 gap-4 pb-4 border-b">
-                <div>
-                  <p className="text-sm text-slate-500">Date</p>
-                  <p className="font-medium">{format(new Date(selectedSale.closed_at || selectedSale.created_at), 'PPpp')}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-slate-500">Status</p>
-                  <Badge
-                    variant={selectedSale.status === 'closed' ? 'default' : 'secondary'}
-                    className={
-                      selectedSale.status === 'closed' ? 'bg-green-100 text-green-800' :
-                      selectedSale.status === 'voided' ? 'bg-red-100 text-red-800' :
-                      'bg-amber-100 text-amber-800'
-                    }
-                  >
-                    {selectedSale.status}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Items */}
-              <div>
-                <h3 className="font-medium mb-3">Items</h3>
-                <div className="space-y-2">
-                  {selectedSale.items?.map((item, idx) => {
-                    const quantity = item.quantity ?? 0;
-                    const unitPrice = item.unit_price ?? item.unit_price_snapshot ?? item.price ?? 0;
-                    const subtotal = item.subtotal ?? item.total ?? (quantity * unitPrice);
-                    const name = item.name ?? item.item_name_snapshot ?? item.item?.name ?? 'Item';
-                    const categoryName = item.category_name ?? item.item?.category?.name ?? 'Sin categoría';
-                    return (
-                      <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                        <div>
-                          <p className="font-medium">{name}</p>
-                          <p className="text-[11px] text-slate-400">Categoría: {categoryName}</p>
-                          <p className="text-sm text-slate-500">Qty: {quantity} × {formatPrice(unitPrice, currentBusiness)}</p>
-                        </div>
-                        <p className="font-medium">{formatPrice(subtotal, currentBusiness)}</p>
-                      </div>
-                    );
-                  }) || <p className="text-slate-400 text-sm">No items</p>}
-                </div>
-              </div>
-
-              {/* Payment Info */}
-              <div className="pt-4 border-t">
-                <h3 className="font-medium mb-3">Payment Details</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Subtotal</span>
-                    <span className="font-medium">{formatPrice(selectedSale.subtotal ?? selectedSale.total_amount ?? 0, currentBusiness)}</span>
-                  </div>
-                  {selectedSale.tax > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Tax</span>
-                      <span className="font-medium">{formatPrice(selectedSale.tax, currentBusiness)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between pt-2 border-t">
-                    <span className="font-bold">Total</span>
-                    <span className="font-bold text-lg">{formatPrice(selectedSale.total_amount ?? selectedSale.total ?? 0, currentBusiness)}</span>
-                  </div>
-                  <div className="space-y-2 pt-2">
-                    <span className="text-slate-600">Payment Methods</span>
-                    <div className="space-y-2">
-                      {getSalePaymentBreakdown(selectedSale).map((payment, idx) => (
-                        <div key={`${payment.code}-${idx}`} className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2">
-                          <Badge variant="outline" className="capitalize">
-                            {payment.name}
-                          </Badge>
-                          <span className="font-medium">{formatPrice(payment.amount, currentBusiness)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  {selectedSale.payment_reference && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Reference</span>
-                      <span className="font-mono text-sm">{selectedSale.payment_reference}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {selectedSale.customer_name && (
-                <div className="pt-4 border-t">
-                  <h3 className="font-medium mb-2">Customer</h3>
-                  <p>{selectedSale.customer_name}</p>
-                  {selectedSale.customer_email && (
-                    <p className="text-sm text-slate-500">{selectedSale.customer_email}</p>
-                  )}
-                </div>
-              )}
-
-              <div className="pt-4 border-t">
-                <h3 className="font-medium mb-1">Ticket</h3>
-                <p className="text-xs text-slate-500 mb-2">Abre la vista previa para descargar o compartir el ticket.</p>
-                <TicketActions
-                  saleId={selectedSale.id}
-                  customerEmail={selectedSale.customer_email}
-                />
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <SaleDetailsDialog
+        open={!!selectedSale}
+        onOpenChange={(open) => !open && setSelectedSale(null)}
+        sale={selectedSale}
+        currentBusiness={currentBusiness}
+        paymentMethodLookup={paymentMethodLookup}
+        canVoid={canVoidSales}
+        onVoided={() => {
+          setSelectedSale((prev) => (prev ? { ...prev, status: 'voided' } : prev));
+          queryClient.invalidateQueries({ queryKey: ['sales', businessId] });
+          queryClient.invalidateQueries({ queryKey: ['sales-summary', businessId] });
+        }}
+      />
     </div>
   );
 }
