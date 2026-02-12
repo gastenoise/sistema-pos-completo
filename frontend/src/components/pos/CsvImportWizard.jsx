@@ -96,7 +96,8 @@ export default function CsvImportWizard({
   };
 
   const csvColumns = previewData?.columns || [];
-  const previewRows = previewData?.rows?.slice(0, 5) || [];
+  const previewRows = previewData?.sample || [];
+  const parsingErrors = previewData?.parsing_errors || [];
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -212,6 +213,19 @@ export default function CsvImportWizard({
                 ))}
               </div>
             </div>
+
+
+            {parsingErrors.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-900">CSV parsing warnings</p>
+                    <p className="text-xs text-amber-700">{parsingErrors.length} rows were skipped due to invalid structure.</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <p className="text-sm font-medium mb-2">Preview (first 5 rows)</p>

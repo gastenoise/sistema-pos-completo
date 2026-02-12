@@ -92,6 +92,7 @@ Route::prefix('protected')->group(function () {
                 Route::apiResource('items', ItemController::class);
                 Route::prefix('items-import')->group(function () {
                     Route::post('preview', [ItemController::class, 'importPreview']);
+                    Route::post('preview/full', [ItemController::class, 'importPreviewFull']);
                     Route::post('confirm', [ItemController::class, 'importConfirm']);
                 });
 
@@ -158,6 +159,7 @@ Route::prefix('public')->middleware(['auth.apikey', 'throttle:public-api'])->gro
     Route::apiResource('items', ItemController::class);
     Route::prefix('items-import')->group(function() {
         Route::post('preview', [ItemController::class, 'importPreview']);
+        Route::post('preview/full', [ItemController::class, 'importPreviewFull']);
         Route::post('confirm', [ItemController::class, 'importConfirm']);
     });
 
