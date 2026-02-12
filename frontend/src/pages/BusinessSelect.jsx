@@ -9,7 +9,7 @@ import { useBusiness } from '../components/pos/BusinessContext';
 import { normalizeListResponse } from '@/lib/normalizeResponse';
 
 export default function BusinessSelect() {
-  const { currentBusiness, selectBusiness, setBusinesses } = useBusiness();
+  const { selectBusiness, setBusinesses } = useBusiness();
   const [businesses, setLocalBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectingId, setSelectingId] = useState(null);
@@ -25,26 +25,15 @@ export default function BusinessSelect() {
       setLocalBusinesses(list);
       setBusinesses(list);
 
-      const currentBusinessId = currentBusiness?.business_id ?? currentBusiness?.id ?? null;
-      const matchedCurrentBusiness = currentBusinessId
-        ? list.find((business) => business.id === currentBusinessId || business.business_id === currentBusinessId)
-        : null;
-
-      if (matchedCurrentBusiness) {
-        selectBusiness(matchedCurrentBusiness);
-        window.location.href = createPageUrl('POS');
+      if (list.length === 1) {
+        await handleSelectBusiness(list[0]);
         return;
       }
 
-      if (currentBusinessId) {
-        selectBusiness(null);
-      }
+      // Si hay más de un negocio, forzar selección explícita.
+      selectBusiness(null);
 
-      // If only one business, auto-select
-      if (list.length === 1) {
-        handleSelectBusiness(list[0]);
-      }
-    } catch (error) {
+    } catch {
       toast.error('Failed to load businesses');
     } finally {
       setLoading(false);
@@ -60,7 +49,7 @@ export default function BusinessSelect() {
         business_id: business.business_id ?? business.id
       });
       window.location.href = createPageUrl('POS');
-    } catch (error) {
+    } catch {
       toast.error('Failed to select business');
       setSelectingId(null);
     }

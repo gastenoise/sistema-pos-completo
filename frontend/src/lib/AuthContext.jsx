@@ -87,6 +87,12 @@ export const AuthProvider = ({ children }) => {
     setAuthError(null);
     setIsLoadingAuth(true);
     try {
+      clearBusinessContext();
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('pos_current_business');
+        window.localStorage.removeItem('pos_businesses');
+      }
+
       await loginRequest(email, password);
       const currentUser = await fetchMe();
       setUser(currentUser);
