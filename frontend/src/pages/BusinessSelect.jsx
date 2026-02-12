@@ -40,6 +40,10 @@ export default function BusinessSelect() {
         selectBusiness(null);
       }
 
+      // If only one business, auto-select
+      if (list.length === 1) {
+        handleSelectBusiness(list[0]);
+      }
     } catch (error) {
       toast.error('Failed to load businesses');
     } finally {
