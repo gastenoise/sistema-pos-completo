@@ -15,6 +15,13 @@ export const AuthProvider = ({ children }) => {
   const [sessionExpiredReason, setSessionExpiredReason] = useState('session_expired');
 
   useEffect(() => {
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+    if (currentPath === '/login') {
+      setIsLoadingPublicSettings(false);
+      setIsLoadingAuth(false);
+      return;
+    }
+
     checkAppState();
   }, []);
 
