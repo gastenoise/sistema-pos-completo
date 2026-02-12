@@ -6,6 +6,7 @@ use App\Models\Item;
 use App\Models\Category;
 use App\Models\Import;
 use App\Http\Resources\ItemResource;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -13,21 +14,34 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use App\Services\BusinessContext;
+use ZipArchive;
 
 class ItemController extends Controller
 {
+    private const IMPORT_MAX_FILE_SIZE_KB = 102400; // 100MB
+
     private function parseCsvFile(string $path): array
     {
-        $rawRows = array_map('str_getcsv', file($path));
-        $header = array_shift($rawRows) ?? [];
+        $handle = fopen($path, 'rb');
+        if ($handle === false) {
+            throw ValidationException::withMessages([
+                'file' => ['Unable to read CSV file.'],
+            ]);
+        }
+
+        $firstLine = fgets($handle);
+        rewind($handle);
+        $delimiter = $this->detectCsvDelimiter((string) $firstLine);
+
+        $header = fgetcsv($handle, 0, $delimiter) ?: [];
         $normalizedHeader = array_map(static fn ($column) => trim((string) $column), $header);
 
         $rows = [];
         $sample = [];
         $parsingErrors = [];
 
-        foreach ($rawRows as $index => $row) {
-            $lineNumber = $index + 2; // +1 por header, +1 por índice base 0
+        $lineNumber = 2;
+        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
             if (count($row) !== count($normalizedHeader)) {
                 $parsingErrors[] = [
                     'line' => $lineNumber,
@@ -38,7 +52,7 @@ class ItemController extends Controller
                         count($row)
                     )
                 ];
-
+                $lineNumber++;
                 continue;
             }
 
@@ -48,6 +62,7 @@ class ItemController extends Controller
                     'line' => $lineNumber,
                     'message' => sprintf('Unable to parse CSV row at line %d.', $lineNumber)
                 ];
+                $lineNumber++;
                 continue;
             }
 
@@ -55,7 +70,11 @@ class ItemController extends Controller
             if (count($sample) < 5) {
                 $sample[] = $combined;
             }
+
+            $lineNumber++;
         }
+
+        fclose($handle);
 
         return [
             'columns' => $normalizedHeader,
@@ -63,6 +82,100 @@ class ItemController extends Controller
             'sample' => $sample,
             'total_rows' => count($rows),
             'parsing_errors' => $parsingErrors,
+        ];
+    }
+
+    private function detectCsvDelimiter(string $headerLine): string
+    {
+        $candidateDelimiters = [',', ';', '|', "\t"];
+        $bestDelimiter = ',';
+        $bestColumnCount = 1;
+
+        foreach ($candidateDelimiters as $delimiter) {
+            $columns = str_getcsv($headerLine, $delimiter);
+            $count = count($columns);
+
+            if ($count > $bestColumnCount) {
+                $bestDelimiter = $delimiter;
+                $bestColumnCount = $count;
+            }
+        }
+
+        return $bestDelimiter;
+    }
+
+    private function resolveCsvPathFromUpload(UploadedFile $file): array
+    {
+        $extension = strtolower((string) $file->getClientOriginalExtension());
+        if ($extension !== 'zip') {
+            return [
+                'path' => (string) $file->getRealPath(),
+                'cleanup' => null,
+            ];
+        }
+
+        $zip = new ZipArchive();
+        if ($zip->open((string) $file->getRealPath()) !== true) {
+            throw ValidationException::withMessages([
+                'file' => ['Unable to open ZIP file.'],
+            ]);
+        }
+
+        $csvEntry = null;
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $entryName = $zip->getNameIndex($index);
+            if (!is_string($entryName)) {
+                continue;
+            }
+
+            if (str_ends_with(strtolower($entryName), '.csv')) {
+                $csvEntry = $entryName;
+                break;
+            }
+        }
+
+        if ($csvEntry === null) {
+            $zip->close();
+            throw ValidationException::withMessages([
+                'file' => ['ZIP file must contain at least one CSV file.'],
+            ]);
+        }
+
+        $stream = $zip->getStream($csvEntry);
+        if ($stream === false) {
+            $zip->close();
+            throw ValidationException::withMessages([
+                'file' => ['Unable to read CSV file from ZIP.'],
+            ]);
+        }
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'items-import-');
+        if ($tempPath === false) {
+            fclose($stream);
+            $zip->close();
+            throw ValidationException::withMessages([
+                'file' => ['Unable to create temporary file for import.'],
+            ]);
+        }
+
+        $target = fopen($tempPath, 'wb');
+        if ($target === false) {
+            fclose($stream);
+            $zip->close();
+            @unlink($tempPath);
+            throw ValidationException::withMessages([
+                'file' => ['Unable to prepare extracted CSV for import.'],
+            ]);
+        }
+
+        stream_copy_to_stream($stream, $target);
+        fclose($target);
+        fclose($stream);
+        $zip->close();
+
+        return [
+            'path' => $tempPath,
+            'cleanup' => static fn () => @unlink($tempPath),
         ];
     }
 
@@ -236,12 +349,18 @@ class ItemController extends Controller
     public function importPreview(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:2048'
+            'file' => 'required|file|mimes:csv,txt,zip|max:' . self::IMPORT_MAX_FILE_SIZE_KB
         ]);
 
         $file = $request->file('file');
-        $path = $file->getRealPath();
-        $parsed = $this->parseCsvFile($path);
+        $source = $this->resolveCsvPathFromUpload($file);
+        try {
+            $parsed = $this->parseCsvFile($source['path']);
+        } finally {
+            if (is_callable($source['cleanup'])) {
+                $source['cleanup']();
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -257,14 +376,20 @@ class ItemController extends Controller
     public function importPreviewFull(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:2048',
+            'file' => 'required|file|mimes:csv,txt,zip|max:' . self::IMPORT_MAX_FILE_SIZE_KB,
             'page' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:500',
         ]);
 
         $file = $request->file('file');
-        $path = $file->getRealPath();
-        $parsed = $this->parseCsvFile($path);
+        $source = $this->resolveCsvPathFromUpload($file);
+        try {
+            $parsed = $this->parseCsvFile($source['path']);
+        } finally {
+            if (is_callable($source['cleanup'])) {
+                $source['cleanup']();
+            }
+        }
 
         $page = (int) $request->input('page', 1);
         $perPage = (int) $request->input('per_page', 100);
@@ -296,11 +421,13 @@ class ItemController extends Controller
             'items' => 'required|array',
             'items.*.name' => 'required|string',
             'items.*.price' => 'required|numeric',
-            'sync_by_sku' => 'boolean'
+            'sync_by_sku' => 'boolean',
+            'category_id' => ['nullable', Rule::exists('categories', 'id')->where('business_id', app(BusinessContext::class)->getBusinessId())],
         ]);
 
         $items = $request->input('items');
         $syncBySku = $request->boolean('sync_by_sku');
+        $categoryId = $request->input('category_id');
         $businessId = app(BusinessContext::class)->getBusinessId();
         
         DB::beginTransaction();
@@ -314,6 +441,7 @@ class ItemController extends Controller
                             'name' => $row['name'],
                             'price' => $row['price'],
                             'type' => $row['type'] ?? 'product',
+                            'category_id' => $categoryId,
                             'active' => true
                         ]
                     );
@@ -323,7 +451,8 @@ class ItemController extends Controller
                         'name' => $row['name'],
                         'price' => $row['price'],
                         'sku' => $row['sku'] ?? null,
-                        'type' => $row['type'] ?? 'product'
+                        'type' => $row['type'] ?? 'product',
+                        'category_id' => $categoryId,
                     ]);
                 }
                 $count++;

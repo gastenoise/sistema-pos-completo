@@ -270,8 +270,10 @@ export default function Items() {
       }
       setImportFile(file);
       setImportPreviewData(previewPayload);
+      return true;
     } catch (error) {
       toast.error('Failed to preview import');
+      return false;
     } finally {
       setImportLoading(false);
     }
@@ -305,7 +307,7 @@ export default function Items() {
     return rows;
   };
 
-  const handleImportConfirm = async (mapping) => {
+  const handleImportConfirm = async ({ mapping, categoryId }) => {
     setImportLoading(true);
     try {
       const rows = await fetchAllPreviewRows();
@@ -322,7 +324,8 @@ export default function Items() {
 
       const response = await apiClient.post('/protected/items-import/confirm', {
         items,
-        sync_by_sku: false
+        sync_by_sku: false,
+        category_id: categoryId
       });
       if (!updateItemsCache(response)) {
         queryClient.invalidateQueries({ queryKey: ['items', businessId] });
@@ -523,6 +526,7 @@ export default function Items() {
         onPreview={handleImportPreview}
         onConfirm={handleImportConfirm}
         previewData={importPreviewData}
+        categories={categories}
         loading={importLoading}
       />
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, FileSpreadsheet, ArrowRight, Check, AlertCircle, Loader2, X } from 'lucide-react';
+import { Upload, FileSpreadsheet, ArrowRight, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,12 +34,14 @@ export default function CsvImportWizard({
   onPreview,
   onConfirm,
   previewData = null,
+  categories = [],
   loading = false
 }) {
   const [step, setStep] = useState(1);
   const [file, setFile] = useState(null);
   const [mapping, setMapping] = useState({});
   const [dragActive, setDragActive] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState('none');
 
   const handleDrag = useCallback((e) => {
     e.preventDefault();
@@ -58,7 +60,7 @@ export default function CsvImportWizard({
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type === 'text/csv' || droppedFile.name.endsWith('.csv')) {
+      if (droppedFile.name.endsWith('.csv') || droppedFile.name.endsWith('.zip')) {
         setFile(droppedFile);
       }
     }
@@ -72,12 +74,17 @@ export default function CsvImportWizard({
 
   const handleUploadPreview = async () => {
     if (!file) return;
-    await onPreview(file);
-    setStep(2);
+    const success = await onPreview(file);
+    if (success) {
+      setStep(2);
+    }
   };
 
   const handleConfirmImport = async () => {
-    await onConfirm(mapping);
+    await onConfirm({
+      mapping,
+      categoryId: selectedCategoryId === 'none' ? null : Number(selectedCategoryId),
+    });
     handleClose();
   };
 
@@ -85,6 +92,7 @@ export default function CsvImportWizard({
     setStep(1);
     setFile(null);
     setMapping({});
+    setSelectedCategoryId('none');
     onClose();
   };
 
@@ -153,14 +161,14 @@ export default function CsvImportWizard({
             >
               <Upload className="w-10 h-10 mx-auto text-slate-400 mb-3" />
               <p className="text-sm text-slate-600 mb-2">
-                Drag and drop your CSV file here, or
+                Drag and drop your CSV/ZIP file here, or
               </p>
               <Label htmlFor="csv-file" className="cursor-pointer">
                 <span className="text-blue-600 hover:text-blue-700 font-medium">browse</span>
                 <Input
                   id="csv-file"
                   type="file"
-                  accept=".csv"
+                  accept=".csv,.zip"
                   className="hidden"
                   onChange={handleFileSelect}
                 />
@@ -279,6 +287,22 @@ export default function CsvImportWizard({
                   </p>
                 </div>
               </div>
+            </div>
+
+
+            <div className="bg-slate-50 rounded-lg p-4">
+              <p className="text-sm font-medium mb-3">Default category for imported items (optional)</p>
+              <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin categoría</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="bg-slate-50 rounded-lg p-4">
