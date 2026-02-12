@@ -13,10 +13,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import PhoneCountryInput from '@/components/common/PhoneCountryInput';
 import { getSaleTicket, getSaleTicketEmailStatus, sendSaleTicketEmail } from '@/api/salesTickets';
 import { downloadTicketPdfFromNode, generateTicketFileName, generateTicketPdfBlobFromNode } from '@/utils/ticketPdf';
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { formatDateTimeLocal, formatDateTimePartsLocal } from '@/lib/dateTime';
+import { DEFAULT_COUNTRY_DIAL_CODE, normalizeWhatsappNumber } from '@/lib/whatsapp';
 
 const resolveErrorMessage = (error, fallbackMessage) => {
   return error?.message || error?.data?.message || fallbackMessage;
@@ -37,11 +39,6 @@ const formatCurrency = (value) => {
     currency: 'ARS',
     minimumFractionDigits: 2,
   }).format(amount);
-};
-
-const normalizeWhatsappNumber = (rawValue) => {
-  if (!rawValue) return '';
-  return rawValue.replace(/[^\d]/g, '');
 };
 
 const buildWhatsappTicketText = (ticket, saleId) => {
@@ -164,18 +161,27 @@ function TicketEmailDialog({
 }
 
 function TicketWhatsappDialog({ open, onOpenChange, isSharing, onConfirm }) {
-  const [phone, setPhone] = useState('');
+  const [phoneForm, setPhoneForm] = useState({
+    countryDialCode: DEFAULT_COUNTRY_DIAL_CODE,
+    nationalNumber: '',
+  });
 
   React.useEffect(() => {
     if (open) {
-      setPhone('');
+      setPhoneForm({
+        countryDialCode: DEFAULT_COUNTRY_DIAL_CODE,
+        nationalNumber: '',
+      });
     }
   }, [open]);
 
-  const normalizedPhone = normalizeWhatsappNumber(phone);
+  const normalizedPhone = normalizeWhatsappNumber(phoneForm);
+  const hasOnlyNumbers = /^\d*$/.test(phoneForm.nationalNumber);
+  const hasValidLength = normalizedPhone.length >= 8;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!hasOnlyNumbers || !hasValidLength) return;
     await onConfirm(normalizedPhone);
   };
 
@@ -188,22 +194,25 @@ function TicketWhatsappDialog({ open, onOpenChange, isSharing, onConfirm }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="ticket-whatsapp-phone">Número (con código de país)</Label>
-            <Input
-              id="ticket-whatsapp-phone"
-              inputMode="tel"
-              placeholder="5491122334455"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              required
+            <Label>Número de WhatsApp</Label>
+            <PhoneCountryInput
+              countryDialCode={phoneForm.countryDialCode}
+              nationalNumber={phoneForm.nationalNumber}
+              onChange={setPhoneForm}
+              numberPlaceholder="1122334455"
             />
-            <p className="text-xs text-slate-500">Solo números. Ejemplo: 5491122334455.</p>
+            {!hasOnlyNumbers && (
+              <p className="text-xs text-red-600">Ingresá solo números.</p>
+            )}
+            {!hasValidLength && (
+              <p className="text-xs text-slate-500">El número normalizado debe tener al menos 8 dígitos.</p>
+            )}
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSharing}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSharing || normalizedPhone.length < 8}>
+            <Button type="submit" disabled={isSharing || !hasOnlyNumbers || !hasValidLength}>
               {isSharing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Abrir WhatsApp
             </Button>
