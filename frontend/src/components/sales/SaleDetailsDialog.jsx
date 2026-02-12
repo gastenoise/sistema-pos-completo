@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 import { apiClient } from '@/api/client';
 import { formatPrice } from '@/lib/formatPrice';
+import { formatDateTimeLocal } from '@/lib/dateTime';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,31 +15,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import TicketActions from '@/components/sales/TicketActions';
-
-const DEFAULT_DATE_LOCALE = 'es-AR';
-
-const getUserTimeZone = () => {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  } catch {
-    return 'UTC';
-  }
-};
-
-const formatSaleDateTimeLocal = (value, options = {}) => {
-  if (!value) return '-';
-
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return typeof value === 'string' ? value : '-';
-  }
-
-  return new Intl.DateTimeFormat(DEFAULT_DATE_LOCALE, {
-    timeZone: getUserTimeZone(),
-    ...options,
-  }).format(date);
-};
-
 
 const resolveSaleDate = (sale) => {
   const rawDate = sale?.closed_at || sale?.created_at;
@@ -134,7 +110,7 @@ export default function SaleDetailsDialog({
             <div className="grid grid-cols-2 gap-4 pb-4 border-b">
               <div>
                 <p className="text-sm text-slate-500">Fecha</p>
-                <p className="font-medium">{saleDate ? formatSaleDateTimeLocal(saleDate, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '—'}</p>
+                <p className="font-medium">{saleDate ? formatDateTimeLocal(saleDate, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '—'}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-500">Estado</p>

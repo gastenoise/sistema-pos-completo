@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { formatDateTimeLocal } from '@/lib/dateTime';
 
 /** @typedef {import('@/types/user').CanonicalUserProfile} CanonicalUserProfile */
 
@@ -235,7 +236,7 @@ export default function Profile() {
               <div className="flex justify-between py-2 border-b border-slate-100">
                 <span className="text-sm text-slate-600">Account Created</span>
                 <span className="text-sm font-medium text-slate-900">
-                  {user?.created_at ? new Date(user.created_at).toLocaleDateString('es-AR') : 'N/A'}
+                  {user?.created_at ? formatDateTimeLocal(user.created_at, { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}
                 </span>
               </div>
               {typeof user?.id === 'number' && (
