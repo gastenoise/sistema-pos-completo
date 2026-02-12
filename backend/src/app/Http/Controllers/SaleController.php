@@ -196,7 +196,13 @@ class SaleController extends Controller
      */
     public function removeItem(Sale $sale, SaleItem $saleItem)
     {
+        $this->authorize('update', $sale);
+
         if ($sale->status !== 'open') abort(400, 'Sale is not editable');
+
+        if ((int) $saleItem->sale_id !== (int) $sale->id) {
+            abort(404, 'Sale item not found for this sale');
+        }
 
         $saleItem->delete();
         $sale->calculateTotal();

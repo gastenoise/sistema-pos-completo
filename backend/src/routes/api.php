@@ -106,13 +106,13 @@ Route::prefix('protected')->group(function () {
                 });
 
                 // Ventas (Sales)
-                Route::prefix('sales')->group(function () {
+                Route::prefix('sales')->scopeBindings()->group(function () {
                     Route::post('/', [SaleController::class, 'store']);
                     Route::post('start', [SaleController::class, 'start']);
                     Route::get('latest-closed', [SaleController::class, 'latestClosed']);
                     Route::get('{sale}', [SaleController::class, 'show']);
                     Route::post('{sale}/items', [SaleController::class, 'addItem']);
-                    Route::delete('{sale}/items/{saleItem}', [SaleController::class, 'removeItem']);
+                    Route::delete('{sale}/items/{saleItem}', [SaleController::class, 'removeItem'])->middleware('can:update,sale');
                     Route::post('{sale}/payments/bulk', [SalePaymentController::class, 'bulkStore']);
                     Route::post('{sale}/payments/{payment}/confirm', [SalePaymentController::class, 'confirm']);
                     Route::post('{sale}/payments/{payment}/fail', [SalePaymentController::class, 'fail']);
@@ -168,13 +168,13 @@ Route::prefix('public')->middleware(['auth.apikey', 'throttle:public-api'])->gro
         Route::get('{session}/expected-totals', [CashRegisterController::class, 'getExpectedTotals']);
     });
 
-    Route::prefix('sales')->group(function() {
+    Route::prefix('sales')->scopeBindings()->group(function() {
         Route::post('/', [SaleController::class, 'store']);
         Route::post('start', [SaleController::class, 'start']);
         Route::get('latest-closed', [SaleController::class, 'latestClosed']);
         Route::get('{sale}', [SaleController::class, 'show']);
         Route::post('{sale}/items', [SaleController::class, 'addItem']);
-        Route::delete('{sale}/items/{saleItem}', [SaleController::class, 'removeItem']);
+        Route::delete('{sale}/items/{saleItem}', [SaleController::class, 'removeItem'])->middleware('can:update,sale');
         Route::post('{sale}/payments/bulk', [SalePaymentController::class, 'bulkStore']);
         Route::post('{sale}/payments/{payment}/confirm', [SalePaymentController::class, 'confirm']);
         Route::post('{sale}/payments/{payment}/fail', [SalePaymentController::class, 'fail']);

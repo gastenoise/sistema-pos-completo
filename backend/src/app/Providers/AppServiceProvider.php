@@ -27,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(\App\Models\ApiKey::class, \App\Policies\ApiKeyPolicy::class);
+        Gate::policy(\App\Models\Sale::class, \App\Policies\SalePolicy::class);
 
         RateLimiter::for('public-api', function (Request $request) {
             $identifier = $request->header('X-Api-Key') ?: $request->ip();
