@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class EnsureTokenIsFresh
 {
@@ -23,6 +24,12 @@ class EnsureTokenIsFresh
                 'success' => false,
                 'message' => 'Invalid token for frontend session.'
             ], 403);
+        }
+
+        // Cookie/session authentication in Sanctum uses TransientToken.
+        // It does not persist token rows nor include expires_at.
+        if (!$token instanceof PersonalAccessToken) {
+            return $next($request);
         }
 
         $idleMinutes = (int) config('sanctum.frontend_idle_minutes', 60);

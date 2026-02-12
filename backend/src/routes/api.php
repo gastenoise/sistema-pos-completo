@@ -25,8 +25,10 @@ use App\Http\Controllers\{
 |--------------------------------------------------------------------------
 */
 Route::prefix('protected')->group(function () {
-    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login');
-    Route::post('auth/register', [AuthController::class, 'register']);
+    Route::prefix('auth')->middleware('web')->group(function () {
+        Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login');
+        Route::post('register', [AuthController::class, 'register']);
+    });
 
     Route::get('mercadopago/test', [MercadoPagoController::class, 'testConfig']);
     Route::post('mercadopago/preferencia', [MercadoPagoController::class, 'crearPreferencia']);
@@ -36,7 +38,7 @@ Route::prefix('protected')->group(function () {
     | Protected Routes (Requieren Token)
     |--------------------------------------------------------------------------
     */
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['web', 'auth:sanctum'])->group(function () {
         Route::middleware('ensure.token.fresh')->group(function () {
             Route::get('auth/me', [AuthController::class, 'me']);
             Route::put('auth/me', [AuthController::class, 'updateMe']);
