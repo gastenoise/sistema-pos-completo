@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { apiClient } from '@/api/client';
 import { formatPrice } from '@/lib/formatPrice';
 import { formatDateTimeLocal } from '@/lib/dateTime';
+import { getSaleStatusLabel } from '@/lib/saleStatus';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -122,7 +123,7 @@ export default function SaleDetailsDialog({
                     'bg-amber-100 text-amber-800'
                   }
                 >
-                  {sale.status}
+                  {getSaleStatusLabel(sale.status)}
                 </Badge>
               </div>
             </div>
