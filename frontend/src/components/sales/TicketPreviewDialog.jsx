@@ -18,6 +18,8 @@ import { getSaleTicket, getSaleTicketEmailStatus, sendSaleTicketEmail } from '@/
 import { downloadTicketPdfFromNode, generateTicketFileName, generateTicketPdfBlobFromNode } from '@/utils/ticketPdf';
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { formatDateTimeLocal, formatDateTimePartsLocal } from '@/lib/dateTime';
+import EmailShareDialog from '@/components/payments/EmailShareDialog';
+import WhatsappShareDialog from '@/components/payments/WhatsappShareDialog';
 import { DEFAULT_COUNTRY_DIAL_CODE, normalizeWhatsappNumber } from '@/lib/whatsapp';
 
 const resolveErrorMessage = (error, fallbackMessage) => {
@@ -466,20 +468,27 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
         </DialogContent>
       </Dialog>
 
-      <TicketWhatsappDialog
+      <WhatsappShareDialog
         open={isWhatsappDialogOpen}
         onOpenChange={setIsWhatsappDialogOpen}
         isSharing={isLoadingWhatsapp}
         onConfirm={handleShareWhatsapp}
+        title="Compartir ticket por WhatsApp"
+        phoneFieldId="ticket-whatsapp-phone"
       />
 
-      <TicketEmailDialog
+      <EmailShareDialog
         open={isEmailDialogOpen}
         onOpenChange={setIsEmailDialogOpen}
         defaultEmail={defaultEmail}
+        defaultSubject="Tu ticket de compra"
+        defaultMessage="Gracias por tu compra. Te compartimos el comprobante adjunto."
         isSending={isSendingEmail || isCheckingSmtpStatus || !isSmtpValid}
         onSend={handleSendEmail}
-        smtpMessage={!isSmtpValid ? (smtpStatus?.message || 'Configurá un SMTP activo para enviar correos.') : ''}
+        helperMessage={!isSmtpValid ? (smtpStatus?.message || 'Configurá un SMTP activo para enviar correos.') : ''}
+        title="Enviar ticket por e-mail"
+        submitLabel="Enviar e-mail"
+        fieldPrefix="ticket"
       />
     </>
   );
