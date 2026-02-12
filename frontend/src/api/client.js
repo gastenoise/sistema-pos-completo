@@ -58,6 +58,26 @@ const readCookie = (name) => {
   return match ? decodeURIComponent(match[1]) : null;
 };
 
+const decodeHtmlEntities = (value) => value
+  .replace(/&amp;/g, '&')
+  .replace(/&#38;/g, '&')
+  .replace(/&equals;/g, '=')
+  .replace(/&#61;/g, '=')
+  .replace(/%3D/gi, '=');
+
+const decodeXsrfToken = (token) => {
+  if (!token) {
+    return token;
+  }
+
+  const withEntitiesDecoded = decodeHtmlEntities(token);
+  try {
+    return decodeURIComponent(withEntitiesDecoded);
+  } catch {
+    return withEntitiesDecoded;
+  }
+};
+
 export const ensureCsrfCookie = async () => {
   if (typeof window === 'undefined') {
     return;
@@ -232,7 +252,7 @@ export const request = async (path, options = {}) => {
     await ensureCsrfCookie();
     const csrfToken = readCookie('XSRF-TOKEN');
     if (csrfToken && !headers.has('X-XSRF-TOKEN')) {
-      headers.set('X-XSRF-TOKEN', csrfToken);
+      headers.set('X-XSRF-TOKEN', decodeXsrfToken(csrfToken));
     }
   }
 
