@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { apiClient } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import {
   DollarSign,
   Calendar, Loader2, FileText, Ban, Eye, Trash2
@@ -37,7 +36,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 import { normalizeListResponse } from '@/lib/normalizeResponse';
 import { formatPrice } from '@/lib/formatPrice';
-import { formatDateTimeLocal } from '@/lib/dateTime';
+import {
+  formatDateTimeLocal,
+  getCurrentMonthRangeLocal,
+  getLastNDaysRangeLocal,
+  getTodayISODateLocal,
+} from '@/lib/dateTime';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 
 import { useBusiness } from '../components/pos/BusinessContext';
@@ -51,7 +55,8 @@ export default function Reports() {
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
 
-  const today = format(new Date(), 'yyyy-MM-dd');
+  // Keep yyyy-MM-dd for API compatibility; dates are computed from the browser local day.
+  const today = getTodayISODateLocal();
   const [dateFrom, setDateFrom] = useState(today);
   const [dateTo, setDateTo] = useState(today);
   const [dateMode, setDateMode] = useState('today'); // 'today', 'week', 'month', 'custom'
@@ -298,9 +303,10 @@ export default function Reports() {
   const setQuickDate = (preset) => {
     const now = new Date();
     setDateMode(preset);
+
     switch (preset) {
       case 'today': {
-        const todayStr = format(now, 'yyyy-MM-dd');
+        const todayStr = getTodayISODateLocal(now);
         setDateFrom(todayStr);
         setDateTo(todayStr);
         setTempDateFrom(todayStr);
@@ -308,21 +314,19 @@ export default function Reports() {
         break;
       }
       case 'week': {
-        const weekStart = format(subDays(now, 7), 'yyyy-MM-dd');
-        const weekEnd = format(now, 'yyyy-MM-dd');
-        setDateFrom(weekStart);
-        setDateTo(weekEnd);
-        setTempDateFrom(weekStart);
-        setTempDateTo(weekEnd);
+        const { startDate, endDate } = getLastNDaysRangeLocal(7, now);
+        setDateFrom(startDate);
+        setDateTo(endDate);
+        setTempDateFrom(startDate);
+        setTempDateTo(endDate);
         break;
       }
       case 'month': {
-        const monthStart = format(startOfMonth(now), 'yyyy-MM-dd');
-        const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd');
-        setDateFrom(monthStart);
-        setDateTo(monthEnd);
-        setTempDateFrom(monthStart);
-        setTempDateTo(monthEnd);
+        const { startDate, endDate } = getCurrentMonthRangeLocal(now);
+        setDateFrom(startDate);
+        setDateTo(endDate);
+        setTempDateFrom(startDate);
+        setTempDateTo(endDate);
         break;
       }
       case 'custom': {
