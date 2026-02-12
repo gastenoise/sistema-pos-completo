@@ -55,6 +55,33 @@ export default [
         { ignore: ["cmdk-input-wrapper", "toast-close"] },
       ],
       "react-hooks/rules-of-hooks": "error",
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "Literal[value='America/Argentina/Buenos_Aires']",
+          message:
+            "No hardcodees timezone de Argentina en UI; usa helpers de src/lib/dateTime.js.",
+        },
+        {
+          selector:
+            "CallExpression[callee.property.name='toLocaleDateString']",
+          message:
+            "No uses toLocaleDateString directamente en UI; usa helpers de src/lib/dateTime.js.",
+        },
+        {
+          selector:
+            "CallExpression[callee.property.name='toLocaleString']",
+          message:
+            "No uses toLocaleString directamente en UI; usa helpers de src/lib/dateTime.js.",
+        },
+        {
+          selector:
+            "NewExpression[callee.object.name='Intl'][callee.property.name='DateTimeFormat']",
+          message:
+            "No uses Intl.DateTimeFormat directamente en UI; usa helpers de src/lib/dateTime.js.",
+        },
+      ],
     },
   },
 ];
