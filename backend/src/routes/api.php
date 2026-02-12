@@ -89,6 +89,7 @@ Route::prefix('protected')->group(function () {
                 Route::put('payment-methods/{paymentMethod}', [PaymentMethodController::class, 'toggleHideForBusiness']);
 
                 // Ítems (Productos/Servicios)
+                Route::patch('items/bulk', [ItemController::class, 'bulkUpdate']);
                 Route::apiResource('items', ItemController::class);
                 Route::prefix('items-import')->group(function () {
                     Route::post('preview', [ItemController::class, 'importPreview']);

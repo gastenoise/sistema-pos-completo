@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use App\Services\BusinessContext;
 
 class ItemController extends Controller
@@ -125,6 +126,109 @@ class ItemController extends Controller
 
         $item->update($validated);
         return response()->json(['success' => true, 'data' => new ItemResource($item)]);
+    }
+
+
+
+    public function bulkUpdate(Request $request)
+    {
+        $businessId = app(BusinessContext::class)->getBusinessId();
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:200'],
+            'ids.*' => ['integer', 'distinct'],
+            'operation' => ['required', Rule::in(['set_category', 'set_price', 'adjust_price', 'set_active'])],
+            'category_id' => ['nullable', Rule::exists('categories', 'id')->where('business_id', $businessId)],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'price_delta' => ['nullable', 'numeric'],
+            'active' => ['nullable', 'boolean'],
+        ]);
+
+        $operation = $validated['operation'];
+
+        if ($operation === 'set_category' && !array_key_exists('category_id', $validated)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'category_id is required for set_category operation.',
+            ], 422);
+        }
+
+        if ($operation === 'set_price' && !array_key_exists('price', $validated)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'price is required for set_price operation.',
+            ], 422);
+        }
+
+        if ($operation === 'adjust_price' && !array_key_exists('price_delta', $validated)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'price_delta is required for adjust_price operation.',
+            ], 422);
+        }
+
+        if ($operation === 'set_active' && !array_key_exists('active', $validated)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'active is required for set_active operation.',
+            ], 422);
+        }
+
+        $ids = array_values(array_unique($validated['ids']));
+
+        $result = DB::transaction(function () use ($ids, $operation, $validated) {
+            $items = Item::whereIn('id', $ids)->lockForUpdate()->get();
+
+            if ($items->count() !== count($ids)) {
+                throw ValidationException::withMessages([
+                    'ids' => ['One or more items were not found for the current business.'],
+                ]);
+            }
+
+            if ($operation === 'set_category') {
+                Item::whereIn('id', $ids)->update([
+                    'category_id' => $validated['category_id'] ?? null,
+                ]);
+            }
+
+            if ($operation === 'set_price') {
+                Item::whereIn('id', $ids)->update([
+                    'price' => round((float) $validated['price'], 2),
+                ]);
+            }
+
+            if ($operation === 'adjust_price') {
+                $delta = (float) $validated['price_delta'];
+                foreach ($items as $item) {
+                    $newPrice = round(((float) $item->price) * (1 + ($delta / 100)), 2);
+                    if ($newPrice < 0) {
+                        throw ValidationException::withMessages([
+                            'price_delta' => ["Adjusted price cannot be negative for item {$item->id}."],
+                        ]);
+                    }
+                    $item->price = $newPrice;
+                    $item->save();
+                }
+            }
+
+            if ($operation === 'set_active') {
+                Item::whereIn('id', $ids)->update([
+                    'active' => (bool) $validated['active'],
+                ]);
+            }
+
+            return [
+                'requested_count' => count($ids),
+                'updated_count' => count($ids),
+                'operation' => $operation,
+                'ids' => $ids,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $result,
+        ]);
     }
 
     // --- Import Logic ---
