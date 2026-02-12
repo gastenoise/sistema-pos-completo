@@ -60,7 +60,7 @@ class AuthController extends Controller
 
         RateLimiter::clear($throttleKey);
 
-        $user = User::where('email', $request->email)->with('businesses')->first();
+        $user = User::with('businesses')->find(Auth::id());
         $user->tokens()->where('name', 'front')->delete();
         $idleMinutes = (int) config('sanctum.frontend_idle_minutes', 60);
         $tokenExpiration = $idleMinutes > 0
