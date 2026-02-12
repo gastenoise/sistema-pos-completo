@@ -92,4 +92,17 @@ return [
 
     'frontend_idle_minutes' => env('SANCTUM_FRONTEND_IDLE_MINUTES', 60),
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Frontend Token Refresh Threshold
+    |--------------------------------------------------------------------------
+    |
+    | Remaining minutes before expiration to refresh the frontend token.
+    | If the token has more than this amount left, middleware avoids writes.
+    |
+    */
+
+    'frontend_refresh_threshold_minutes' => env('SANCTUM_FRONTEND_REFRESH_THRESHOLD_MINUTES', 15),
+
 ];

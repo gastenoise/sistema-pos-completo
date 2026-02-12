@@ -26,6 +26,7 @@ class EnsureTokenIsFresh
         }
 
         $idleMinutes = (int) config('sanctum.frontend_idle_minutes', 60);
+        $refreshThresholdMinutes = max((int) config('sanctum.frontend_refresh_threshold_minutes', 15), 0);
 
         if ($idleMinutes > 0) {
             if ($token->expires_at && $token->expires_at->lte(now())) {
@@ -38,9 +39,14 @@ class EnsureTokenIsFresh
                 ], 401);
             }
 
-            $token->forceFill([
-                'expires_at' => now()->addMinutes($idleMinutes),
-            ])->save();
+            $shouldRefresh = !$token->expires_at
+                || now()->diffInMinutes($token->expires_at, false) <= $refreshThresholdMinutes;
+
+            if ($shouldRefresh) {
+                $token->forceFill([
+                    'expires_at' => now()->addMinutes($idleMinutes),
+                ])->save();
+            }
         }
 
         return $next($request);
