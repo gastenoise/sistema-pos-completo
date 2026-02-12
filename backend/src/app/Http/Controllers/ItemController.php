@@ -15,6 +15,56 @@ use App\Services\BusinessContext;
 
 class ItemController extends Controller
 {
+    private function parseCsvFile(string $path): array
+    {
+        $rawRows = array_map('str_getcsv', file($path));
+        $header = array_shift($rawRows) ?? [];
+        $normalizedHeader = array_map(static fn ($column) => trim((string) $column), $header);
+
+        $rows = [];
+        $sample = [];
+        $parsingErrors = [];
+
+        foreach ($rawRows as $index => $row) {
+            $lineNumber = $index + 2; // +1 por header, +1 por índice base 0
+            if (count($row) !== count($normalizedHeader)) {
+                $parsingErrors[] = [
+                    'line' => $lineNumber,
+                    'message' => sprintf(
+                        'Column count mismatch at line %d: expected %d, got %d.',
+                        $lineNumber,
+                        count($normalizedHeader),
+                        count($row)
+                    )
+                ];
+
+                continue;
+            }
+
+            $combined = array_combine($normalizedHeader, $row);
+            if ($combined === false) {
+                $parsingErrors[] = [
+                    'line' => $lineNumber,
+                    'message' => sprintf('Unable to parse CSV row at line %d.', $lineNumber)
+                ];
+                continue;
+            }
+
+            $rows[] = $combined;
+            if (count($sample) < 5) {
+                $sample[] = $combined;
+            }
+        }
+
+        return [
+            'columns' => $normalizedHeader,
+            'rows' => $rows,
+            'sample' => $sample,
+            'total_rows' => count($rows),
+            'parsing_errors' => $parsingErrors,
+        ];
+    }
+
     public function index(Request $request)
     {
         $query = Item::query();
@@ -87,22 +137,51 @@ class ItemController extends Controller
 
         $file = $request->file('file');
         $path = $file->getRealPath();
-        
-        $data = array_map('str_getcsv', file($path));
-        $header = array_shift($data); 
-        
-        $preview = array_slice($data, 0, 5);
-        $rows = array_map(function ($row) use ($header) {
-            return array_combine($header, $row);
-        }, $data);
+        $parsed = $this->parseCsvFile($path);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'columns' => $header,
+                'columns' => $parsed['columns'],
+                'sample' => $parsed['sample'],
+                'total_rows' => $parsed['total_rows'],
+                'parsing_errors' => $parsed['parsing_errors'],
+            ]
+        ]);
+    }
+
+    public function importPreviewFull(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:2048',
+            'page' => 'nullable|integer|min:1',
+            'per_page' => 'nullable|integer|min:1|max:500',
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+        $parsed = $this->parseCsvFile($path);
+
+        $page = (int) $request->input('page', 1);
+        $perPage = (int) $request->input('per_page', 100);
+        $offset = ($page - 1) * $perPage;
+        $rows = array_slice($parsed['rows'], $offset, $perPage);
+        $total = $parsed['total_rows'];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'columns' => $parsed['columns'],
                 'rows' => $rows,
-                'sample' => $preview,
-                'total_rows' => count($data)
+                'sample' => $parsed['sample'],
+                'total_rows' => $total,
+                'parsing_errors' => $parsed['parsing_errors'],
+                'pagination' => [
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => $total > 0 ? (int) ceil($total / $perPage) : 1,
+                ],
             ]
         ]);
     }

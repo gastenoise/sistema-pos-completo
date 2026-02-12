@@ -47,6 +47,7 @@ export default function Items() {
   const [editingItem, setEditingItem] = useState(null);
   const [showImportWizard, setShowImportWizard] = useState(false);
   const [importPreviewData, setImportPreviewData] = useState(null);
+  const [importFile, setImportFile] = useState(null);
   const [importLoading, setImportLoading] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -260,7 +261,13 @@ export default function Items() {
       const formData = new FormData();
       formData.append('file', file);
       const response = await apiClient.post('/protected/items-import/preview', formData);
-      setImportPreviewData(response?.data || response);
+      const previewPayload = response?.data || response;
+      const parsingErrors = previewPayload?.parsing_errors || [];
+      if (parsingErrors.length > 0) {
+        toast.warning(`CSV preview generated with ${parsingErrors.length} parsing errors`);
+      }
+      setImportFile(file);
+      setImportPreviewData(previewPayload);
     } catch (error) {
       toast.error('Failed to preview import');
     } finally {
@@ -268,10 +275,38 @@ export default function Items() {
     }
   };
 
+  const fetchAllPreviewRows = async () => {
+    if (!importFile) {
+      return [];
+    }
+
+    const perPage = 500;
+    let currentPage = 1;
+    let lastPage = 1;
+    const rows = [];
+
+    do {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('page', String(currentPage));
+      formData.append('per_page', String(perPage));
+      const response = await apiClient.post('/protected/items-import/preview/full', formData);
+      const payload = response?.data || response;
+      const pageRows = payload?.rows || [];
+      const pagination = payload?.pagination || {};
+
+      rows.push(...pageRows);
+      lastPage = Number(pagination.last_page || 1);
+      currentPage += 1;
+    } while (currentPage <= lastPage);
+
+    return rows;
+  };
+
   const handleImportConfirm = async (mapping) => {
     setImportLoading(true);
     try {
-      const rows = importPreviewData?.rows || importPreviewData?.data?.rows || [];
+      const rows = await fetchAllPreviewRows();
       const items = rows.map((row) => ({
         name: mapping.name ? row[mapping.name] : undefined,
         price: mapping.price ? parseFloat(row[mapping.price]) : undefined,
@@ -298,6 +333,7 @@ export default function Items() {
       toast.success(`Imported ${importedCount || 0} items`);
       setShowImportWizard(false);
       setImportPreviewData(null);
+      setImportFile(null);
     } catch (error) {
       toast.error('Failed to import items');
     } finally {
@@ -481,7 +517,7 @@ export default function Items() {
 
       <CsvImportWizard
         open={showImportWizard}
-        onClose={() => { setShowImportWizard(false); setImportPreviewData(null); }}
+        onClose={() => { setShowImportWizard(false); setImportPreviewData(null); setImportFile(null); }}
         onPreview={handleImportPreview}
         onConfirm={handleImportConfirm}
         previewData={importPreviewData}
