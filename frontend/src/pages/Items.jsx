@@ -222,15 +222,17 @@ export default function Items() {
   const handleAssignCategory = async (categoryId) => {
     setBulkLoading(true);
     try {
-      for (const itemId of selectedItems) {
-        const response = await apiClient.put(`/protected/items/${itemId}`, { category_id: categoryId || null });
-        updateItemsCache(response);
-      }
+      const response = await apiClient.patch('/protected/items/bulk', {
+        ids: selectedItems,
+        operation: 'set_category',
+        category_id: categoryId || null
+      });
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
-      toast.success(`Category assigned to ${selectedItems.length} items`);
+      const updatedCount = response?.data?.updated_count || selectedItems.length;
+      toast.success(`Category assigned to ${updatedCount} items`);
     } catch (error) {
-      toast.error('Failed to assign category');
+      toast.error(error?.message || 'Failed to assign category');
     } finally {
       setBulkLoading(false);
     }
@@ -239,17 +241,17 @@ export default function Items() {
   const handleApplyPriceIncrease = async (percent) => {
     setBulkLoading(true);
     try {
-      const selectedItemsData = items.filter(item => selectedItems.includes(item.id));
-      for (const item of selectedItemsData) {
-        const newPrice = item.price * (1 + percent / 100);
-        const response = await apiClient.put(`/protected/items/${item.id}`, { price: Math.round(newPrice * 100) / 100 });
-        updateItemsCache(response);
-      }
+      const response = await apiClient.patch('/protected/items/bulk', {
+        ids: selectedItems,
+        operation: 'adjust_price',
+        price_delta: percent
+      });
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
-      toast.success(`Price increased by ${percent}% for ${selectedItems.length} items`);
+      const updatedCount = response?.data?.updated_count || selectedItems.length;
+      toast.success(`Price increased by ${percent}% for ${updatedCount} items`);
     } catch (error) {
-      toast.error('Failed to update prices');
+      toast.error(error?.message || 'Failed to update prices');
     } finally {
       setBulkLoading(false);
     }
