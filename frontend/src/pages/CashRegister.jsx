@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { apiClient } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
 import { 
   Lock, Unlock, Loader2, AlertCircle, CheckCircle, ChevronDown
 } from 'lucide-react';
@@ -25,6 +24,7 @@ import {
 import { toast } from 'sonner';
 import { normalizeListResponse } from '@/lib/normalizeResponse';
 import { formatPrice } from '@/lib/formatPrice';
+import { formatDateTimeLocal } from '@/lib/dateTime';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
@@ -192,7 +192,7 @@ export default function CashRegister() {
                     <div>
                       <CardTitle className="text-green-900">Register Open</CardTitle>
                       <CardDescription className="text-green-700">
-                        Opened {format(new Date(currentSession.opened_at), 'MMM d, HH:mm')} by {currentSession.opened_by}
+                        Opened {formatDateTimeLocal(currentSession.opened_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })} by {currentSession.opened_by}
                       </CardDescription>
                     </div>
                   </div>
@@ -294,10 +294,10 @@ export default function CashRegister() {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="font-medium">
-                                  {format(new Date(session.opened_at), 'MMM d, yyyy')}
+                                  {formatDateTimeLocal(session.opened_at, { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </p>
                                 <p className="text-sm text-slate-500">
-                                  {format(new Date(session.opened_at), 'HH:mm')} - {format(new Date(session.closed_at), 'HH:mm')}
+                                  {formatDateTimeLocal(session.opened_at, { hour: '2-digit', minute: '2-digit', hour12: false })} - {formatDateTimeLocal(session.closed_at, { hour: '2-digit', minute: '2-digit', hour12: false })}
                                 </p>
                               </div>
                               <div className="text-right">
@@ -372,10 +372,10 @@ export default function CashRegister() {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="font-medium">
-                                  {format(new Date(session.opened_at), 'MMM d, yyyy')}
+                                  {formatDateTimeLocal(session.opened_at, { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </p>
                                 <p className="text-sm text-slate-500">
-                                  {format(new Date(session.opened_at), 'HH:mm')} - {format(new Date(session.closed_at), 'HH:mm')}
+                                  {formatDateTimeLocal(session.opened_at, { hour: '2-digit', minute: '2-digit', hour12: false })} - {formatDateTimeLocal(session.closed_at, { hour: '2-digit', minute: '2-digit', hour12: false })}
                                 </p>
                               </div>
                               <div className="text-right">

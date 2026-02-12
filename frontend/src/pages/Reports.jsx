@@ -37,6 +37,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
 import { normalizeListResponse } from '@/lib/normalizeResponse';
 import { formatPrice } from '@/lib/formatPrice';
+import { formatDateTimeLocal } from '@/lib/dateTime';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 
 import { useBusiness } from '../components/pos/BusinessContext';
@@ -635,7 +636,7 @@ export default function Reports() {
                     {sales.map((sale) => (
                       <TableRow key={sale.id}>
                         <TableCell>
-                          {format(new Date(sale.closed_at || sale.created_at), 'MMM d, HH:mm')}
+                          {formatDateTimeLocal(sale.closed_at || sale.created_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
                         </TableCell>
                         <TableCell>
                           <Badge
