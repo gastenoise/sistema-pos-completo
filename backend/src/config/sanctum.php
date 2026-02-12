@@ -15,12 +15,51 @@ return [
     |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:3000,localhost:5173,127.0.0.1,127.0.0.1:8000,127.0.0.1:5173,::1',
-        Sanctum::currentApplicationUrlWithPort(),
-        // Sanctum::currentRequestHost(),
-    ))),
+    'stateful' => (static function (): array {
+        $configured = env('SANCTUM_STATEFUL_DOMAINS');
+        if (is_string($configured) && trim($configured) !== '') {
+            return array_values(array_filter(array_map('trim', explode(',', $configured))));
+        }
+
+        $defaults = [
+            'localhost',
+            'localhost:3000',
+            'localhost:5173',
+            '127.0.0.1',
+            '127.0.0.1:8000',
+            '127.0.0.1:5173',
+            '::1',
+            Sanctum::currentApplicationUrlWithPort(),
+        ];
+
+        $extraOrigins = [
+            env('APP_URL'),
+            env('FRONTEND_URL'),
+        ];
+
+        $corsOrigins = explode(',', (string) env('CORS_ALLOWED_ORIGINS', ''));
+        foreach ($corsOrigins as $origin) {
+            $extraOrigins[] = trim($origin);
+        }
+
+        foreach ($extraOrigins as $origin) {
+            if (!is_string($origin) || trim($origin) === '') {
+                continue;
+            }
+
+            $parsedHost = parse_url($origin, PHP_URL_HOST);
+            $parsedPort = parse_url($origin, PHP_URL_PORT);
+
+            if (is_string($parsedHost) && $parsedHost !== '') {
+                $defaults[] = $parsedHost;
+                if ($parsedPort !== null) {
+                    $defaults[] = $parsedHost . ':' . $parsedPort;
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter(array_map('trim', $defaults))));
+    })(),
 
     /*
     |--------------------------------------------------------------------------
