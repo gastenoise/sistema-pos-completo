@@ -3,12 +3,13 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { BusinessProvider } from '@/components/pos/BusinessContext';
 import { CartProvider } from '@/components/pos/CartContext';
+import { useBusiness } from '@/components/pos/BusinessContext';
 import Login from './pages/Login';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +30,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 const AuthenticatedApp = () => {
   const {
+    isAuthenticated,
     isLoadingAuth,
     isLoadingPublicSettings,
     authError,
@@ -37,7 +39,22 @@ const AuthenticatedApp = () => {
     acknowledgeSessionExpired
   } = useAuth();
   const location = useLocation();
+  const { businessId } = useBusiness();
   const isLoginRoute = location.pathname === '/login';
+  const isHomeRoute = location.pathname === '/Home';
+  const isBusinessSelectRoute = location.pathname === '/BusinessSelect';
+
+
+  if (isLoginRoute && isAuthenticated && !isLoadingAuth) {
+    return <Navigate to="/Home" replace />;
+  }
+
+
+  const requiresBusinessContext = !isLoginRoute && !isHomeRoute && !isBusinessSelectRoute;
+
+  if (isAuthenticated && !isLoadingAuth && requiresBusinessContext && !businessId) {
+    return <Navigate to="/Home" replace />;
+  }
 
   // Show loading spinner while checking app public settings or auth
   if (!isLoginRoute && (isLoadingPublicSettings || isLoadingAuth)) {
