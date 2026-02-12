@@ -588,7 +588,7 @@ export default function Settings() {
                       />
                     </div>
                     <div>
-                      <Label>Tax ID</Label>
+                      <Label>CUIT</Label>
                       <Input
                         value={businessData.tax_id}
                         onChange={(e) => setBusinessData({ ...businessData, tax_id: e.target.value })}
