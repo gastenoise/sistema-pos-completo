@@ -10,6 +10,18 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
+
+    private function getSaleStatusLabel(?string $status): string
+    {
+        return match ($status) {
+            'closed' => 'Cerrada',
+            'open' => 'Abierta',
+            'voided' => 'Eliminada',
+            null, '' => 'Desconocido',
+            default => sprintf('Desconocido (%s)', $status),
+        };
+    }
+
     public function salesList(Request $request)
     {
         $businessId = app(BusinessContext::class)->getBusinessId();
@@ -332,7 +344,7 @@ class ReportController extends Controller
 
         return new StreamedResponse(function() use ($query) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['ID', 'Date', 'Total', 'Status', 'User']);
+            fputcsv($handle, ['ID', 'Fecha', 'Total', 'Estado', 'Usuario']);
 
             $query->chunk(100, function($sales) use ($handle) {
                 foreach ($sales as $sale) {
@@ -340,7 +352,7 @@ class ReportController extends Controller
                         $sale->id, 
                         $sale->created_at, 
                         $sale->total_amount, 
-                        $sale->status,
+                        $this->getSaleStatusLabel($sale->status),
                         $sale->user?->name
                     ]);
                 }

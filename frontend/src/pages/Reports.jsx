@@ -43,6 +43,7 @@ import {
   getTodayISODateLocal,
 } from '@/lib/dateTime';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
+import { getSaleStatusLabel } from '@/lib/saleStatus';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { useAuth } from '../lib/AuthContext';
@@ -244,9 +245,9 @@ export default function Reports() {
   };
 
   const statusOptions = [
-    { value: 'closed', label: 'Closed' },
-    { value: 'open', label: 'Open' },
-    { value: 'voided', label: 'Voided' }
+    { value: 'closed', label: getSaleStatusLabel('closed') },
+    { value: 'open', label: getSaleStatusLabel('open') },
+    { value: 'voided', label: getSaleStatusLabel('voided') }
   ];
 
   const clearFilters = () => {
@@ -652,7 +653,7 @@ export default function Reports() {
                             }
                           >
                             {sale.status === 'voided' && <Ban className="w-3 h-3 mr-1" />}
-                            {sale.status}
+                            {getSaleStatusLabel(sale.status)}
                           </Badge>
                         </TableCell>
                         <TableCell>
