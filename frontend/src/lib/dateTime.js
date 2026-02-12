@@ -1,5 +1,7 @@
 const DEFAULT_LOCALE = 'es-AR';
 const FALLBACK_TIMEZONE = 'UTC';
+const SQL_TIMESTAMP_WITHOUT_TIMEZONE_REGEX = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/;
+const ISO_TIMESTAMP_WITH_TIMEZONE_REGEX = /(Z|[+-]\d{2}:?\d{2})$/i;
 
 const pad = (value) => String(value).padStart(2, '0');
 
@@ -68,11 +70,70 @@ const resolveLocale = (locale) => {
   return DEFAULT_LOCALE;
 };
 
+const parseSqlTimestampWithoutTimezoneAsUtc = (value) => {
+  const match = SQL_TIMESTAMP_WITHOUT_TIMEZONE_REGEX.exec(value);
+  if (!match) return null;
+
+  const [, yearRaw, monthRaw, dayRaw, hourRaw, minuteRaw, secondRaw, millisecondRaw = '0'] = match;
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+  const second = Number(secondRaw);
+  const millisecond = Number(millisecondRaw.padEnd(3, '0'));
+
+  const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, second, millisecond));
+
+  if (
+    utcDate.getUTCFullYear() !== year
+    || utcDate.getUTCMonth() !== month - 1
+    || utcDate.getUTCDate() !== day
+    || utcDate.getUTCHours() !== hour
+    || utcDate.getUTCMinutes() !== minute
+    || utcDate.getUTCSeconds() !== second
+    || utcDate.getUTCMilliseconds() !== millisecond
+  ) {
+    return null;
+  }
+
+  return utcDate;
+};
+
+export const parseBackendDateToUtcDate = (value) => {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const trimmedValue = value.trim();
+    if (!trimmedValue) return null;
+
+    if (ISO_TIMESTAMP_WITH_TIMEZONE_REGEX.test(trimmedValue)) {
+      const parsedIsoDate = new Date(trimmedValue);
+      return Number.isNaN(parsedIsoDate.getTime()) ? null : parsedIsoDate;
+    }
+
+    const parsedSqlDate = parseSqlTimestampWithoutTimezoneAsUtc(trimmedValue);
+    if (parsedSqlDate) {
+      return parsedSqlDate;
+    }
+
+    const parsedDate = new Date(trimmedValue);
+    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+  }
+
+  const parsedDate = new Date(value);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
 export const formatDateTimeLocal = (value, options = {}, locale = DEFAULT_LOCALE) => {
   if (!value) return '-';
 
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
+  const date = parseBackendDateToUtcDate(value);
+  if (!date) {
     return typeof value === 'string' ? value : '-';
   }
 
@@ -87,8 +148,8 @@ export const formatDateTimePartsLocal = (value, locale = DEFAULT_LOCALE) => {
     return { date: '-', time: '-' };
   }
 
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
+  const date = parseBackendDateToUtcDate(value);
+  if (!date) {
     return { date: '-', time: '-' };
   }
 

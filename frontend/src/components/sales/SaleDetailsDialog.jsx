@@ -1,11 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { isValid, parseISO } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { apiClient } from '@/api/client';
 import { formatPrice } from '@/lib/formatPrice';
-import { formatDateTimeLocal } from '@/lib/dateTime';
+import { formatDateTimeLocal, parseBackendDateToUtcDate } from '@/lib/dateTime';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,24 +15,6 @@ import {
 } from '@/components/ui/dialog';
 import TicketActions from '@/components/sales/TicketActions';
 
-const resolveSaleDate = (sale) => {
-  const rawDate = sale?.closed_at || sale?.created_at;
-  if (!rawDate) return null;
-
-  if (rawDate instanceof Date) {
-    return isValid(rawDate) ? rawDate : null;
-  }
-
-  if (typeof rawDate === 'string') {
-    const parsedIso = parseISO(rawDate);
-    if (isValid(parsedIso)) {
-      return parsedIso;
-    }
-  }
-
-  const parsedDate = new Date(rawDate);
-  return isValid(parsedDate) ? parsedDate : null;
-};
 
 const getSalePaymentBreakdown = (sale, paymentMethodLookup = {}) => {
   const payments = Array.isArray(sale?.payments) ? sale.payments : [];
@@ -79,7 +60,7 @@ export default function SaleDetailsDialog({
     () => getSalePaymentBreakdown(sale, paymentMethodLookup),
     [sale, paymentMethodLookup]
   );
-  const saleDate = useMemo(() => resolveSaleDate(sale), [sale]);
+  const saleDate = useMemo(() => parseBackendDateToUtcDate(sale?.closed_at || sale?.created_at), [sale]);
 
   const handleVoid = async () => {
     if (!sale?.id || !canVoid || sale?.status === 'voided') return;

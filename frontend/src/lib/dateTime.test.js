@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  formatDateTimePartsLocal,
   getCurrentMonthRangeLocal,
   getLastNDaysRangeLocal,
   getTodayISODateLocal,
+  parseBackendDateToUtcDate,
 } from './dateTime.js';
 
 test('getTodayISODateLocal uses browser/local calendar day at local midnight boundary', () => {
@@ -42,4 +44,38 @@ test('getCurrentMonthRangeLocal handles leap year february', () => {
     startDate: '2024-02-01',
     endDate: '2024-02-29',
   });
+});
+
+test('parseBackendDateToUtcDate parses SQL timestamp without timezone as UTC', () => {
+  const parsedDate = parseBackendDateToUtcDate('2025-03-15 12:34:56');
+
+  assert.ok(parsedDate instanceof Date);
+  assert.equal(parsedDate?.toISOString(), '2025-03-15T12:34:56.000Z');
+});
+
+test('formatDateTimePartsLocal converts SQL UTC timestamp to browser timezone', () => {
+  const OriginalDateTimeFormat = Intl.DateTimeFormat;
+
+  Intl.DateTimeFormat = function DateTimeFormatWithFixedTimeZone(locale, options = {}) {
+    const formatter = new OriginalDateTimeFormat(locale, options);
+    const originalResolvedOptions = formatter.resolvedOptions.bind(formatter);
+
+    formatter.resolvedOptions = () => ({
+      ...originalResolvedOptions(),
+      timeZone: 'America/Argentina/Buenos_Aires',
+    });
+
+    return formatter;
+  };
+
+  try {
+    const parts = formatDateTimePartsLocal('2025-03-15 12:34:56', 'en-GB');
+
+    assert.deepEqual(parts, {
+      date: '15/03/2025',
+      time: '09:34:56',
+    });
+  } finally {
+    Intl.DateTimeFormat = OriginalDateTimeFormat;
+  }
 });
