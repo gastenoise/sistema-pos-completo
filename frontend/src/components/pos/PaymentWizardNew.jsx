@@ -11,6 +11,7 @@ import {
 import { toast } from 'sonner';
 import DivisionStep from './wizard/DivisionStep';
 import ProcessStep from './wizard/ProcessStep';
+import { sumToCents, toCents } from '@/lib/money';
 
 export default function PaymentWizardNew({
   open,
@@ -65,7 +66,7 @@ export default function PaymentWizardNew({
   };
 
   const handleChangeAmount = (id, amount) => {
-    setPaymentsDraft(paymentsDraft.map((p) => (p.id === id ? { ...p, amount: parseFloat(amount) || 0 } : p)));
+    setPaymentsDraft(paymentsDraft.map((p) => (p.id === id ? { ...p, amount: Number(amount) || 0 } : p)));
   };
 
   const handleConfirmDivision = async () => {
@@ -132,8 +133,9 @@ export default function PaymentWizardNew({
     onClose();
   };
 
-  const totalDraft = paymentsDraft.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const isValidDivision = Math.abs(totalDraft - total) < 0.01;
+  const totalDraftCents = sumToCents(paymentsDraft.map((p) => p.amount || 0));
+  const totalCents = toCents(total);
+  const isValidDivision = totalDraftCents === totalCents;
   const allConfirmed = persistedPayments.length > 0 && persistedPayments.every((p) => p.status === 'confirmed');
 
   return (
