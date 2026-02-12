@@ -40,6 +40,7 @@ Route::prefix('protected')->group(function () {
         Route::middleware('ensure.token.fresh')->group(function () {
             Route::get('auth/me', [AuthController::class, 'me']);
             Route::put('auth/me', [AuthController::class, 'updateMe']);
+            Route::post('auth/logout', [AuthController::class, 'logout']);
 
             Route::put('auth/change-email', [AuthController::class, 'changeEmail']);
             Route::put('auth/change-password', [AuthController::class, 'changePassword']);

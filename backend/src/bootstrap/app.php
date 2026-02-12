@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\ResolveBusiness;
 use App\Http\Middleware\AuthenticateApiKey;
 use App\Http\Middleware\EnsureTokenIsFresh;
+use App\Http\Middleware\SetSecurityHeaders;
 use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Auth\Access\AuthorizationException;
 
@@ -19,7 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: '',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->statefulApi();
         $middleware->append(HandleCors::class);
+        $middleware->append(SetSecurityHeaders::class);
         //
         $middleware->alias([
             'resolve.business' => \App\Http\Middleware\ResolveBusiness::class,

@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -18,6 +18,7 @@ class AuthController extends Controller
         $request->validate(['email' => 'required|email', 'password' => 'required']);
 
         $email = Str::lower((string) $request->input('email'));
+        $password = (string) $request->input('password');
         $throttleKey = sprintf('login-failed:%s|%s', $request->ip(), $email);
         $failedAttempts = RateLimiter::attempts($throttleKey);
 
@@ -38,7 +39,7 @@ class AuthController extends Controller
             ], 429);
         }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        if (!Auth::attempt(['email' => $email, 'password' => $password], true)) {
             $currentAttempt = $failedAttempts + 1;
             $decaySeconds = min(300, 5 * (2 ** max(0, $currentAttempt - 1)));
 
@@ -59,23 +60,54 @@ class AuthController extends Controller
         }
 
         RateLimiter::clear($throttleKey);
+        $request->session()->regenerate();
 
-        $user = User::with('businesses')->find(Auth::id());
-        $user->tokens()->where('name', 'front')->delete();
-        $idleMinutes = (int) config('sanctum.frontend_idle_minutes', 60);
-        $tokenExpiration = $idleMinutes > 0
-            ? Carbon::now()->addMinutes($idleMinutes)
-            : null;
+        $user = User::with('businesses')->findOrFail(Auth::id());
 
-        $token = $user->createToken('front', ['front'], $tokenExpiration)->plainTextToken;
+        // Revoca tokens legacy para forzar migración a sesión + cookie HttpOnly.
+        $user->tokens()->delete();
+
+        // Opcional: cerrar otras sesiones si la tabla de sesiones está disponible.
+        if ((bool) config('sanctum.invalidate_other_sessions_on_login', true)
+            && config('session.driver') === 'database') {
+            try {
+                DB::table(config('session.table', 'sessions'))
+                    ->where('user_id', $user->id)
+                    ->where('id', '!=', $request->session()->getId())
+                    ->delete();
+            } catch (\Throwable $exception) {
+                Log::warning('Unable to invalidate previous sessions after login', [
+                    'event' => 'auth.login.invalidate_sessions_failed',
+                    'user_id' => $user->id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
 
         return response()->json([
             'success' => true,
             'data' => [
                 'user_name' => $user->name,
-                'token' => $token,
-                'session_idle_minutes' => $idleMinutes,
+                'session_idle_minutes' => (int) config('session.lifetime', 120),
             ]
+        ]);
+    }
+
+    public function logout(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user) {
+            $user->tokens()->delete();
+        }
+
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sesión cerrada correctamente.',
         ]);
     }
 

@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 
 import EmailShareDialog from './EmailShareDialog';
 import WhatsappShareDialog from './WhatsappShareDialog';
+import { sanitizeEmailAddress, sanitizePhoneNumber } from '@/lib/sanitize';
 
 const resolveBankAccountData = (bankAccountData = {}) => ({
   bank_name: bankAccountData.bank_name || '',
@@ -50,7 +51,9 @@ export default function BankTransferShareDialog({ open, onOpenChange, bankAccoun
 
     try {
       setIsSharingWhatsapp(true);
-      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(plainText)}`;
+      const safePhoneNumber = sanitizePhoneNumber(phoneNumber);
+      if (!safePhoneNumber) return;
+      const whatsappUrl = `https://wa.me/${safePhoneNumber}?text=${encodeURIComponent(plainText)}`;
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
       setIsWhatsappDialogOpen(false);
       toast.success('WhatsApp abierto con los datos bancarios listos para enviar.');
@@ -66,6 +69,8 @@ export default function BankTransferShareDialog({ open, onOpenChange, bankAccoun
 
     try {
       setIsSharingEmail(true);
+      const safeEmail = sanitizeEmailAddress(to_email);
+      if (!safeEmail) return;
       const finalSubject = subject?.trim() || 'Datos bancarios para transferencia';
       const bodyParts = [];
 
@@ -74,7 +79,7 @@ export default function BankTransferShareDialog({ open, onOpenChange, bankAccoun
       }
 
       bodyParts.push(plainText);
-      const mailtoUrl = `mailto:${encodeURIComponent(to_email.trim())}?subject=${encodeURIComponent(finalSubject)}&body=${encodeURIComponent(bodyParts.join('\n'))}`;
+      const mailtoUrl = `mailto:${encodeURIComponent(safeEmail)}?subject=${encodeURIComponent(finalSubject)}&body=${encodeURIComponent(bodyParts.join('\n'))}`;
 
       window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
       setIsEmailDialogOpen(false);

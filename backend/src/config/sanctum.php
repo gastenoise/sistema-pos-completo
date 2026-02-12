@@ -105,4 +105,17 @@ return [
 
     'frontend_refresh_threshold_minutes' => env('SANCTUM_FRONTEND_REFRESH_THRESHOLD_MINUTES', 15),
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Invalidate Other Sessions on Login
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, successful frontend login will invalidate previous
+    | persisted sessions for the same user (except current session).
+    |
+    */
+
+    'invalidate_other_sessions_on_login' => env('SANCTUM_INVALIDATE_OTHER_SESSIONS_ON_LOGIN', true),
+
 ];

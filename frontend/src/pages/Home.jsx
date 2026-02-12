@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '@/api/client';
-import { getToken } from '@/api/auth';
 import { createPageUrl } from '@/utils';
 import { Store, Loader2 } from 'lucide-react';
 
@@ -13,12 +12,6 @@ export default function Home() {
 
   const initializeApp = useCallback(async () => {
     try {
-      const isAuthenticated = !!getToken();
-      if (!isAuthenticated) {
-        window.location.href = `/login?redirect=${encodeURIComponent(createPageUrl('Home'))}`;
-        return;
-      }
-
       const response = await apiClient.get('/protected/businesses');
       const businesses = normalizeListResponse(response, 'businesses');
       setBusinesses(businesses);
