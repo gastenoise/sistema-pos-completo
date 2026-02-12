@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { useBusiness } from '../BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
+import { fromCents, sumToCents, toCents } from '@/lib/money';
 
 export default function DivisionStep({
   total,
@@ -22,8 +23,10 @@ export default function DivisionStep({
 }) {
   const { currentBusiness } = useBusiness();
 
-  const totalDraft = paymentsDraft.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const remaining = total - totalDraft;
+  const totalDraftCents = sumToCents(paymentsDraft.map((p) => p.amount || 0));
+  const remainingCents = toCents(total) - totalDraftCents;
+  const totalDraft = fromCents(totalDraftCents);
+  const remaining = fromCents(remainingCents);
   const isMultiple = paymentsDraft.length > 1;
   
   const availableMethods = paymentMethods.filter(m => 
@@ -89,7 +92,7 @@ export default function DivisionStep({
               {formatPrice(Math.abs(remaining), currentBusiness)}
             </span>
           </div>
-          {Math.abs(remaining) > 0.01 && (
+          {remainingCents !== 0 && (
             <p className="text-xs text-amber-600 pt-2 border-t">
               Adjust amounts to match the total exactly
             </p>

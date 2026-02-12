@@ -1,7 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -12,6 +11,7 @@ import {
 import { useBusiness } from '../BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
+import { CurrencyInput } from '@/components/ui/currency-input';
 
 export default function PaymentCardDraft({
   payment,
@@ -23,6 +23,7 @@ export default function PaymentCardDraft({
   canRemove
 }) {
   const { currentBusiness } = useBusiness();
+  const locale = currentBusiness?.locale || (typeof navigator !== 'undefined' ? navigator.language : 'es-AR');
 
   const color = payment.method.color || '#6B7280';
   const MethodIcon = getPaymentMethodIcon(payment.method.icon);
@@ -63,12 +64,11 @@ export default function PaymentCardDraft({
 
           {/* Amount Input */}
           {isEditable ? (
-            <Input
-              type="number"
-              step="0.01"
-              value={payment.amount || ''}
-              onChange={(e) => onChangeAmount(e.target.value)}
-              placeholder="0.00"
+            <CurrencyInput
+              value={payment.amount}
+              onValueChange={onChangeAmount}
+              locale={locale}
+              placeholder="0,00"
               className="font-medium"
             />
           ) : (
