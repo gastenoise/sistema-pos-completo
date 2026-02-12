@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import TicketActions from '@/components/sales/TicketActions';
-import { formatDateTimeAR } from '@/lib/dateTime';
+import { formatDateTimeLocal } from '@/lib/dateTime';
 
 
 const resolveSaleDate = (sale) => {
@@ -111,7 +111,7 @@ export default function SaleDetailsDialog({
             <div className="grid grid-cols-2 gap-4 pb-4 border-b">
               <div>
                 <p className="text-sm text-slate-500">Fecha</p>
-                <p className="font-medium">{saleDate ? formatDateTimeAR(saleDate, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '—'}</p>
+                <p className="font-medium">{saleDate ? formatDateTimeLocal(saleDate, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '—'}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-500">Estado</p>
