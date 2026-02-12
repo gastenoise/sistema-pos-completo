@@ -2,9 +2,12 @@ import { clearToken, getToken } from './auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 const BUSINESS_STORAGE_KEY = 'pos_current_business';
+const CSRF_COOKIE_ENDPOINT = '/sanctum/csrf-cookie';
+const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 let businessContext = null;
 let didNotifySessionExpired = false;
+let csrfCookiePromise = null;
 
 const AUTH_MESSAGE_REGEX = /not authenticated|unauthenticated|unauthorized|token|session/i;
 const DEFAULT_ERROR_MESSAGE = 'Something went wrong. Please try again.';
@@ -42,6 +45,45 @@ const buildUrl = (path) => {
   const base = API_BASE_URL.replace(/\/+$/, '');
   const suffix = path.replace(/^\/+/, '');
   return `${base}/${suffix}`;
+};
+
+
+const readCookie = (name) => {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const escapedName = name.replace(/[-[\]{}()*+?.,\^$|#\s]/g, '\\$&');
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
+export const ensureCsrfCookie = async () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (readCookie('XSRF-TOKEN')) {
+    return;
+  }
+
+  if (!csrfCookiePromise) {
+    csrfCookiePromise = fetch(buildUrl(CSRF_COOKIE_ENDPOINT), {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    }).finally(() => {
+      csrfCookiePromise = null;
+    });
+  }
+
+  const response = await csrfCookiePromise;
+  if (!response.ok) {
+    throw new Error('Unable to initialize CSRF protection.');
+  }
 };
 
 const resolveBusinessId = () => {
@@ -169,6 +211,7 @@ export const request = async (path, options = {}) => {
   const token = getToken();
   const normalizedOptions = normalizeBody(options);
   const headers = new Headers(normalizedOptions.headers || {});
+  const method = String(normalizedOptions.method || 'GET').toUpperCase();
 
   const isMultipartBody = normalizedOptions.body instanceof FormData;
 
@@ -176,8 +219,21 @@ export const request = async (path, options = {}) => {
     headers.set('Content-Type', 'application/json');
   }
 
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+  if (!headers.has('Accept')) {
+    headers.set('Accept', 'application/json');
+  }
+
+  if (!headers.has('X-Requested-With')) {
+    headers.set('X-Requested-With', 'XMLHttpRequest');
+  }
+
+  const shouldIncludeCsrf = CSRF_METHODS.has(method);
+  if (shouldIncludeCsrf) {
+    await ensureCsrfCookie();
+    const csrfToken = readCookie('XSRF-TOKEN');
+    if (csrfToken && !headers.has('X-XSRF-TOKEN')) {
+      headers.set('X-XSRF-TOKEN', csrfToken);
+    }
   }
 
   const businessId = resolveBusinessId();
@@ -189,7 +245,8 @@ export const request = async (path, options = {}) => {
 
   const response = await fetch(buildUrl(path), {
     ...fetchOptions,
-    headers
+    headers,
+    credentials: 'include'
   }).catch((error) => {
     if (token) {
       notifySessionExpired('api_unreachable');

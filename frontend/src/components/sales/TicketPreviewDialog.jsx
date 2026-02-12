@@ -21,6 +21,7 @@ import { formatDateTimeLocal, formatDateTimePartsLocal } from '@/lib/dateTime';
 import EmailShareDialog from '@/components/payments/EmailShareDialog';
 import WhatsappShareDialog from '@/components/payments/WhatsappShareDialog';
 import { DEFAULT_COUNTRY_DIAL_CODE, normalizeWhatsappNumber } from '@/lib/whatsapp';
+import { sanitizeEmailAddress, sanitizePhoneNumber } from '@/lib/sanitize';
 
 const resolveErrorMessage = (error, fallbackMessage) => {
   return error?.message || error?.data?.message || fallbackMessage;
@@ -266,8 +267,11 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
     try {
       setIsLoadingWhatsapp(true);
 
+      const safePhoneNumber = sanitizePhoneNumber(phoneNumber);
+      if (!safePhoneNumber) return;
+
       const shareText = buildWhatsappTicketText(ticket, saleId);
-      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(shareText)}`;
+      const whatsappUrl = `https://wa.me/${safePhoneNumber}?text=${encodeURIComponent(shareText)}`;
 
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
       setIsWhatsappDialogOpen(false);
@@ -322,7 +326,13 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
       });
 
       const formData = new FormData();
-      formData.append('to_email', formPayload.to_email.trim());
+      const safeEmail = sanitizeEmailAddress(formPayload.to_email);
+      if (!safeEmail) {
+        notifyTicketActionError('Ingresá un e-mail válido para enviar el ticket.');
+        return;
+      }
+
+      formData.append('to_email', safeEmail);
 
       const subject = formPayload.subject?.trim();
       if (subject) {
@@ -338,7 +348,7 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
 
       const response = await sendSaleTicketEmail(saleId, formData);
       const requestId = response?.request_id;
-      const toEmail = response?.to_email || formPayload.to_email.trim();
+      const toEmail = response?.to_email || safeEmail;
 
       notifyTicketActionSuccess(response?.message || 'El correo quedó en cola y se enviará en segundo plano.');
       setIsEmailDialogOpen(false);

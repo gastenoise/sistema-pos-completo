@@ -10,6 +10,7 @@ use App\Models\SaleItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class SaleItemAuthorizationTest extends TestCase
@@ -73,10 +74,9 @@ class SaleItemAuthorizationTest extends TestCase
             'total' => 100,
         ]);
 
-        $token = $user->createToken('front', ['front'])->plainTextToken;
+        Sanctum::actingAs($user, ['front']);
 
         $response = $this
-            ->withHeader('Authorization', 'Bearer '.$token)
             ->withHeader('X-Business-Id', (string) $business->id)
             ->deleteJson("/protected/sales/{$saleA->id}/items/{$saleItemOfSaleB->id}");
 
