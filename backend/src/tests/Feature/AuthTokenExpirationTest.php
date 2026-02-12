@@ -44,14 +44,50 @@ class AuthTokenExpirationTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_front_token_expiration_is_renewed_on_each_authenticated_request(): void
+    public function test_front_token_expiration_is_not_renewed_when_remaining_time_is_above_threshold(): void
     {
-        config(['sanctum.frontend_idle_minutes' => 60]);
+        config([
+            'sanctum.frontend_idle_minutes' => 60,
+            'sanctum.frontend_refresh_threshold_minutes' => 15,
+        ]);
+
+        $issuedAt = now();
+        Carbon::setTestNow($issuedAt);
+
+        $user = User::factory()->create();
+        $plainTextToken = $user->createToken('front', ['front'], now()->addMinutes(40))->plainTextToken;
+
+        Carbon::setTestNow($issuedAt->copy()->addMinutes(5));
+
+        $response = $this
+            ->withHeader('Authorization', 'Bearer '.$plainTextToken)
+            ->getJson('/protected/auth/me');
+
+        $response->assertOk();
+
+        $accessToken = PersonalAccessToken::findToken($plainTextToken);
+
+        $this->assertNotNull($accessToken);
+        $this->assertNotNull($accessToken->expires_at);
+        $this->assertEqualsWithDelta($issuedAt->copy()->addMinutes(40)->timestamp, $accessToken->expires_at->timestamp, 1);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_front_token_expiration_is_renewed_when_remaining_time_is_within_threshold(): void
+    {
+        config([
+            'sanctum.frontend_idle_minutes' => 60,
+            'sanctum.frontend_refresh_threshold_minutes' => 15,
+        ]);
+
+        $issuedAt = now();
+        Carbon::setTestNow($issuedAt);
 
         $user = User::factory()->create();
         $plainTextToken = $user->createToken('front', ['front'], now()->addMinutes(10))->plainTextToken;
 
-        Carbon::setTestNow(now()->addMinutes(5));
+        Carbon::setTestNow($issuedAt->copy()->addMinutes(5));
 
         $response = $this
             ->withHeader('Authorization', 'Bearer '.$plainTextToken)
@@ -64,6 +100,36 @@ class AuthTokenExpirationTest extends TestCase
         $this->assertNotNull($accessToken);
         $this->assertNotNull($accessToken->expires_at);
         $this->assertEqualsWithDelta(now()->addMinutes(60)->timestamp, $accessToken->expires_at->timestamp, 1);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_expired_front_token_returns_unauthorized_response(): void
+    {
+        config([
+            'sanctum.frontend_idle_minutes' => 60,
+            'sanctum.frontend_refresh_threshold_minutes' => 15,
+        ]);
+
+        $issuedAt = now();
+        Carbon::setTestNow($issuedAt);
+
+        $user = User::factory()->create();
+        $plainTextToken = $user->createToken('front', ['front'], now()->addMinutes(5))->plainTextToken;
+
+        Carbon::setTestNow($issuedAt->copy()->addMinutes(6));
+
+        $response = $this
+            ->withHeader('Authorization', 'Bearer '.$plainTextToken)
+            ->getJson('/protected/auth/me');
+
+        $response->assertStatus(401);
+
+        $message = $response->json('message');
+        $this->assertContains($message, [
+            'Session expired. Please log in again.',
+            'Unauthenticated.',
+        ]);
 
         Carbon::setTestNow();
     }
