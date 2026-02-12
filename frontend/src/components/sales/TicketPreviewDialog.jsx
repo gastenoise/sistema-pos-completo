@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getSaleTicket, getSaleTicketEmailStatus, sendSaleTicketEmail } from '@/api/salesTickets';
 import { downloadTicketPdfFromNode, generateTicketFileName, generateTicketPdfBlobFromNode } from '@/utils/ticketPdf';
-import { formatTicketDatePartsAR, formatDateTimeAR } from '@/lib/dateTime';
+import { formatDateTimePartsLocal, formatDateTimeLocal } from '@/lib/dateTime';
 import { useBusiness } from '@/components/pos/BusinessContext';
 
 const resolveErrorMessage = (error, fallbackMessage) => {
@@ -47,7 +47,7 @@ const normalizeWhatsappNumber = (rawValue) => {
 const buildWhatsappTicketText = (ticket, saleId) => {
   const businessName = ticket?.business?.name || 'Negocio';
   const ticketNumber = ticket?.id || saleId;
-  const ticketDate = formatDateTimeAR(ticket?.date?.closed_at || ticket?.date?.created_at, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const ticketDate = formatDateTimeLocal(ticket?.date?.closed_at || ticket?.date?.created_at, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
   const seller = ticket?.seller?.name || '-';
   const lines = [
     `${businessName} te comparte tu ticket.`,
@@ -379,10 +379,10 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
                   <p><strong>Ticket #{ticket?.id || saleId}</strong></p>
                   <div className="flex justify-between">
                     <span className="text-left">
-                      Fecha: {formatTicketDatePartsAR(ticket?.date?.closed_at || ticket?.date?.created_at).date}
+                      Fecha: {formatDateTimePartsLocal(ticket?.date?.closed_at || ticket?.date?.created_at).date}
                     </span>
                     <span className="text-right">
-                      Hora: {formatTicketDatePartsAR(ticket?.date?.closed_at || ticket?.date?.created_at).time}
+                      Hora: {formatDateTimePartsLocal(ticket?.date?.closed_at || ticket?.date?.created_at).time}
                     </span>
                   </div>
                   <p>Vendedor: {(ticket?.seller?.name?.split(' ')[0]) || '-'}</p>
