@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sale;
+use App\Models\PaymentMethod;
+use App\Models\BusinessPaymentMethodHide;
 use Illuminate\Http\Request;
 use App\Services\BusinessContext;
 use Illuminate\Support\Facades\DB;
@@ -302,6 +304,23 @@ class ReportController extends Controller
             $query->whereIn('status', $statuses->all());
         }
 
+        $hiddenPaymentMethodIds = BusinessPaymentMethodHide::where('business_id', $businessId)
+            ->pluck('payment_method_id');
+
+        $paymentMethods = PaymentMethod::query()
+            ->orderBy('id')
+            ->get()
+            ->map(function (PaymentMethod $method) use ($hiddenPaymentMethodIds) {
+                $isActive = !$hiddenPaymentMethodIds->contains($method->id);
+
+                return [
+                    'id' => $method->id,
+                    'name' => $method->name,
+                    'column_name' => $isActive ? $method->name : sprintf('%s (Inactivo)', $method->name),
+                ];
+            })
+            ->values();
+
         $wantsJson = $request->wantsJson() || $request->boolean('format_json');
         if ($wantsJson) {
             $sales = $query->get()->map(function (Sale $sale) {
@@ -342,19 +361,77 @@ class ReportController extends Controller
             return response()->json(['success' => true, 'data' => $sales]);
         }
 
-        return new StreamedResponse(function() use ($query) {
+        return new StreamedResponse(function() use ($query, $paymentMethods) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['ID', 'Fecha', 'Total', 'Estado', 'Usuario']);
 
-            $query->chunk(100, function($sales) use ($handle) {
+            fwrite($handle, "\xEF\xBB\xBF");
+
+            $headers = [
+                'ID',
+                'Fecha',
+                'Hora',
+                'Items',
+                'Categoría',
+            ];
+
+            foreach ($paymentMethods as $method) {
+                $headers[] = $method['column_name'];
+            }
+
+            $headers = array_merge($headers, [
+                'Subtotal',
+                'Total',
+                'Estado',
+                'Usuario/Vendedor',
+                'Referencias',
+            ]);
+
+            fputcsv($handle, $headers);
+
+            $query->chunk(100, function($sales) use ($handle, $paymentMethods) {
                 foreach ($sales as $sale) {
-                    fputcsv($handle, [
-                        $sale->id, 
-                        $sale->created_at, 
-                        $sale->total_amount, 
+                    $saleDate = $sale->closed_at ?? $sale->created_at;
+                    $itemsQty = (int) $sale->items->sum('quantity');
+                    $subtotal = (float) $sale->items->sum('total');
+                    $categories = $sale->items
+                        ->map(fn ($saleItem) => $saleItem->item?->category?->name)
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->implode(', ');
+
+                    $paymentsByMethod = $sale->payments
+                        ->groupBy('payment_method_id')
+                        ->map(fn ($payments) => (float) $payments->sum('amount'));
+
+                    $transactionReferences = $sale->payments
+                        ->map(fn ($payment) => $payment->transaction_reference)
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->implode(' | ');
+
+                    $row = [
+                        $sale->id,
+                        optional($saleDate)?->format('d/m/Y'),
+                        optional($saleDate)?->format('H:i'),
+                        $itemsQty,
+                        $categories,
+                    ];
+
+                    foreach ($paymentMethods as $method) {
+                        $row[] = number_format((float) ($paymentsByMethod[$method['id']] ?? 0), 2, '.', '');
+                    }
+
+                    $row = array_merge($row, [
+                        number_format($subtotal, 2, '.', ''),
+                        number_format((float) $sale->total_amount, 2, '.', ''),
                         $this->getSaleStatusLabel($sale->status),
-                        $sale->user?->name
+                        $sale->user?->name,
+                        $transactionReferences,
                     ]);
+
+                    fputcsv($handle, $row);
                 }
             });
             fclose($handle);
