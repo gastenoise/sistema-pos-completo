@@ -11,12 +11,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { getSaleTicket, getSaleTicketEmailStatus, sendSaleTicketEmail } from '@/api/salesTickets';
 import { downloadTicketPdfFromNode, generateTicketFileName, generateTicketPdfBlobFromNode } from '@/utils/ticketPdf';
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { formatDateTimeLocal, formatDateTimePartsLocal } from '@/lib/dateTime';
+import EmailShareDialog from '@/components/payments/EmailShareDialog';
+import WhatsappShareDialog from '@/components/payments/WhatsappShareDialog';
 
 const resolveErrorMessage = (error, fallbackMessage) => {
   return error?.message || error?.data?.message || fallbackMessage;
@@ -37,11 +37,6 @@ const formatCurrency = (value) => {
     currency: 'ARS',
     minimumFractionDigits: 2,
   }).format(amount);
-};
-
-const normalizeWhatsappNumber = (rawValue) => {
-  if (!rawValue) return '';
-  return rawValue.replace(/[^\d]/g, '');
 };
 
 const buildWhatsappTicketText = (ticket, saleId) => {
@@ -70,149 +65,6 @@ const buildWhatsappTicketText = (ticket, saleId) => {
 
   return lines.join('\n');
 };
-
-function TicketEmailDialog({
-  open,
-  onOpenChange,
-  defaultEmail,
-  defaultSubject,
-  defaultMessage,
-  isSending,
-  onSend,
-  smtpMessage,
-}) {
-  const [form, setForm] = useState({
-    to_email: defaultEmail || '',
-    subject: defaultSubject || 'Tu ticket de compra',
-    message: defaultMessage || 'Gracias por tu compra. Te compartimos el comprobante adjunto.',
-  });
-
-  React.useEffect(() => {
-    if (open) {
-      setForm({
-        to_email: defaultEmail || '',
-        subject: defaultSubject || 'Tu ticket de compra',
-        message: defaultMessage || 'Gracias por tu compra. Te compartimos el comprobante adjunto.',
-      });
-    }
-  }, [open, defaultEmail, defaultSubject, defaultMessage]);
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    await onSend(form);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Enviar ticket por e-mail</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="ticket-email-to">Destinatario</Label>
-            <Input
-              id="ticket-email-to"
-              type="email"
-              value={form.to_email}
-              onChange={(e) => setForm((prev) => ({ ...prev, to_email: e.target.value }))}
-              placeholder="cliente@ejemplo.com"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="ticket-email-subject">Asunto</Label>
-            <Input
-              id="ticket-email-subject"
-              value={form.subject}
-              onChange={(e) => setForm((prev) => ({ ...prev, subject: e.target.value }))}
-              placeholder="Tu ticket de compra"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="ticket-email-message">Mensaje</Label>
-            <textarea
-              id="ticket-email-message"
-              value={form.message}
-              onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))}
-              rows={4}
-              className="w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              placeholder="Mensaje opcional"
-            />
-          </div>
-
-          {smtpMessage && (
-            <p className="text-xs text-amber-700">{smtpMessage}</p>
-          )}
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSending}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSending || !form.to_email.trim()}>
-              {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Enviar e-mail
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function TicketWhatsappDialog({ open, onOpenChange, isSharing, onConfirm }) {
-  const [phone, setPhone] = useState('');
-
-  React.useEffect(() => {
-    if (open) {
-      setPhone('');
-    }
-  }, [open]);
-
-  const normalizedPhone = normalizeWhatsappNumber(phone);
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    await onConfirm(normalizedPhone);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Compartir ticket por WhatsApp</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="ticket-whatsapp-phone">Número (con código de país)</Label>
-            <Input
-              id="ticket-whatsapp-phone"
-              inputMode="tel"
-              placeholder="5491122334455"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              required
-            />
-            <p className="text-xs text-slate-500">Solo números. Ejemplo: 5491122334455.</p>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSharing}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSharing || normalizedPhone.length < 8}>
-              {isSharing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Abrir WhatsApp
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 export default function TicketPreviewDialog({ open, onOpenChange, saleId, customerEmail }) {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -457,20 +309,27 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
         </DialogContent>
       </Dialog>
 
-      <TicketWhatsappDialog
+      <WhatsappShareDialog
         open={isWhatsappDialogOpen}
         onOpenChange={setIsWhatsappDialogOpen}
         isSharing={isLoadingWhatsapp}
         onConfirm={handleShareWhatsapp}
+        title="Compartir ticket por WhatsApp"
+        phoneFieldId="ticket-whatsapp-phone"
       />
 
-      <TicketEmailDialog
+      <EmailShareDialog
         open={isEmailDialogOpen}
         onOpenChange={setIsEmailDialogOpen}
         defaultEmail={defaultEmail}
+        defaultSubject="Tu ticket de compra"
+        defaultMessage="Gracias por tu compra. Te compartimos el comprobante adjunto."
         isSending={isSendingEmail || isCheckingSmtpStatus || !isSmtpValid}
         onSend={handleSendEmail}
-        smtpMessage={!isSmtpValid ? (smtpStatus?.message || 'Configurá un SMTP activo para enviar correos.') : ''}
+        helperMessage={!isSmtpValid ? (smtpStatus?.message || 'Configurá un SMTP activo para enviar correos.') : ''}
+        title="Enviar ticket por e-mail"
+        submitLabel="Enviar e-mail"
+        fieldPrefix="ticket"
       />
     </>
   );

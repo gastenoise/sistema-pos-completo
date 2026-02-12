@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Loader2, Share2, XCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import QrModal from './QrModal';
 import { useBusiness } from '../BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
+import BankTransferShareDialog from '@/components/payments/BankTransferShareDialog';
 
 export default function PaymentCard({
   payment,
@@ -15,6 +16,7 @@ export default function PaymentCard({
 }) {
   const [showQrModal, setShowQrModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showTransferShareDialog, setShowTransferShareDialog] = useState(false);
   const { currentBusiness } = useBusiness();
 
   const statusConfig = {
@@ -101,15 +103,25 @@ export default function PaymentCard({
                 {bankAccountData?.alias && <p><strong>Alias:</strong> {bankAccountData.alias}</p>}
               </div>
             )}
-            <Button
-              size="sm"
-              onClick={handleConfirmTransfer}
-              disabled={loading}
-              className="bg-amber-600 hover:bg-amber-700 w-full"
-            >
-              <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
-              {loading ? 'Confirming...' : 'Confirm Transfer Received'}
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowTransferShareDialog(true)}
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Compartir datos bancarios
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleConfirmTransfer}
+                disabled={loading}
+                className="bg-amber-600 hover:bg-amber-700 w-full"
+              >
+                <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
+                {loading ? 'Confirming...' : 'Confirm Transfer Received'}
+              </Button>
+            </div>
           </div>
         );
 
@@ -172,6 +184,13 @@ export default function PaymentCard({
           {renderActions()}
         </div>
       </div>
+
+
+      <BankTransferShareDialog
+        open={showTransferShareDialog}
+        onOpenChange={setShowTransferShareDialog}
+        bankAccountData={bankAccountData}
+      />
 
       {payment.payment_method_type === 'mercado_pago' && (
         <QrModal
