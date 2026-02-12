@@ -42,6 +42,7 @@ function POSContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showWizard, setShowWizard] = useState(false);
   const [showCashOpenModal, setShowCashOpenModal] = useState(false);
+  const [isOpeningCashRegister, setIsOpeningCashRegister] = useState(false);
   const [pendingPayment, setPendingPayment] = useState(null);
   const [isLastSaleDialogOpen, setIsLastSaleDialogOpen] = useState(false);
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
@@ -355,6 +356,7 @@ function POSContent() {
   };
 
   const handleOpenCashRegister = async (openingAmount) => {
+    setIsOpeningCashRegister(true);
     try {
       await apiClient.post('/protected/cash-register/open', {
         amount: openingAmount
@@ -371,6 +373,8 @@ function POSContent() {
       }
     } catch (error) {
       toast.error('Failed to open cash register');
+    } finally {
+      setIsOpeningCashRegister(false);
     }
   };
 
@@ -623,10 +627,12 @@ function POSContent() {
       <CashRegisterOpenModal
         open={showCashOpenModal}
         onClose={() => {
+          if (isOpeningCashRegister) return;
           setShowCashOpenModal(false);
           setPendingPayment(null);
         }}
         onConfirm={handleOpenCashRegister}
+        loading={isOpeningCashRegister}
         title="Open Cash Register"
         description="Enter the starting cash amount in the register"
         warningMessage={
