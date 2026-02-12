@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Events\ApiKeyAuthenticated;
+use App\Listeners\PersistApiKeyUsage;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -27,6 +30,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(\App\Models\ApiKey::class, \App\Policies\ApiKeyPolicy::class);
+
+        Event::listen(ApiKeyAuthenticated::class, PersistApiKeyUsage::class);
         Gate::policy(\App\Models\Sale::class, \App\Policies\SalePolicy::class);
 
         RateLimiter::for('public-api', function (Request $request) {
