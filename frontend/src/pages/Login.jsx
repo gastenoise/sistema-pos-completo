@@ -11,7 +11,11 @@ import { createPageUrl } from '@/utils';
 const getRedirectTarget = (search) => {
   const params = new URLSearchParams(search);
   const redirectParam = params.get('redirect');
-  if (redirectParam && redirectParam.startsWith('/')) {
+  if (
+    redirectParam
+    && redirectParam.startsWith('/')
+    && !redirectParam.toLowerCase().startsWith('/login')
+  ) {
     return redirectParam;
   }
   return createPageUrl('Home');
