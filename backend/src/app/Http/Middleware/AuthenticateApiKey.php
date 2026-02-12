@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Events\ApiKeyAuthenticated;
 use App\Models\ApiKey;
 use App\Services\BusinessContext;
 use Closure;
@@ -43,7 +44,7 @@ class AuthenticateApiKey
             return response()->json(['success' => false, 'message' => 'Invalid API key'], 401);
         }
 
-        $apiKey->forceFill(['last_used_at' => now()])->save();
+        event(new ApiKeyAuthenticated($apiKey->id));
 
         if ($apiKey->user) {
             Auth::setUser($apiKey->user);

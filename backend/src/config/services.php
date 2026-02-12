@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+
+    'api_keys' => [
+        'last_used_at_throttle_minutes' => (int) env('API_KEYS_LAST_USED_AT_THROTTLE_MINUTES', 5),
+    ],
+
 ];
