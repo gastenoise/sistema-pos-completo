@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { apiClient } from '@/api/client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Upload, Package, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,8 +19,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from 'sonner';
-import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
-import { mapCatalogIsActive, withCatalogIsActive } from '@/lib/catalogNaming';
+import {
+  useBulkItemsMutation,
+  useConfirmItemsImportMutation,
+  useItemCategoriesQuery,
+  useItemsQuery,
+  usePreviewItemsImportMutation,
+  usePreviewItemsImportPageMutation,
+  useSaveItemMutation,
+  useToggleItemStatusMutation,
+  ITEMS_PER_PAGE,
+} from '@/modules/items/hooks/useItemsData';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useAuth } from '@/lib/AuthContext';
@@ -30,8 +38,6 @@ import ItemRow from '@/components/pos/ItemRow';
 import ItemEditorModal from '@/components/pos/ItemEditorModal';
 import BulkActionsBar from '@/components/pos/BulkActionsBar';
 import CsvImportWizard from '@/components/pos/CsvImportWizard';
-
-const ITEMS_PER_PAGE = 20;
 
 export default function Items() {
   const { businessId } = useBusiness();
@@ -52,129 +58,58 @@ export default function Items() {
   const [savingItem, setSavingItem] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
 
-  const updateItemsCache = (response) => {
-    const list = mapCatalogIsActive(normalizeListResponse(response, 'items')).map((item) => ({
-      ...item,
-      category_id: item.category_id ? Number(item.category_id) : null
-    }));
-    if (list.length > 0) {
-      queryClient.setQueriesData({ queryKey: ['items', businessId] }, (prev) => {
-        if (!prev || !Array.isArray(prev.items)) {
-          return prev;
-        }
-        return {
-          ...prev,
-          items: list
-        };
-      });
-      return true;
-    }
-
-    const entity = normalizeEntityResponse(response);
-    if (entity?.id) {
-      const normalizedEntity = {
-        ...withCatalogIsActive(entity),
-        category_id: entity.category_id ? Number(entity.category_id) : null
+  const updateItemsCache = (entity) => {
+    if (!entity?.id) return false;
+    queryClient.setQueriesData({ queryKey: ['items', businessId] }, (prev) => {
+      if (!prev || !Array.isArray(prev.items)) {
+        return prev;
+      }
+      const exists = prev.items.find((item) => item.id === entity.id);
+      const updatedItems = exists
+        ? prev.items.map((item) => (item.id === entity.id ? { ...item, ...entity } : item))
+        : [entity, ...prev.items];
+      return {
+        ...prev,
+        items: updatedItems
       };
-      queryClient.setQueriesData({ queryKey: ['items', businessId] }, (prev) => {
-        if (!prev || !Array.isArray(prev.items)) {
-          return prev;
-        }
-        const exists = prev.items.find((item) => item.id === normalizedEntity.id);
-        const updatedItems = exists
-          ? prev.items.map((item) => (item.id === normalizedEntity.id ? { ...item, ...normalizedEntity } : item))
-          : [normalizedEntity, ...prev.items];
-        return {
-          ...prev,
-          items: updatedItems
-        };
-      });
-      return true;
-    }
-
-    return false;
+    });
+    return true;
   };
 
   // Fetch items
-  const { data: itemsResponse = { items: [], pagination: null }, isLoading: loadingItems } = useQuery({
-    queryKey: ['items', businessId, searchQuery, typeFilter, categoryFilter, page],
-    queryFn: async () => {
-      if (!businessId) return { items: [], pagination: null };
-      const params = new URLSearchParams();
-      if (searchQuery) {
-        params.set('search', searchQuery);
-      }
-      if (typeFilter !== 'all') {
-        params.set('type', typeFilter);
-      }
-      if (categoryFilter !== 'all') {
-        params.set('category', String(categoryFilter));
-      }
-      params.set('page', String(page));
-      params.set('per_page', String(ITEMS_PER_PAGE));
-      const response = await apiClient.get(`/protected/items?${params.toString()}`);
-      const list = mapCatalogIsActive(normalizeListResponse(response, 'items')).map((item) => ({
-        ...item,
-        category_id: item.category_id ? Number(item.category_id) : null
-      }));
-      const paginationSource = response?.data && Array.isArray(response?.data?.data) ? response.data : response;
-      const pagination = paginationSource && Array.isArray(paginationSource?.data)
-        ? {
-            current_page: paginationSource.current_page,
-            last_page: paginationSource.last_page,
-            per_page: paginationSource.per_page,
-            total: paginationSource.total,
-            from: paginationSource.from,
-            to: paginationSource.to
-          }
-        : null;
-      return { items: list, pagination };
-    },
-    enabled: !!businessId
+  const { data: itemsResponse = { items: [], pagination: null }, isLoading: loadingItems } = useItemsQuery({
+    businessId,
+    searchQuery,
+    typeFilter,
+    categoryFilter,
+    page
   });
 
   // Fetch categories
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories', businessId],
-    queryFn: async () => {
-      if (!businessId) return [];
-      const response = await apiClient.get('/protected/categories');
-      return mapCatalogIsActive(normalizeListResponse(response, 'categories')).map((category) => ({
-        ...category,
-        id: Number(category.id)
-      }));
-    },
-    enabled: !!businessId
-  });
+  const { data: categories = [] } = useItemCategoriesQuery(businessId);
 
   const items = itemsResponse?.items ?? [];
   const pagination = itemsResponse?.pagination;
   const totalPages = pagination?.last_page ?? Math.ceil(items.length / ITEMS_PER_PAGE);
 
   // Create/Update mutation
-  const itemMutation = useMutation({
-    mutationFn: async (data) => {
-      if (data.id) {
-        const { id, ...payload } = data;
-        return apiClient.put(`/protected/items/${id}`, payload);
-      }
-      return apiClient.post('/protected/items', data);
-    },
-    onSuccess: (response) => {
-      if (!updateItemsCache(response)) {
-        queryClient.invalidateQueries({ queryKey: ['items', businessId] });
-      }
-    }
-  });
+  const itemMutation = useSaveItemMutation();
+  const toggleStatusMutation = useToggleItemStatusMutation();
+  const bulkMutation = useBulkItemsMutation();
+  const importPreviewMutation = usePreviewItemsImportMutation();
+  const importPreviewPageMutation = usePreviewItemsImportPageMutation();
+  const importConfirmMutation = useConfirmItemsImportMutation();
 
   const handleSaveItem = async (itemData) => {
     setSavingItem(true);
     try {
       if (editingItem) {
-        await itemMutation.mutateAsync({ ...itemData, id: editingItem.id });
+        const saved = await itemMutation.mutateAsync({ ...itemData, id: editingItem.id });
+        updateItemsCache(saved);
         toast.success('Item updated');
       } else {
-        await itemMutation.mutateAsync(itemData);
+        const saved = await itemMutation.mutateAsync(itemData);
+        updateItemsCache(saved);
         toast.success('Item created');
       }
       setShowEditorModal(false);
@@ -193,8 +128,8 @@ export default function Items() {
 
   const handleDeactivateItem = async (item) => {
     try {
-      const response = await apiClient.put(`/protected/items/${item.id}`, { active: !item.is_active });
-      if (!updateItemsCache(response)) {
+      const updated = await toggleStatusMutation.mutateAsync(item);
+      if (!updateItemsCache(updated)) {
         queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       }
       toast.success(`Item ${item.is_active ? 'deactivated' : 'activated'}`);
@@ -222,7 +157,7 @@ export default function Items() {
   const handleAssignCategory = async (categoryId) => {
     setBulkLoading(true);
     try {
-      const response = await apiClient.patch('/protected/items/bulk', {
+      const response = await bulkMutation.mutateAsync({
         ids: selectedItems,
         operation: 'set_category',
         category_id: categoryId || null
@@ -241,7 +176,7 @@ export default function Items() {
   const handleApplyPriceIncrease = async (percent) => {
     setBulkLoading(true);
     try {
-      const response = await apiClient.patch('/protected/items/bulk', {
+      const response = await bulkMutation.mutateAsync({
         ids: selectedItems,
         operation: 'adjust_price',
         price_delta: percent
@@ -260,10 +195,7 @@ export default function Items() {
   const handleImportPreview = async (file) => {
     setImportLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const response = await apiClient.post('/protected/items-import/preview', formData);
-      const previewPayload = response?.data || response;
+      const previewPayload = await importPreviewMutation.mutateAsync(file);
       const parsingErrors = previewPayload?.parsing_errors || [];
       if (parsingErrors.length > 0) {
         toast.warning(`CSV preview generated with ${parsingErrors.length} parsing errors`);
@@ -288,12 +220,7 @@ export default function Items() {
     const rows = [];
 
     do {
-      const formData = new FormData();
-      formData.append('file', importFile);
-      formData.append('page', String(currentPage));
-      formData.append('per_page', String(perPage));
-      const response = await apiClient.post('/protected/items-import/preview/full', formData);
-      const payload = response?.data || response;
+      const payload = await importPreviewPageMutation.mutateAsync({ file: importFile, page: currentPage, perPage });
       const pageRows = payload?.rows || [];
       const pagination = payload?.pagination || {};
 
@@ -320,13 +247,11 @@ export default function Items() {
         stock_quantity: mapping.stock_quantity ? parseFloat(row[mapping.stock_quantity]) : undefined
       })).filter((item) => item.name && typeof item.price === 'number' && !Number.isNaN(item.price));
 
-      const response = await apiClient.post('/protected/items-import/confirm', {
+      const response = await importConfirmMutation.mutateAsync({
         items,
         sync_by_sku: false
       });
-      if (!updateItemsCache(response)) {
-        queryClient.invalidateQueries({ queryKey: ['items', businessId] });
-      }
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       const importedCount = response?.data?.imported_count
         || response?.imported_count
         || response?.count
