@@ -18,6 +18,8 @@ class AddItemToSaleAction
             'item_id' => $item->id,
             'item_name_snapshot' => $item->name,
             'unit_price_snapshot' => $price,
+            'item_type_snapshot' => $item->type,
+            'category_id_snapshot' => $item->category_id,
             'quantity' => $validated['quantity'],
             'total' => $total,
         ]);

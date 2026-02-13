@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
-import { mapCatalogIsActive, withCatalogIsActive } from '@/lib/catalogNaming';
+import { mapCatalogIsActive } from '@/lib/catalogNaming';
 import { formatPrice } from '@/lib/formatPrice';
 import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
 import { getIconComponent } from '@/lib/iconCatalog';
@@ -30,7 +30,6 @@ import PaymentWizard from '@/components/pos/PaymentWizard';
 import CashRegisterOpenModal from '@/components/pos/CashRegisterOpenModal';
 import QuickAddForm from '@/components/pos/QuickAddForm';
 import NetworkIndicator from '@/components/pos/NetworkIndicator';
-import GenericItemForm from '@/components/pos/GenericItemForm';
 import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import TicketActions from '@/components/sales/TicketActions';
 
@@ -49,43 +48,6 @@ function POSContent() {
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
   
   const searchInputRef = useRef(null);
-
-  const updateItemsCache = (response) => {
-    const list = mapCatalogIsActive(normalizeListResponse(response, 'items'));
-    if (list.length > 0) {
-      queryClient.setQueryData(
-        ['items', businessId],
-        list.map((item) => ({
-          ...item,
-          category_id: item.category_id !== null && item.category_id !== undefined
-            ? Number(item.category_id)
-            : null
-        }))
-      );
-      return true;
-    }
-
-    const entity = normalizeEntityResponse(response);
-    if (entity?.id) {
-      const normalizedEntity = {
-        ...withCatalogIsActive(entity),
-        category_id: entity.category_id !== null && entity.category_id !== undefined
-          ? Number(entity.category_id)
-          : null
-      };
-      queryClient.setQueryData(['items', businessId], (prev = []) => {
-        const safePrev = Array.isArray(prev) ? prev : [];
-        const exists = safePrev.find((item) => item.id === normalizedEntity.id);
-        if (exists) {
-          return safePrev.map((item) => (item.id === normalizedEntity.id ? { ...item, ...normalizedEntity } : item));
-        }
-        return [normalizedEntity, ...safePrev];
-      });
-      return true;
-    }
-
-    return false;
-  };
 
   // Fetch items
   const { data: items = [], isLoading: loadingItems } = useQuery({
@@ -234,7 +196,14 @@ function POSContent() {
     const saleResponse = await apiClient.post('/protected/sales/start', {
       cash_register_session_id: cashRegisterSessionId,
       items: items.map((item) => ({
-        item_id: item.item_id,
+        ...(item.is_quick_item
+          ? {
+              quick_item_name: item.name,
+              quick_item_price: item.unit_price,
+              quick_item_type: item.type || 'product',
+              quick_item_category_id: item.category_id ?? null,
+            }
+          : { item_id: item.item_id }),
         quantity: item.quantity,
         unit_price_override: item.unit_price
       })),
@@ -432,38 +401,42 @@ function POSContent() {
   };
 
   const handleQuickAdd = async (itemData) => {
-    try {
+    if (itemData.save_to_catalog) {
       const payload = {
-        ...itemData,
-        is_active: true
+        name: itemData.name,
+        price: Number(itemData.price),
+        type: itemData.type,
+        is_active: true,
+        ...(itemData.category_id !== undefined && { category_id: itemData.category_id }),
       };
-      const newItem = await apiClient.post('/protected/items', payload);
-      const createdItem = normalizeEntityResponse(newItem);
-      const resolvedCategoryId = createdItem?.category_id !== null && createdItem?.category_id !== undefined
-        ? Number(createdItem.category_id)
-        : (payload.category_id ?? null);
-      if (!updateItemsCache({
-        ...newItem,
-        category_id: resolvedCategoryId,
-        item: newItem?.item
-          ? { ...newItem.item, category_id: resolvedCategoryId }
-          : undefined,
-        data: newItem?.data
-          ? { ...newItem.data, category_id: resolvedCategoryId }
-          : undefined
-      })) {
-        queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+
+      const createdResponse = await apiClient.post('/protected/items', payload);
+      const createdItem = normalizeEntityResponse(createdResponse);
+
+      if (!createdItem?.id) {
+        throw new Error('No se pudo crear el item en catálogo');
       }
-      if (createdItem) {
-        addToCart({
-          ...createdItem,
-          category_id: resolvedCategoryId
-        });
-      }
-      toast.success(`Created and added ${itemData.name}`);
-    } catch (error) {
-      toast.error('Failed to create item');
+
+      addToCart({
+        id: createdItem.id,
+        name: createdItem.name,
+        price: Number(createdItem.price),
+        type: createdItem.type,
+        category_id: createdItem.category_id ?? itemData.category_id ?? null,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+      return;
     }
+
+    addToCart({
+      id: `quick-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      name: itemData.name,
+      price: Number(itemData.price),
+      type: itemData.type,
+      category_id: itemData.category_id ?? null,
+      is_quick_item: true,
+    });
   };
 
   const handleSyncOfflineQueue = async () => {
@@ -535,7 +508,6 @@ function POSContent() {
               />
             </div>
             <QuickAddForm onAdd={handleQuickAdd} categories={categories} />
-            <GenericItemForm onAdd={(item) => { addToCart(item); toast.success(`Added ${item.name}`); }} />
           </div>
 
           {/* Items Grid */}

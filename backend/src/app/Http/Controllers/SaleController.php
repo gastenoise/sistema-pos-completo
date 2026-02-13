@@ -56,7 +56,7 @@ class SaleController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => $sale->load(['items', 'payments.paymentMethod']),
+            'data' => $sale->load(['items.item.category', 'items.categorySnapshot', 'payments.paymentMethod']),
         ]);
     }
 
@@ -88,7 +88,7 @@ class SaleController extends Controller
         $saleItem->delete();
         $sale->calculateTotal();
 
-        return response()->json(['success' => true, 'data' => $sale->load('items')]);
+        return response()->json(['success' => true, 'data' => $sale->load(['items.item.category', 'items.categorySnapshot'])]);
     }
 
     public function getPaymentQr(Sale $sale)

@@ -38,16 +38,39 @@ class StartSaleAction
 
             $itemsTotal = 0;
             foreach ($validated['items'] as $rawItem) {
-                $item = Item::findOrFail($rawItem['item_id']);
-                $price = (float) ($rawItem['unit_price_override'] ?? $item->price);
                 $quantity = (int) $rawItem['quantity'];
+
+                if (!empty($rawItem['item_id'])) {
+                    $item = Item::findOrFail($rawItem['item_id']);
+                    $price = (float) ($rawItem['unit_price_override'] ?? $item->price);
+
+                    $lineTotal = $price * $quantity;
+                    $itemsTotal += $lineTotal;
+
+                    $sale->items()->create([
+                        'item_id' => $item->id,
+                        'item_name_snapshot' => $item->name,
+                        'unit_price_snapshot' => $price,
+                        'item_type_snapshot' => $item->type,
+                        'category_id_snapshot' => $item->category_id,
+                        'quantity' => $quantity,
+                        'total' => $lineTotal,
+                    ]);
+
+                    continue;
+                }
+
+                $quickPrice = (float) ($rawItem['quick_item_price'] ?? 0);
+                $price = (float) ($rawItem['unit_price_override'] ?? $quickPrice);
                 $lineTotal = $price * $quantity;
                 $itemsTotal += $lineTotal;
 
                 $sale->items()->create([
-                    'item_id' => $item->id,
-                    'item_name_snapshot' => $item->name,
+                    'item_id' => null,
+                    'item_name_snapshot' => (string) $rawItem['quick_item_name'],
                     'unit_price_snapshot' => $price,
+                    'item_type_snapshot' => (string) ($rawItem['quick_item_type'] ?? 'product'),
+                    'category_id_snapshot' => $rawItem['quick_item_category_id'] ?? null,
                     'quantity' => $quantity,
                     'total' => $lineTotal,
                 ]);
@@ -74,7 +97,7 @@ class StartSaleAction
 
             $sale->calculateTotal();
 
-            return $sale->fresh()->load(['items', 'payments.paymentMethod']);
+            return $sale->fresh()->load(['items.item.category', 'items.categorySnapshot', 'payments.paymentMethod']);
         });
     }
 }

@@ -13,6 +13,7 @@ class SaleItem extends Model
         'unit_price_snapshot' => 'decimal:2',
         'total' => 'decimal:2',
         'quantity' => 'integer',
+        'category_id_snapshot' => 'integer',
     ];
 
     public function sale(): BelongsTo
@@ -23,5 +24,10 @@ class SaleItem extends Model
     public function item(): BelongsTo
     {
         return $this->belongsTo(Item::class);
+    }
+
+    public function categorySnapshot(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'category_id_snapshot');
     }
 }

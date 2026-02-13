@@ -8,7 +8,7 @@ class GetLatestClosedSaleAction
 {
     public function execute(int $businessId): ?Sale
     {
-        return Sale::with(['items.item.category', 'payments.paymentMethod', 'user'])
+        return Sale::with(['items.item.category', 'items.categorySnapshot', 'payments.paymentMethod', 'user'])
             ->where('business_id', $businessId)
             ->whereIn('status', ['closed', 'voided'])
             ->orderByRaw('COALESCE(closed_at, created_at) DESC')
