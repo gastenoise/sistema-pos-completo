@@ -2,62 +2,38 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Sales\AddItemToSaleAction;
+use App\Actions\Sales\CloseSaleAction;
+use App\Actions\Sales\CreateSaleAction;
+use App\Actions\Sales\GetLatestClosedSaleAction;
+use App\Actions\Sales\StartSaleAction;
+use App\Actions\Sales\VoidSaleAction;
 use App\Models\Sale;
-use App\Models\Item;
 use App\Models\SaleItem;
-use App\Models\CashRegisterSession;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 use App\Services\BusinessContext;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SaleController extends Controller
 {
-    /**
-     * Iniciar una nueva venta
-     */
-    public function store(Request $request)
+    public function store(Request $request, CreateSaleAction $createSaleAction)
     {
-        $businessId = app(BusinessContext::class)->getBusinessId();
+        $sale = $createSaleAction->execute(
+            $request->filled('cash_register_session_id') ? (int) $request->input('cash_register_session_id') : null
+        );
 
-        // Verificar si el usuario tiene una caja abierta en este negocio
-        $sessionQuery = CashRegisterSession::where('status', 'open')
-            ->where('opened_by', Auth::id())
-            ->where('business_id', $businessId);
-
-        if ($request->filled('cash_register_session_id')) {
-            $session = $sessionQuery
-                ->where('id', $request->input('cash_register_session_id'))
-                ->first();
-        } else {
-            $session = $sessionQuery
-                ->latest()
-                ->first();
-        }
-
-        if (!$session) {
+        if (!$sale) {
             return response()->json([
                 'success' => false,
                 'error' => 'No active cash session',
-                'code' => 'CASH_CLOSED'
+                'code' => 'CASH_CLOSED',
             ], 422);
         }
-
-        $sale = Sale::create([
-            'cash_register_session_id' => $session->id,
-            'user_id' => Auth::id(),
-            'status' => 'open',
-            'total_amount' => 0
-        ]);
 
         return response()->json(['success' => true, 'data' => $sale]);
     }
 
-    /**
-     * Iniciar venta y cargar ítems + división de pagos en una sola acción.
-     */
-    public function start(Request $request)
+    public function start(Request $request, StartSaleAction $startSaleAction)
     {
         $validated = $request->validate([
             'cash_register_session_id' => 'nullable|integer|exists:cash_register_sessions,id',
@@ -71,97 +47,28 @@ class SaleController extends Controller
             'payments.*.transaction_reference' => 'nullable|string|max:255',
         ]);
 
-        $businessId = app(BusinessContext::class)->getBusinessId();
+        $sale = $startSaleAction->execute($validated);
 
-        $sessionQuery = CashRegisterSession::where('status', 'open')
-            ->where('opened_by', Auth::id())
-            ->where('business_id', $businessId);
-
-        if (!empty($validated['cash_register_session_id'])) {
-            $session = $sessionQuery
-                ->where('id', $validated['cash_register_session_id'])
-                ->first();
-        } else {
-            $session = $sessionQuery
-                ->latest()
-                ->first();
-        }
-
-        if (!$session) {
+        if (!$sale) {
             return response()->json([
                 'success' => false,
                 'error' => 'No active cash session',
-                'code' => 'CASH_CLOSED'
+                'code' => 'CASH_CLOSED',
             ], 422);
         }
-
-        $sale = DB::transaction(function () use ($session, $validated) {
-            $sale = Sale::create([
-                'cash_register_session_id' => $session->id,
-                'user_id' => Auth::id(),
-                'status' => 'open',
-                'total_amount' => 0,
-            ]);
-
-            $itemsTotal = 0;
-            foreach ($validated['items'] as $rawItem) {
-                $item = Item::findOrFail($rawItem['item_id']);
-                $price = (float) ($rawItem['unit_price_override'] ?? $item->price);
-                $quantity = (int) $rawItem['quantity'];
-                $lineTotal = $price * $quantity;
-                $itemsTotal += $lineTotal;
-
-                $sale->items()->create([
-                    'item_id' => $item->id,
-                    'item_name_snapshot' => $item->name,
-                    'unit_price_snapshot' => $price,
-                    'quantity' => $quantity,
-                    'total' => $lineTotal,
-                ]);
-            }
-
-            $paymentsTotal = 0;
-            foreach ($validated['payments'] as $payment) {
-                $amount = (float) $payment['amount'];
-                $paymentsTotal += $amount;
-
-                $sale->payments()->create([
-                    'payment_method_id' => $payment['payment_method_id'],
-                    'amount' => $amount,
-                    'status' => 'pending',
-                    'transaction_reference' => $payment['transaction_reference'] ?? null,
-                ]);
-            }
-
-            if (abs($paymentsTotal - $itemsTotal) > 0.01) {
-                throw ValidationException::withMessages([
-                    'payments' => ['Payment division must match sale total'],
-                ]);
-            }
-
-            $sale->calculateTotal();
-
-            return $sale->fresh()->load(['items', 'payments.paymentMethod']);
-        });
 
         return response()->json(['success' => true, 'data' => $sale]);
     }
 
-    /**
-     * Obtener detalle de una venta
-     */
     public function show(Sale $sale)
     {
         return response()->json([
             'success' => true,
-            'data' => $sale->load(['items', 'payments.paymentMethod'])
+            'data' => $sale->load(['items', 'payments.paymentMethod']),
         ]);
     }
 
-    /**
-     * Agregar ítem a la venta (con snapshots de precio y nombre)
-     */
-    public function addItem(Request $request, Sale $sale)
+    public function addItem(Request $request, Sale $sale, AddItemToSaleAction $addItemToSaleAction)
     {
         if ($sale->status !== 'open') {
             return response()->json(['success' => false, 'message' => 'Sale is not editable'], 400);
@@ -170,35 +77,21 @@ class SaleController extends Controller
         $validated = $request->validate([
             'item_id' => 'required|exists:items,id',
             'quantity' => 'required|integer|min:1',
-            'unit_price_override' => 'nullable|numeric|min:0'
+            'unit_price_override' => 'nullable|numeric|min:0',
         ]);
 
-        $item = Item::findOrFail($validated['item_id']);
+        $sale = $addItemToSaleAction->execute($sale, $validated);
 
-        $price = $validated['unit_price_override'] ?? $item->price;
-        $total = $price * $validated['quantity'];
-
-        $sale->items()->create([
-            'item_id' => $item->id,
-            'item_name_snapshot' => $item->name,
-            'unit_price_snapshot' => $price,
-            'quantity' => $validated['quantity'],
-            'total' => $total
-        ]);
-
-        $sale->calculateTotal();
-
-        return response()->json(['success' => true, 'data' => $sale->load('items')]);
+        return response()->json(['success' => true, 'data' => $sale]);
     }
 
-    /**
-     * Eliminar ítem de la venta
-     */
     public function removeItem(Sale $sale, SaleItem $saleItem)
     {
         $this->authorize('update', $sale);
 
-        if ($sale->status !== 'open') abort(400, 'Sale is not editable');
+        if ($sale->status !== 'open') {
+            abort(400, 'Sale is not editable');
+        }
 
         if ((int) $saleItem->sale_id !== (int) $sale->id) {
             abort(404, 'Sale item not found for this sale');
@@ -210,62 +103,30 @@ class SaleController extends Controller
         return response()->json(['success' => true, 'data' => $sale->load('items')]);
     }
 
-    /**
-     * Generar payload para QR ficticio de Mercado Pago
-     */
     public function getPaymentQr(Sale $sale)
     {
-        // Payload ficticio según requerimiento
         $qrString = "mp://checkout?amount={$sale->total_amount}&ref=SALE_{$sale->id}";
 
         return response()->json([
             'success' => true,
             'data' => [
                 'qr_payload' => $qrString,
-                'method' => 'mercado_pago_mock'
-            ]
+                'method' => 'mercado_pago_mock',
+            ],
         ]);
     }
 
-    /**
-     * Cerrar la venta e imprimir estado final
-     */
-    public function close(Request $request, Sale $sale)
+    public function close(Request $request, Sale $sale, CloseSaleAction $closeSaleAction)
     {
-        if ($sale->items()->count() === 0) {
-            return response()->json(['success' => false, 'message' => 'Cannot close an empty sale'], 422);
-        }
+        $result = $closeSaleAction->execute($sale);
 
-        $unconfirmedPayments = $sale->payments()->where('status', '!=', 'confirmed')->count();
-        if ($unconfirmedPayments > 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'All payments must be confirmed before closing sale',
-            ], 422);
-        }
+        $status = $result['status'];
+        unset($result['status']);
 
-        $totalPaid = $sale->payments()->where('status', 'confirmed')->sum('amount');
-        if ($totalPaid < $sale->total_amount) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Insufficient confirmed payments',
-                'pending' => $sale->total_amount - $totalPaid
-            ], 422);
-        }
-
-        $sale->update([
-            'status' => 'closed',
-            'closed_at' => now()
-        ]);
-
-        return response()->json(['success' => true, 'message' => 'Sale finalized']);
+        return response()->json($result, $status);
     }
 
-
-    /**
-     * Obtener la última venta cerrada/voided del negocio actual
-     */
-    public function latestClosed(Request $request)
+    public function latestClosed(Request $request, GetLatestClosedSaleAction $getLatestClosedSaleAction)
     {
         $businessId = app(BusinessContext::class)->getBusinessId();
 
@@ -273,16 +134,7 @@ class SaleController extends Controller
             return response()->json(['success' => false, 'message' => 'Business not selected'], 403);
         }
 
-        $sale = Sale::with(['items.item.category', 'payments.paymentMethod', 'user'])
-            ->where('business_id', $businessId)
-            ->whereIn('status', ['closed', 'voided'])
-            ->orderByRaw('COALESCE(closed_at, created_at) DESC')
-            ->orderByDesc('id')
-            ->first();
-
-        if (!$sale) {
-            return response()->json(['success' => true, 'data' => null]);
-        }
+        $sale = $getLatestClosedSaleAction->execute($businessId);
 
         return response()->json([
             'success' => true,
@@ -290,41 +142,22 @@ class SaleController extends Controller
         ]);
     }
 
-    /**
-     * Anular venta (Void)
-     */
-    public function void(Request $request, Sale $sale)
+    public function void(Request $request, Sale $sale, VoidSaleAction $voidSaleAction)
     {
-        $businessId = app(BusinessContext::class)->getBusinessId();
-        $user = Auth::user();
-
-        if (!$businessId || !$user || !$sale->business_id || (int) $sale->business_id !== (int) $businessId) {
-            return response()->json(['success' => false, 'message' => 'Sale not found'], 404);
-        }
-
-        if (!$user->hasRole('admin', $businessId)) {
-            return response()->json(['success' => false, 'message' => 'Only admins can void sales'], 403);
-        }
-
         $request->validate([
-            'reason' => 'required|string|max:255'
+            'reason' => 'required|string|max:255',
         ]);
 
-        if ($sale->status === 'voided') {
-            return response()->json(['success' => false, 'message' => 'Sale already voided'], 400);
-        }
+        $result = $voidSaleAction->execute(
+            $sale,
+            Auth::user(),
+            app(BusinessContext::class)->getBusinessId(),
+            $request->string('reason')->toString()
+        );
 
-        if ($sale->status !== 'closed') {
-            return response()->json(['success' => false, 'message' => 'Only closed sales can be voided'], 400);
-        }
+        $status = $result['status'];
+        unset($result['status']);
 
-        $sale->update([
-            'status' => 'voided',
-            'voided_at' => now(),
-            'voided_by' => Auth::id(),
-            'void_reason' => $request->reason
-        ]);
-
-        return response()->json(['success' => true, 'message' => 'Sale voided successfully']);
+        return response()->json($result, $status);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Reports\BuildSalesSummaryAction;
 use App\Models\Sale;
 use App\Models\PaymentMethod;
 use App\Models\BusinessPaymentMethodHide;
@@ -152,119 +153,26 @@ class ReportController extends Controller
         return response()->json(['success' => true, 'data' => $sales]);
     }
 
-    public function salesSummary(Request $request)
+    public function salesSummary(Request $request, BuildSalesSummaryAction $buildSalesSummaryAction)
     {
         $businessId = app(BusinessContext::class)->getBusinessId();
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
-        $includeVoided = $request->boolean('include_voided');
-        $paymentMethod = $request->input('payment_method');
-        $categoryId = $request->input('category_id');
-        $statuses = collect(explode(',', (string) $request->input('statuses', '')))
-            ->map(fn ($status) => trim($status))
-            ->filter();
 
-        $salesQuery = $this->buildFilteredSalesQuery(
-            $businessId,
-            $startDate,
-            $endDate,
-            $includeVoided,
-            $paymentMethod,
-            $categoryId,
-            $statuses
-        );
+        $filters = [
+            'start_date' => $request->input('start_date'),
+            'end_date' => $request->input('end_date'),
+            'include_voided' => $request->boolean('include_voided'),
+            'payment_method' => $request->input('payment_method'),
+            'category_id' => $request->input('category_id'),
+            'statuses' => collect(explode(',', (string) $request->input('statuses', '')))
+                ->map(fn ($status) => trim($status))
+                ->filter(),
+        ];
 
-        $summaryByStatus = (clone $salesQuery)
-            ->selectRaw('status, COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total_amount')
-            ->groupBy('status')
-            ->get();
-
-        $totalsByStatus = $summaryByStatus
-            ->map(fn ($row) => [
-                'status' => $row->status,
-                'count' => (int) $row->count,
-                'total_amount' => (float) $row->total_amount,
-            ])
-            ->values();
-
-        $summaryTotals = $summaryByStatus
-            ->reduce(function (array $carry, $row) {
-                if ($row->status === 'closed') {
-                    $carry['total_sales'] = (float) $row->total_amount;
-                    $carry['sales_count'] = (int) $row->count;
-                }
-
-                if ($row->status === 'voided') {
-                    $carry['voided_count'] = (int) $row->count;
-                }
-
-                return $carry;
-            }, [
-                'total_sales' => 0.0,
-                'sales_count' => 0,
-                'voided_count' => 0,
-            ]);
-
-        $filteredSales = $salesQuery->toBase();
-
-        $paymentsQuery = DB::table('sale_payments')
-            ->joinSub($filteredSales, 'filtered_sales', function ($join) {
-                $join->on('sale_payments.sale_id', '=', 'filtered_sales.id');
-            })
-            ->join('payment_methods', 'sale_payments.payment_method_id', '=', 'payment_methods.id')
-            ->where('filtered_sales.status', 'closed');
-
-        $totalsByPaymentMethod = $paymentsQuery
-            ->select(
-                'payment_methods.code',
-                'payment_methods.name',
-                DB::raw('SUM(sale_payments.amount) as total_amount'),
-                DB::raw('COUNT(sale_payments.id) as payments_count')
-            )
-            ->groupBy('payment_methods.code', 'payment_methods.name')
-            ->get();
-
-        $totalsByCategoryQuery = DB::query()
-            ->fromSub($filteredSales, 'filtered_sales')
-            ->join('sale_items', 'filtered_sales.id', '=', 'sale_items.sale_id')
-            ->join('items', 'sale_items.item_id', '=', 'items.id')
-            ->leftJoin('categories', 'items.category_id', '=', 'categories.id')
-            ->where('filtered_sales.status', 'closed');
-
-        if ($categoryId) {
-            if ($categoryId === 'uncategorized') {
-                $totalsByCategoryQuery->whereNull('items.category_id');
-            } else {
-                $totalsByCategoryQuery->where('items.category_id', $categoryId);
-            }
-        }
-
-        $totalsByCategory = $totalsByCategoryQuery
-            ->select(
-                'categories.id',
-                DB::raw("COALESCE(categories.name, 'Sin categoría') as name"),
-                'categories.color',
-                'categories.color_hex',
-                DB::raw("COALESCE(categories.icon, 'Package') as icon"),
-                DB::raw('SUM(sale_items.total) as total_amount')
-            )
-            ->groupBy('categories.id', 'categories.name', 'categories.color', 'categories.color_hex', 'categories.icon')
-            ->havingRaw('SUM(sale_items.total) > 0')
-            ->orderByDesc('total_amount')
-            ->get();
+        $summary = $buildSalesSummaryAction->execute($businessId, $filters);
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'summary' => [
-                    'total_sales' => $summaryTotals['total_sales'],
-                    'sales_count' => $summaryTotals['sales_count'],
-                    'voided_count' => $summaryTotals['voided_count'],
-                ],
-                'totals_by_status' => $totalsByStatus,
-                'totals_by_payment_method' => $totalsByPaymentMethod,
-                'totals_by_category' => $totalsByCategory,
-            ],
+            'data' => $summary,
         ]);
     }
 

@@ -2,17 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Item;
-use App\Models\Category;
-use App\Models\Import;
+use App\Actions\Items\BulkUpdateItemsAction;
+use App\Actions\Items\ImportItemsAction;
 use App\Http\Resources\ItemResource;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
+use App\Models\Item;
 use App\Services\BusinessContext;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ItemController extends Controller
 {
@@ -27,7 +23,7 @@ class ItemController extends Controller
         $parsingErrors = [];
 
         foreach ($rawRows as $index => $row) {
-            $lineNumber = $index + 2; // +1 por header, +1 por índice base 0
+            $lineNumber = $index + 2;
             if (count($row) !== count($normalizedHeader)) {
                 $parsingErrors[] = [
                     'line' => $lineNumber,
@@ -36,7 +32,7 @@ class ItemController extends Controller
                         $lineNumber,
                         count($normalizedHeader),
                         count($row)
-                    )
+                    ),
                 ];
 
                 continue;
@@ -46,7 +42,7 @@ class ItemController extends Controller
             if ($combined === false) {
                 $parsingErrors[] = [
                     'line' => $lineNumber,
-                    'message' => sprintf('Unable to parse CSV row at line %d.', $lineNumber)
+                    'message' => sprintf('Unable to parse CSV row at line %d.', $lineNumber),
                 ];
                 continue;
             }
@@ -84,9 +80,9 @@ class ItemController extends Controller
         }
         if ($request->filled('search')) {
             $term = $request->search;
-            $query->where(function($q) use ($term) {
+            $query->where(function ($q) use ($term) {
                 $q->where('name', 'like', "%{$term}%")
-                  ->orWhere('sku', 'like', "%{$term}%");
+                    ->orWhere('sku', 'like', "%{$term}%");
             });
         }
 
@@ -128,9 +124,7 @@ class ItemController extends Controller
         return response()->json(['success' => true, 'data' => new ItemResource($item)]);
     }
 
-
-
-    public function bulkUpdate(Request $request)
+    public function bulkUpdate(Request $request, BulkUpdateItemsAction $bulkUpdateItemsAction)
     {
         $businessId = app(BusinessContext::class)->getBusinessId();
 
@@ -147,101 +141,28 @@ class ItemController extends Controller
         $operation = $validated['operation'];
 
         if ($operation === 'set_category' && !array_key_exists('category_id', $validated)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'category_id is required for set_category operation.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'category_id is required for set_category operation.'], 422);
         }
-
         if ($operation === 'set_price' && !array_key_exists('price', $validated)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'price is required for set_price operation.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'price is required for set_price operation.'], 422);
         }
-
         if ($operation === 'adjust_price' && !array_key_exists('price_delta', $validated)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'price_delta is required for adjust_price operation.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'price_delta is required for adjust_price operation.'], 422);
         }
-
         if ($operation === 'set_active' && !array_key_exists('active', $validated)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'active is required for set_active operation.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'active is required for set_active operation.'], 422);
         }
 
-        $ids = array_values(array_unique($validated['ids']));
+        $result = $bulkUpdateItemsAction->execute($validated);
 
-        $result = DB::transaction(function () use ($ids, $operation, $validated) {
-            $items = Item::whereIn('id', $ids)->lockForUpdate()->get();
-
-            if ($items->count() !== count($ids)) {
-                throw ValidationException::withMessages([
-                    'ids' => ['One or more items were not found for the current business.'],
-                ]);
-            }
-
-            if ($operation === 'set_category') {
-                Item::whereIn('id', $ids)->update([
-                    'category_id' => $validated['category_id'] ?? null,
-                ]);
-            }
-
-            if ($operation === 'set_price') {
-                Item::whereIn('id', $ids)->update([
-                    'price' => round((float) $validated['price'], 2),
-                ]);
-            }
-
-            if ($operation === 'adjust_price') {
-                $delta = (float) $validated['price_delta'];
-                foreach ($items as $item) {
-                    $newPrice = round(((float) $item->price) * (1 + ($delta / 100)), 2);
-                    if ($newPrice < 0) {
-                        throw ValidationException::withMessages([
-                            'price_delta' => ["Adjusted price cannot be negative for item {$item->id}."],
-                        ]);
-                    }
-                    $item->price = $newPrice;
-                    $item->save();
-                }
-            }
-
-            if ($operation === 'set_active') {
-                Item::whereIn('id', $ids)->update([
-                    'active' => (bool) $validated['active'],
-                ]);
-            }
-
-            return [
-                'requested_count' => count($ids),
-                'updated_count' => count($ids),
-                'operation' => $operation,
-                'ids' => $ids,
-            ];
-        });
-
-        return response()->json([
-            'success' => true,
-            'data' => $result,
-        ]);
+        return response()->json(['success' => true, 'data' => $result]);
     }
-
-    // --- Import Logic ---
 
     public function importPreview(Request $request)
     {
-        $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:2048'
-        ]);
+        $request->validate(['file' => 'required|file|mimes:csv,txt|max:2048']);
 
-        $file = $request->file('file');
-        $path = $file->getRealPath();
-        $parsed = $this->parseCsvFile($path);
+        $parsed = $this->parseCsvFile($request->file('file')->getRealPath());
 
         return response()->json([
             'success' => true,
@@ -250,7 +171,7 @@ class ItemController extends Controller
                 'sample' => $parsed['sample'],
                 'total_rows' => $parsed['total_rows'],
                 'parsing_errors' => $parsed['parsing_errors'],
-            ]
+            ],
         ]);
     }
 
@@ -262,9 +183,7 @@ class ItemController extends Controller
             'per_page' => 'nullable|integer|min:1|max:500',
         ]);
 
-        $file = $request->file('file');
-        $path = $file->getRealPath();
-        $parsed = $this->parseCsvFile($path);
+        $parsed = $this->parseCsvFile($request->file('file')->getRealPath());
 
         $page = (int) $request->input('page', 1);
         $perPage = (int) $request->input('per_page', 100);
@@ -286,70 +205,29 @@ class ItemController extends Controller
                     'total' => $total,
                     'last_page' => $total > 0 ? (int) ceil($total / $perPage) : 1,
                 ],
-            ]
+            ],
         ]);
     }
 
-    public function importConfirm(Request $request)
+    public function importConfirm(Request $request, ImportItemsAction $importItemsAction)
     {
         $request->validate([
             'items' => 'required|array',
             'items.*.name' => 'required|string',
             'items.*.price' => 'required|numeric',
-            'sync_by_sku' => 'boolean'
+            'sync_by_sku' => 'boolean',
         ]);
 
-        $items = $request->input('items');
-        $syncBySku = $request->boolean('sync_by_sku');
-        $businessId = app(BusinessContext::class)->getBusinessId();
-        
-        DB::beginTransaction();
         try {
-            $count = 0;
-            foreach ($items as $row) {
-                if ($syncBySku && !empty($row['sku'])) {
-                    Item::updateOrCreate(
-                        ['business_id' => $businessId, 'sku' => $row['sku']],
-                        [
-                            'name' => $row['name'],
-                            'price' => $row['price'],
-                            'type' => $row['type'] ?? 'product',
-                            'active' => true
-                        ]
-                    );
-                } else {
-                    Item::create([
-                        'business_id' => $businessId,
-                        'name' => $row['name'],
-                        'price' => $row['price'],
-                        'sku' => $row['sku'] ?? null,
-                        'type' => $row['type'] ?? 'product'
-                    ]);
-                }
-                $count++;
-            }
+            $result = $importItemsAction->execute(
+                $request->input('items'),
+                $request->boolean('sync_by_sku'),
+                app(BusinessContext::class)->getBusinessId()
+            );
 
-            // Registrar Import
-            Import::create([
-                'business_id' => $businessId,
-                'user_id'     => Auth::id(), // FIX: Usamos la Facade para evitar error de Intelephense
-                'source'      => 'csv',
-                'status'      => 'imported',
-                // FIX: No usamos json_encode porque el modelo Import ya tiene el cast 'array'
-                'summary'     => ['imported_count' => $count] 
-            ]);
-
-            DB::commit();
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'imported_count' => $count
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(['success' => true, 'data' => $result]);
+        } catch (\Throwable $exception) {
+            return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
         }
     }
 }
