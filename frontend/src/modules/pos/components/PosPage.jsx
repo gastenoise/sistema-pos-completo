@@ -25,7 +25,7 @@ import { useCart, CartProvider } from '@/components/pos/CartContext';
 import { useAuth } from '@/lib/AuthContext';
 import TopNav from '@/components/pos/TopNav';
 import SaleCart from '@/components/pos/SaleCart';
-import PaymentWizardNew from '@/components/pos/PaymentWizardNew';
+import PaymentWizard from '@/components/pos/PaymentWizard';
 import CashRegisterOpenModal from '@/components/pos/CashRegisterOpenModal';
 import QuickAddForm from '@/components/pos/QuickAddForm';
 import NetworkIndicator from '@/components/pos/NetworkIndicator';
@@ -611,7 +611,7 @@ function POSContent() {
       </div>
 
       {/* Payment Wizard */}
-      <PaymentWizardNew
+      <PaymentWizard
         open={showWizard}
         onClose={() => setShowWizard(false)}
         total={cartItems.reduce((sum, item) => sum + item.subtotal, 0)}
