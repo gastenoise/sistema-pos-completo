@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Business\UpdateBusinessAction;
 use App\Actions\Business\UpdateBusinessCurrencyAction;
+use App\Http\Requests\BusinessUpdateRequest;
 use App\Models\Business;
 use App\Models\BusinessSmtpSetting;
 use App\Models\BusinessUser;
@@ -217,7 +218,7 @@ class BusinessController extends Controller
         return response()->json(['success' => true, 'data' => $this->withBusinessParameters($refreshedBusiness)]);
     }
 
-    public function update(Request $request, UpdateBusinessAction $updateBusinessAction)
+    public function update(BusinessUpdateRequest $request, UpdateBusinessAction $updateBusinessAction)
     {
         $businessId = app(BusinessContext::class)->getBusinessId();
         if (!$businessId) {
@@ -229,16 +230,7 @@ class BusinessController extends Controller
             return response()->json(['success' => false, 'message' => 'Business not found'], 404);
         }
 
-        $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
-            'address' => 'nullable|string|max:255',
-            'phone' => 'nullable|string|max:50',
-            'email' => 'nullable|email|max:255',
-            'tax_id' => 'nullable|string|max:20',
-            'preferred_payment_method_id' => 'nullable|integer|exists:payment_methods,id',
-            'business_parameters' => 'nullable|array',
-            'business_parameters.*' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         $parametersPayload = $validated['business_parameters'] ?? null;
         unset($validated['business_parameters']);

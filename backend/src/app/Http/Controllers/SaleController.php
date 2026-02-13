@@ -8,6 +8,8 @@ use App\Actions\Sales\CreateSaleAction;
 use App\Actions\Sales\GetLatestClosedSaleAction;
 use App\Actions\Sales\StartSaleAction;
 use App\Actions\Sales\VoidSaleAction;
+use App\Http\Requests\SaleAddItemRequest;
+use App\Http\Requests\SaleStartRequest;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Services\BusinessContext;
@@ -33,19 +35,9 @@ class SaleController extends Controller
         return response()->json(['success' => true, 'data' => $sale]);
     }
 
-    public function start(Request $request, StartSaleAction $startSaleAction)
+    public function start(SaleStartRequest $request, StartSaleAction $startSaleAction)
     {
-        $validated = $request->validate([
-            'cash_register_session_id' => 'nullable|integer|exists:cash_register_sessions,id',
-            'items' => 'required|array|min:1',
-            'items.*.item_id' => 'required|integer|exists:items,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unit_price_override' => 'nullable|numeric|min:0',
-            'payments' => 'required|array|min:1',
-            'payments.*.payment_method_id' => 'required|integer|exists:payment_methods,id',
-            'payments.*.amount' => 'required|numeric|min:0.01',
-            'payments.*.transaction_reference' => 'nullable|string|max:255',
-        ]);
+        $validated = $request->validated();
 
         $sale = $startSaleAction->execute($validated);
 
@@ -68,17 +60,13 @@ class SaleController extends Controller
         ]);
     }
 
-    public function addItem(Request $request, Sale $sale, AddItemToSaleAction $addItemToSaleAction)
+    public function addItem(SaleAddItemRequest $request, Sale $sale, AddItemToSaleAction $addItemToSaleAction)
     {
         if ($sale->status !== 'open') {
             return response()->json(['success' => false, 'message' => 'Sale is not editable'], 400);
         }
 
-        $validated = $request->validate([
-            'item_id' => 'required|exists:items,id',
-            'quantity' => 'required|integer|min:1',
-            'unit_price_override' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
         $sale = $addItemToSaleAction->execute($sale, $validated);
 

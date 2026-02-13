@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Actions\Items\BulkUpdateItemsAction;
 use App\Actions\Items\ImportItemsAction;
+use App\Http\Requests\ItemStoreRequest;
+use App\Http\Requests\ItemUpdateRequest;
 use App\Http\Resources\ItemResource;
 use App\Models\Item;
 use App\Services\BusinessContext;
@@ -92,15 +94,9 @@ class ItemController extends Controller
         return response()->json(['success' => true, 'data' => ItemResource::collection($query->paginate($perPage))]);
     }
 
-    public function store(Request $request)
+    public function store(ItemStoreRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0',
-            'type' => 'required|in:product,service,fee',
-            'category_id' => ['nullable', Rule::exists('categories', 'id')->where('business_id', app(BusinessContext::class)->getBusinessId())],
-            'sku' => 'nullable|string|max:50',
-        ]);
+        $validated = $request->validated();
 
         $item = Item::create($validated);
         return response()->json(['success' => true, 'data' => new ItemResource($item)], 201);
@@ -111,14 +107,9 @@ class ItemController extends Controller
         return response()->json(['success' => true, 'data' => new ItemResource($item)]);
     }
 
-    public function update(Request $request, Item $item)
+    public function update(ItemUpdateRequest $request, Item $item)
     {
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'price' => 'sometimes|numeric|min:0',
-            'active' => 'sometimes|boolean',
-            'category_id' => ['nullable', Rule::exists('categories', 'id')->where('business_id', app(BusinessContext::class)->getBusinessId())],
-        ]);
+        $validated = $request->validated();
 
         $item->update($validated);
         return response()->json(['success' => true, 'data' => new ItemResource($item)]);
