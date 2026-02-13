@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { apiClient } from '@/api/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   DollarSign,
   Calendar, Loader2, FileText, Ban, Eye, Trash2
@@ -34,7 +33,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from 'sonner';
-import { normalizeListResponse } from '@/lib/normalizeResponse';
 import { formatPrice } from '@/lib/formatPrice';
 import {
   formatDateTimeLocal,
@@ -50,6 +48,13 @@ import { useAuth } from '@/lib/AuthContext';
 import TopNav from '@/components/pos/TopNav';
 import CsvExportButton from '@/components/pos/CsvExportButton';
 import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
+import {
+  useReportCategoriesQuery,
+  useReportPaymentMethodsQuery,
+  useSalesQuery,
+  useSalesSummaryQuery,
+} from '@/modules/reports/hooks/useSalesReports';
+import { exportSalesReport } from '@/api/reports';
 
 export default function Reports() {
   const { businessId, currentBusiness, businesses } = useBusiness();
@@ -85,84 +90,26 @@ export default function Reports() {
 
   const canVoidSales = currentBusinessRole === 'admin';
   // Fetch sales
-  const { data: sales = [], isLoading: loadingSales } = useQuery({
-    queryKey: ['sales', businessId, dateFrom, dateTo, statusTab, selectedPaymentMethod, selectedCategory],
-    queryFn: async () => {
-      if (!businessId) return [];
-      try {
-        const params = new URLSearchParams({
-          start_date: dateFrom,
-          end_date: dateTo
-        });
-        params.set('statuses', statusTab);
-        if (selectedPaymentMethod) {
-          params.set('payment_method', selectedPaymentMethod);
-        }
-        if (selectedCategory) {
-          params.set('category_id', selectedCategory);
-        }
-        const response = await apiClient.get(`/protected/reports/sales?${params.toString()}`);
-        return normalizeListResponse(response, 'sales');
-      } catch (error) {
-        if (error?.status === 404) {
-          const params = new URLSearchParams({
-            start_date: dateFrom,
-            end_date: dateTo,
-            type: 'sales',
-            format_json: '1'
-          });
-          const fallback = await apiClient.get(`/protected/reports/export?${params.toString()}`);
-          return normalizeListResponse(fallback, 'sales');
-        }
-        throw error;
-      }
-    },
-    enabled: !!businessId
+  const { data: sales = [], isLoading: loadingSales } = useSalesQuery({
+    businessId,
+    dateFrom,
+    dateTo,
+    status: statusTab,
+    paymentMethod: selectedPaymentMethod,
+    categoryId: selectedCategory
   });
 
-  const { data: salesSummary = {} } = useQuery({
-    queryKey: ['sales-summary', businessId, dateFrom, dateTo, selectedPaymentMethod, selectedCategory],
-    queryFn: async () => {
-      if (!businessId) return {};
-      const params = new URLSearchParams({
-        start_date: dateFrom,
-        end_date: dateTo
-      });
-      if (selectedPaymentMethod) {
-        params.set('payment_method', selectedPaymentMethod);
-      }
-      if (selectedCategory) {
-        params.set('category_id', selectedCategory);
-      }
-      const response = await apiClient.get(`/protected/reports/summary?${params.toString()}`);
-      return response?.data ?? response;
-    },
-    enabled: !!businessId
+  const { data: salesSummary = {} } = useSalesSummaryQuery({
+    businessId,
+    dateFrom,
+    dateTo,
+    paymentMethod: selectedPaymentMethod,
+    categoryId: selectedCategory
   });
 
-  // Fetch payment methods
-  const { data: paymentMethods = [] } = useQuery({
-    queryKey: ['paymentMethods', businessId],
-    queryFn: async () => {
-      if (!businessId) return [];
-      const response = await apiClient.get('/protected/payment-methods');
-      return normalizeListResponse(response, 'payment_methods').map((method) => ({
-        ...method,
-        type: method.type || method.code
-      }));
-    },
-    enabled: !!businessId
-  });
+  const { data: paymentMethods = [] } = useReportPaymentMethodsQuery(businessId);
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ['report-categories', businessId],
-    queryFn: async () => {
-      if (!businessId) return [];
-      const response = await apiClient.get('/protected/categories');
-      return normalizeListResponse(response, 'categories');
-    },
-    enabled: !!businessId
-  });
+  const { data: categories = [] } = useReportCategoriesQuery(businessId);
 
   const summary = salesSummary?.summary || {};
   const totalsByPaymentMethod = salesSummary?.totals_by_payment_method || [];
@@ -258,16 +205,7 @@ export default function Reports() {
 
   const handleExportCsv = async () => {
     try {
-      const params = new URLSearchParams({
-        start_date: dateFrom,
-        end_date: dateTo,
-        type: 'sales',
-        statuses: statusTab
-      });
-      const response = await apiClient.get(`/protected/reports/export?${params.toString()}`, {
-        responseType: 'blob',
-        includeMeta: true
-      });
+      const response = await exportSalesReport({ dateFrom, dateTo, status: statusTab });
 
       const contentDisposition = response.headers.get('content-disposition') || '';
       const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);

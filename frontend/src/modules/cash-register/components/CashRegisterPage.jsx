@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { apiClient } from '@/api/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   Lock, Unlock, Loader2, AlertCircle, CheckCircle, ChevronDown
 } from 'lucide-react';
@@ -22,7 +21,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from 'sonner';
-import { normalizeListResponse } from '@/lib/normalizeResponse';
 import { formatPrice } from '@/lib/formatPrice';
 import { formatDateTimeLocal } from '@/lib/dateTime';
 
@@ -30,6 +28,13 @@ import { useBusiness } from '@/components/pos/BusinessContext';
 import { useAuth } from '@/lib/AuthContext';
 import TopNav from '@/components/pos/TopNav';
 import CashRegisterOpenModal from '@/components/pos/CashRegisterOpenModal';
+import {
+  useCashStatusQuery,
+  useClosedSessionsQuery,
+  useExpectedTotalsQuery,
+  useOpenRegisterMutation,
+  useCloseRegisterMutation,
+} from '@/modules/cash-register/hooks/useCashRegisterData';
 
 export default function CashRegister() {
   const { businessId, currentBusiness } = useBusiness();
@@ -42,44 +47,14 @@ export default function CashRegister() {
   const [loading, setLoading] = useState(false);
   const [showRecentSessions, setShowRecentSessions] = useState(false);
 
-  // Fetch current session
-  const { data: currentSession, isLoading: loadingSession, refetch: refetchSession } = useQuery({
-    queryKey: ['cashSession', businessId],
-    queryFn: async () => {
-      if (!businessId) return null;
-      const response = await apiClient.get('/protected/cash-register/status');
-      const status = response?.status
-        || (response?.data?.is_open ? 'open' : 'closed');
-      const session = response?.session || response?.data?.session;
-      if (status === 'open' && session) {
-        return { status, ...session };
-      }
-      return null;
-    },
-    enabled: !!businessId
-  });
+  const { data: currentSession, isLoading: loadingSession, refetch: refetchSession } = useCashStatusQuery(businessId);
 
-  // Fetch recent sessions
-  const { data: recentSessions = [] } = useQuery({
-    queryKey: ['recentSessions', businessId],
-    queryFn: async () => {
-      if (!businessId) return [];
-      const response = await apiClient.get('/protected/cash-register/sessions/closed');
-      return normalizeListResponse(response, 'sessions');
-    },
-    enabled: !!businessId
-  });
+  const { data: recentSessions = [] } = useClosedSessionsQuery(businessId);
 
-  // Fetch sales for current session
-  const { data: expectedTotals } = useQuery({
-    queryKey: ['expectedTotals', currentSession?.id],
-    queryFn: async () => {
-      if (!currentSession?.id) return [];
-      const response = await apiClient.get(`/protected/cash-register/${currentSession.id}/expected-totals`);
-      return response?.data || response;
-    },
-    enabled: !!currentSession?.id
-  });
+  const { data: expectedTotals } = useExpectedTotalsQuery(currentSession?.id);
+
+  const openRegisterMutation = useOpenRegisterMutation();
+  const closeRegisterMutation = useCloseRegisterMutation();
 
   // Calculate session totals by payment method
   const sessionTotals = {
@@ -124,9 +99,7 @@ export default function CashRegister() {
   const handleOpenRegister = async (amount = null) => {
     setLoading(true);
     try {
-      await apiClient.post('/protected/cash-register/open', {
-        amount: Number(amount) || 0
-      });
+      await openRegisterMutation.mutateAsync(amount);
       await refetchSession();
       setShowOpenDialog(false);
       toast.success('Cash register opened');
@@ -143,9 +116,7 @@ export default function CashRegister() {
     setLoading(true);
     try {
       const realCashAmount = parseFloat(realCash) || 0;
-      await apiClient.post('/protected/cash-register/close', {
-        real_cash: realCashAmount
-      });
+      await closeRegisterMutation.mutateAsync(realCashAmount);
       
       await refetchSession();
       queryClient.invalidateQueries({ queryKey: ['recentSessions', businessId] });
