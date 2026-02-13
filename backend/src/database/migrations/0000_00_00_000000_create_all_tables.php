@@ -67,6 +67,10 @@ return new class extends Migration {
             $table->string('name');
             $table->string('sku')->nullable();
             $table->decimal('price', 12, 2);
+            $table->decimal('presentation_quantity', 12, 2)->nullable();
+            $table->string('presentation_unit', 20)->nullable();
+            $table->string('brand', 120)->nullable();
+            $table->decimal('list_price', 12, 2)->nullable();
             $table->boolean('active')->default(true);
             $table->dateTime('last_price_update_at')->nullable();
             $table->decimal('last_price_update_rate', 10, 4)->nullable();
