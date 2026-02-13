@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Package, Loader2 } from 'lucide-react';
+import { Package, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,10 @@ export default function ItemEditorModal({
     type: 'product',
     category_id: '',
     price: '',
+    presentation_quantity: '',
+    presentation_unit: '',
+    brand: '',
+    list_price: '',
     cost: '',
     stock_quantity: 0,
     track_stock: false,
@@ -49,6 +53,10 @@ export default function ItemEditorModal({
         type: item.type || 'product',
         category_id: item.category_id ? String(item.category_id) : NO_CATEGORY_VALUE,
         price: item.price?.toString() || '',
+        presentation_quantity: item.presentation_quantity?.toString() || '',
+        presentation_unit: item.presentation_unit || '',
+        brand: item.brand || '',
+        list_price: item.list_price?.toString() || '',
         cost: item.cost?.toString() || '',
         stock_quantity: item.stock_quantity || 0,
         track_stock: item.track_stock || false,
@@ -62,6 +70,10 @@ export default function ItemEditorModal({
         type: 'product',
         category_id: NO_CATEGORY_VALUE,
         price: '',
+        presentation_quantity: '',
+        presentation_unit: '',
+        brand: '',
+        list_price: '',
         cost: '',
         stock_quantity: 0,
         track_stock: false,
@@ -78,6 +90,10 @@ export default function ItemEditorModal({
         ? parseInt(formData.category_id, 10)
         : null,
       price: parseFloat(formData.price) || 0,
+      presentation_quantity: formData.presentation_quantity ? parseFloat(formData.presentation_quantity) : null,
+      presentation_unit: formData.presentation_unit?.trim() || null,
+      brand: formData.brand?.trim() || null,
+      list_price: formData.list_price ? parseFloat(formData.list_price) : null,
       cost: formData.cost ? parseFloat(formData.cost) : null,
       stock_quantity: parseInt(formData.stock_quantity) || 0
     });
@@ -186,6 +202,52 @@ export default function ItemEditorModal({
                 value={formData.cost}
                 onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
                 placeholder="0.00"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="presentation_quantity">Cantidad presentación</Label>
+              <Input
+                id="presentation_quantity"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.presentation_quantity}
+                onChange={(e) => setFormData({ ...formData, presentation_quantity: e.target.value })}
+                placeholder="400.00"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="presentation_unit">Unidad presentación</Label>
+              <Input
+                id="presentation_unit"
+                value={formData.presentation_unit}
+                onChange={(e) => setFormData({ ...formData, presentation_unit: e.target.value })}
+                placeholder="gr, kg, cm3"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="brand">Marca</Label>
+              <Input
+                id="brand"
+                value={formData.brand}
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                placeholder="LA EGIPCIANA"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="list_price">Precio de lista</Label>
+              <Input
+                id="list_price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.list_price}
+                onChange={(e) => setFormData({ ...formData, list_price: e.target.value })}
+                placeholder="3490.00"
               />
             </div>
 

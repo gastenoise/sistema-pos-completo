@@ -244,7 +244,11 @@ export default function Items() {
         type: mapping.type ? row[mapping.type] : undefined,
         category: mapping.category ? row[mapping.category] : undefined,
         cost: mapping.cost ? parseFloat(row[mapping.cost]) : undefined,
-        stock_quantity: mapping.stock_quantity ? parseFloat(row[mapping.stock_quantity]) : undefined
+        stock_quantity: mapping.stock_quantity ? parseFloat(row[mapping.stock_quantity]) : undefined,
+        presentation_quantity: mapping.presentation_quantity ? parseFloat(row[mapping.presentation_quantity]) : undefined,
+        presentation_unit: mapping.presentation_unit ? row[mapping.presentation_unit] : undefined,
+        brand: mapping.brand ? row[mapping.brand] : undefined,
+        list_price: mapping.list_price ? parseFloat(row[mapping.list_price]) : undefined
       })).filter((item) => item.name && typeof item.price === 'number' && !Number.isNaN(item.price));
 
       const response = await importConfirmMutation.mutateAsync({

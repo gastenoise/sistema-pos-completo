@@ -57,6 +57,14 @@ export default function ItemRow({
             {item.sku && (
               <p className="text-xs text-slate-500">SKU: {item.sku}</p>
             )}
+            {item.brand && (
+              <p className="text-xs text-slate-500">Marca: {item.brand}</p>
+            )}
+            {item.presentation_quantity && item.presentation_unit && (
+              <p className="text-xs text-slate-500">
+                Presentación: {Number(item.presentation_quantity).toFixed(2)} {item.presentation_unit}
+              </p>
+            )}
           </div>
         </div>
       </td>
@@ -76,7 +84,10 @@ export default function ItemRow({
         )}
       </td>
       <td className="px-4 py-3 text-right font-medium text-slate-900">
-        {formatPrice(item.price, currentBusiness)}
+        <div>{formatPrice(item.price, currentBusiness)}</div>
+        {item.list_price !== null && item.list_price !== undefined && (
+          <div className="text-xs text-slate-500">Lista: {formatPrice(item.list_price, currentBusiness)}</div>
+        )}
       </td>
       <td className="px-4 py-3 text-center">
         {item.track_stock ? (

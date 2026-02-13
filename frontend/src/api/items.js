@@ -6,7 +6,9 @@ const toNumberOrNull = (value) => (value === null || value === undefined || valu
 
 const normalizeItem = (item) => ({
   ...withCatalogIsActive(item),
-  category_id: toNumberOrNull(item?.category_id)
+  category_id: toNumberOrNull(item?.category_id),
+  presentation_quantity: toNumberOrNull(item?.presentation_quantity),
+  list_price: toNumberOrNull(item?.list_price)
 });
 
 export const normalizeItemsPage = (response) => {
