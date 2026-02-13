@@ -55,6 +55,7 @@ Route::prefix('protected')->group(function () {
             // Endpoints informativos (no requieren business)
             Route::get('info/colors', [InformationController::class, 'colors']);
             Route::get('info/payment-methods', [InformationController::class, 'paymentMethods']);
+            Route::get('info/icons', [InformationController::class, 'icons']);
 
             // Eventos de navegación (autenticado, no requiere business obligatorio)
             Route::post('navigation-events', [NavigationEventController::class, 'store']);
@@ -151,6 +152,7 @@ Route::prefix('public')->middleware(['auth.apikey', 'throttle:public-api'])->gro
     Route::get('payment-methods/all', [PaymentMethodController::class, 'index']);
     Route::get('info/colors', [InformationController::class, 'colors']);
     Route::get('info/payment-methods', [InformationController::class, 'paymentMethods']);
+    Route::get('info/icons', [InformationController::class, 'icons']);
 
     Route::apiResource('categories', CategoryController::class);
     Route::get('banks', [BankAccountController::class, 'index']);

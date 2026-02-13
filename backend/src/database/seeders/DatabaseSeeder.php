@@ -55,11 +55,10 @@ class DatabaseSeeder extends Seeder
 
         // Métodos de pago por defecto a nivel global (ya no por negocio)
         DB::table('payment_methods')->insert([
-            ['code' => 'cash', 'name' => 'Efectivo', 'icon' => 'Banknote', 'color' => 1],                // #1abc9c
-            ['code' => 'debit', 'name' => 'Débito', 'icon' => 'CreditCard', 'color' => 2],               // #2ecc71
-            ['code' => 'mercado_pago', 'name' => 'Mercado Pago', 'icon' => 'QrCode', 'color' => 3],      // #3498db
-            ['code' => 'bank_transfer', 'name' => 'Transferencia Bancaria', 'icon' => 'ArrowLeftRight', 'color' => 4], // #9b59b6 (el siguiente de la paleta)
-            // más si necesitás
+            ['code' => 'cash', 'name' => 'Efectivo', 'icon' => 27, 'color' => '#1ABC9C'],
+            ['code' => 'debit', 'name' => 'Débito', 'icon' => 28, 'color' => '#2ECC71'],
+            ['code' => 'mercado_pago', 'name' => 'Mercado Pago', 'icon' => 29, 'color' => '#3498DB'],
+            ['code' => 'bank_transfer', 'name' => 'Transferencia Bancaria', 'icon' => 30, 'color' => '#9B59B6'],
         ]);
 
         $defaultPreferredPaymentMethodId = PaymentMethod::where('code', 'cash')->value('id')
@@ -95,6 +94,7 @@ class DatabaseSeeder extends Seeder
         foreach ($businesses as $bizData) {
             $business = Business::create(array_merge($bizData, [
                 'preferred_payment_method_id' => $defaultPreferredPaymentMethodId,
+                'color' => null,
             ]));
             $createdBusinesses[] = $business;
 
@@ -111,11 +111,11 @@ class DatabaseSeeder extends Seeder
 
             // 6. Crear algunas categorías por defecto
             $defaultCategories = [
-                ['name' => 'General', 'color' => 1],
-                ['name' => 'Alimentos', 'color' => 2],
-                ['name' => 'Bebidas', 'color' => 3],
-                ['name' => 'Limpieza', 'color' => 4],
-                ['name' => 'Otros', 'color' => 5],
+                ['name' => 'General', 'color' => '#3B82F6'],
+                ['name' => 'Alimentos', 'color' => '#10B981'],
+                ['name' => 'Bebidas', 'color' => '#F59E0B'],
+                ['name' => 'Limpieza', 'color' => '#8B5CF6'],
+                ['name' => 'Otros', 'color' => '#EF4444'],
             ];
 
             foreach ($defaultCategories as $category) {
