@@ -8,6 +8,10 @@ class UpdateBusinessAction
 {
     public function execute(Business $business, array $attributes, ?array $parametersPayload, bool $canUseBusinessParameters): Business
     {
+        if (array_key_exists('color', $attributes) && is_string($attributes['color'])) {
+            $attributes['color'] = strtoupper($attributes['color']);
+        }
+
         $business->fill($attributes);
         $business->save();
 

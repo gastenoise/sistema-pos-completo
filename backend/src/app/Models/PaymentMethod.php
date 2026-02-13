@@ -4,17 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Traits\HasColor;
 
 class PaymentMethod extends Model
 {
-    use HasColor;
-
     protected $fillable = [
-        'code', // e.g., 'cash', 'debit', 'mp'
+        'code',
         'name',
         'icon',
-        'color', // integer, as per migration
+        'color',
     ];
 
     public function hides()
