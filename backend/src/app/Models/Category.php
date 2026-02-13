@@ -2,36 +2,25 @@
 
 namespace App\Models;
 
+use App\Casts\IconNameCast;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Traits\HasBusiness;
-use App\Traits\HasColor;
 
 class Category extends Model
 {
-    use HasBusiness, HasColor;
+    use HasBusiness;
 
     protected $fillable = [
         'business_id',
         'name',
-        'color', // índice legacy para paleta
-        'color_hex',
+        'color',
         'icon',
     ];
 
-    public function getColorAttribute($value)
-    {
-        if (!empty($this->attributes['color_hex'])) {
-            return $this->attributes['color_hex'];
-        }
-
-        $colors = config('data.colors');
-        $index = (int) ($value ?? 1);
-        if ($index < 1 || $index > count($colors)) {
-            $index = 1;
-        }
-        return $colors[$index - 1];
-    }
+    protected $casts = [
+        'icon' => IconNameCast::class,
+    ];
 
     /**
      * Relación con los ítems de esta categoría.

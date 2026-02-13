@@ -4,7 +4,6 @@ import {
   DollarSign,
   Calendar, Loader2, FileText, Ban, Eye, Trash2
 } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -41,6 +40,7 @@ import {
   getTodayISODateLocal,
 } from '@/lib/dateTime';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
+import { getIconComponent } from '@/lib/iconCatalog';
 import { getSaleStatusLabel } from '@/lib/saleStatus';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
@@ -57,7 +57,7 @@ import {
 import { exportSalesReport } from '@/api/reports';
 
 export default function Reports() {
-  const { businessId, currentBusiness, businesses } = useBusiness();
+  const { businessId, currentBusiness, businesses, iconCatalog } = useBusiness();
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
 
@@ -117,11 +117,6 @@ export default function Reports() {
     (category) => (parseFloat(category.total_amount) || 0) > 0
   );
   const resolveCategoryColor = (category) => {
-    const colorHex = typeof category?.color_hex === 'string' ? category.color_hex.trim() : '';
-    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorHex)) {
-      return colorHex;
-    }
-
     const colorValue = typeof category?.color === 'string' ? category.color.trim() : '';
     if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorValue)) {
       return colorValue;
@@ -465,7 +460,7 @@ export default function Reports() {
                   const method = paymentMethodLookup[methodCode] || {};
                   const methodColor = method.color || '#6B7280';
                   const methodName = method.name || methodTotal.code || 'Unknown';
-                  const MethodIcon = getPaymentMethodIcon(method.icon || methodCode);
+                  const MethodIcon = getPaymentMethodIcon(method.icon || methodCode, iconCatalog);
                   return (
                     <div key={methodCode} className="flex flex-col gap-2 p-4 rounded-lg border-2" style={{
                       borderColor: methodColor + '40',
@@ -515,7 +510,7 @@ export default function Reports() {
                               style={{ backgroundColor: `${categoryColor}30` }}
                             >
                               {(() => {
-                                const IconComponent = LucideIcons[category.icon] || LucideIcons.Package;
+                                const IconComponent = getIconComponent(category.icon, iconCatalog);
                                 return <IconComponent className="h-3.5 w-3.5" style={{ color: categoryColor }} aria-hidden="true" />;
                               })()}
                             </div>

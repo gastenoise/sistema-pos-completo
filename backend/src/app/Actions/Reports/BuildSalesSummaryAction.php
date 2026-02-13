@@ -89,11 +89,10 @@ class BuildSalesSummaryAction
                 'categories.id',
                 DB::raw("COALESCE(categories.name, 'Sin categoría') as name"),
                 'categories.color',
-                'categories.color_hex',
-                DB::raw("COALESCE(categories.icon, 'Package') as icon"),
+                DB::raw('COALESCE(categories.icon, 1) as icon'),
                 DB::raw('SUM(sale_items.total) as total_amount')
             )
-            ->groupBy('categories.id', 'categories.name', 'categories.color', 'categories.color_hex', 'categories.icon')
+            ->groupBy('categories.id', 'categories.name', 'categories.color', 'categories.icon')
             ->havingRaw('SUM(sale_items.total) > 0')
             ->orderByDesc('total_amount')
             ->get();
