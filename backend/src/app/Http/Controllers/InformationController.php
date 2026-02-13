@@ -8,18 +8,13 @@ use App\Models\PaymentMethod;
 class InformationController extends Controller
 {
     /**
-     * Retorna la paleta de colores del sistema.
+     * Endpoint legacy: ya no hay paleta predefinida en backend.
      */
     public function colors()
     {
-        $colors = config('data.colors', []);
-        $result = [];
-        foreach ($colors as $index => $color) {
-            $result[$index + 1] = $color; // Clave arranca desde 1
-        }
         return response()->json([
             'success' => true,
-            'data' => $result
+            'data' => []
         ]);
     }
 
@@ -34,4 +29,5 @@ class InformationController extends Controller
             'data' => $methods
         ]);
     }
+
 }

@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Http\Resources\CategoryResource;
 use Illuminate\Http\Request;
 use App\Services\BusinessContext;
-use Illuminate\Support\Facades\Schema;
 
 class CategoryController extends Controller
 {
@@ -20,25 +19,16 @@ class CategoryController extends Controller
         $businessId = app(BusinessContext::class)->getBusinessId();
         $validated = $request->validate([
             'name' => 'required|string|max:100|unique:categories,name,NULL,id,business_id,' . $businessId,
-            'color' => 'nullable|string', // Accept hex or numeric string
-            'icon' => 'nullable|string|max:100',
+            'color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'icon' => 'nullable|integer|min:1|max:30',
         ]);
-
-        $colorPayload = $this->resolveColorPayload($validated['color'] ?? null);
 
         $payload = [
             'business_id' => $businessId,
             'name' => $validated['name'],
-            'color' => $colorPayload['color_index'],
+            'color' => strtoupper($validated['color'] ?? '#3B82F6'),
+            'icon' => $validated['icon'] ?? 1,
         ];
-
-        if (Schema::hasColumn('categories', 'color_hex')) {
-            $payload['color_hex'] = $colorPayload['color_hex'];
-        }
-
-        if (Schema::hasColumn('categories', 'icon')) {
-            $payload['icon'] = $validated['icon'] ?? null;
-        }
 
         $category = Category::create($payload);
 
@@ -50,20 +40,12 @@ class CategoryController extends Controller
         $businessId = app(BusinessContext::class)->getBusinessId();
         $validated = $request->validate([
             'name' => 'sometimes|string|max:100|unique:categories,name,' . $category->id . ',id,business_id,' . $businessId,
-            'color' => 'nullable|string',
-            'icon' => 'nullable|string|max:100',
+            'color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6})$/'],
+            'icon' => 'nullable|integer|min:1|max:30',
         ]);
 
         if (array_key_exists('color', $validated)) {
-            $colorPayload = $this->resolveColorPayload($validated['color']);
-            $validated['color'] = $colorPayload['color_index'];
-            if (Schema::hasColumn('categories', 'color_hex')) {
-                $validated['color_hex'] = $colorPayload['color_hex'];
-            }
-        }
-
-        if (!Schema::hasColumn('categories', 'icon')) {
-            unset($validated['icon']);
+            $validated['color'] = strtoupper($validated['color'] ?? '#3B82F6');
         }
 
         $category->update($validated);
@@ -74,40 +56,5 @@ class CategoryController extends Controller
     {
         $category->delete();
         return response()->json(['success' => true, 'message' => 'Category deleted']);
-    }
-
-    private function resolveColorPayload(?string $color): array
-    {
-        if (!$color) {
-            return [
-                'color_index' => 1,
-                'color_hex' => null,
-            ];
-        }
-
-        if (is_numeric($color)) {
-            $index = (int) $color;
-            $index = $index > 0 ? $index : 1;
-            $colors = config('data.colors');
-            $hex = $colors[$index - 1] ?? $colors[0] ?? null;
-            return [
-                'color_index' => $index,
-                'color_hex' => $hex,
-            ];
-        }
-
-        $colors = config('data.colors');
-        $matchIndex = array_search(strtoupper($color), array_map('strtoupper', $colors), true);
-        if ($matchIndex === false) {
-            return [
-                'color_index' => 1,
-                'color_hex' => $color,
-            ];
-        }
-
-        return [
-            'color_index' => $matchIndex + 1,
-            'color_hex' => $color,
-        ];
     }
 }

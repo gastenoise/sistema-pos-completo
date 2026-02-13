@@ -19,6 +19,7 @@ import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeR
 import { mapCatalogIsActive, withCatalogIsActive } from '@/lib/catalogNaming';
 import { formatPrice } from '@/lib/formatPrice';
 import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
+import { getIconComponent } from '@/lib/iconCatalog';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useCart, CartProvider } from '@/components/pos/CartContext';
@@ -502,14 +503,7 @@ function POSContent() {
 
   const getItemIcon = (item) => {
     const category = categories.find(c => c.id === item.category_id);
-    const iconName = category?.icon || 'Package';
-    const iconMap = {
-      Package, ShoppingBag, Coffee, Utensils, Shirt, Laptop, Smartphone, 
-      Book, Wrench, Home, Car, Heart, Gamepad, Pizza, Apple, Cake, Watch, 
-      Glasses, Plane, Music, Camera, Dumbbell, Paintbrush, Hammer, Scissors, 
-      Zap, Star, Gift, Tag, CreditCard
-    };
-    const IconComponent = iconMap[iconName] || Package;
+    const IconComponent = getIconComponent(category?.icon);
     return { Icon: IconComponent, color: category?.color || '#94a3b8' };
   };
 

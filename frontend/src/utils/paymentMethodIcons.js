@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   Wallet,
 } from 'lucide-react';
+import { resolveIconName } from '@/lib/iconCatalog';
 
 const paymentMethodIconMap = {
   Banknote,
@@ -16,7 +17,8 @@ const paymentMethodIconMap = {
   Wallet,
 };
 
-export const getPaymentMethodIcon = (iconName) => {
+export const getPaymentMethodIcon = (iconValue) => {
+  const iconName = resolveIconName(iconValue);
   if (!iconName) {
     return Wallet;
   }
