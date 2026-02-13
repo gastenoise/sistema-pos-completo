@@ -49,13 +49,13 @@ class ReportController extends Controller
             $query->whereExists(function ($subQuery) use ($categoryId) {
                 $subQuery->selectRaw('1')
                     ->from('sale_items')
-                    ->join('items', 'sale_items.item_id', '=', 'items.id')
+                    ->leftJoin('items', 'sale_items.item_id', '=', 'items.id')
                     ->whereColumn('sale_items.sale_id', 'sales.id');
 
                 if ($categoryId === 'uncategorized') {
-                    $subQuery->whereNull('items.category_id');
+                    $subQuery->whereNull(DB::raw('COALESCE(items.category_id, sale_items.category_id_snapshot)'));
                 } else {
-                    $subQuery->where('items.category_id', $categoryId);
+                    $subQuery->where(DB::raw('COALESCE(items.category_id, sale_items.category_id_snapshot)'), $categoryId);
                 }
             });
         }
@@ -86,7 +86,7 @@ class ReportController extends Controller
             ->map(fn ($status) => trim($status))
             ->filter();
 
-        $query = Sale::with(['items.item.category', 'payments.paymentMethod', 'user'])
+        $query = Sale::with(['items.item.category', 'items.categorySnapshot', 'payments.paymentMethod', 'user'])
             ->where('business_id', $businessId);
 
         if ($startDate) {
@@ -108,9 +108,9 @@ class ReportController extends Controller
         if ($categoryId) {
             $query->whereHas('items.item', function ($itemQuery) use ($categoryId) {
                 if ($categoryId === 'uncategorized') {
-                    $itemQuery->whereNull('items.category_id');
+                    $itemQuery->whereNull(DB::raw('COALESCE(items.category_id, sale_items.category_id_snapshot)'));
                 } else {
-                    $itemQuery->where('items.category_id', $categoryId);
+                    $itemQuery->where(DB::raw('COALESCE(items.category_id, sale_items.category_id_snapshot)'), $categoryId);
                 }
             });
         }
@@ -132,7 +132,7 @@ class ReportController extends Controller
                 'closed_at' => $sale->closed_at,
                 'items' => $sale->items->map(function ($saleItem) {
                     $itemData = $saleItem->toArray();
-                    $itemData['category_name'] = $saleItem->item?->category?->name;
+                    $itemData['category_name'] = $saleItem->item?->category?->name ?? $saleItem->categorySnapshot?->name ?? 'Sin categoría';
                     return $itemData;
                 }),
                 'payments' => $sale->payments->map(function ($payment) {
@@ -209,7 +209,7 @@ class ReportController extends Controller
             ->map(fn ($status) => trim($status))
             ->filter();
 
-        $query = Sale::with(['items.item.category', 'payments.paymentMethod', 'user'])
+        $query = Sale::with(['items.item.category', 'items.categorySnapshot', 'payments.paymentMethod', 'user'])
             ->where('business_id', $businessId);
 
         if ($startDate) {
@@ -258,7 +258,7 @@ class ReportController extends Controller
                     'closed_at' => $sale->closed_at,
                     'items' => $sale->items->map(function ($saleItem) {
                         $itemData = $saleItem->toArray();
-                        $itemData['category_name'] = $saleItem->item?->category?->name;
+                        $itemData['category_name'] = $saleItem->item?->category?->name ?? $saleItem->categorySnapshot?->name ?? 'Sin categoría';
                         return $itemData;
                     }),
                     'payments' => $sale->payments->map(function ($payment) {
@@ -312,7 +312,7 @@ class ReportController extends Controller
                     $itemsQty = (int) $sale->items->sum('quantity');
                     $subtotal = (float) $sale->items->sum('total');
                     $categories = $sale->items
-                        ->map(fn ($saleItem) => $saleItem->item?->category?->name)
+                        ->map(fn ($saleItem) => $saleItem->item?->category?->name ?? $saleItem->categorySnapshot?->name)
                         ->filter()
                         ->unique()
                         ->values()

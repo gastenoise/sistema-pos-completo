@@ -72,15 +72,17 @@ class BuildSalesSummaryAction
         $totalsByCategoryQuery = DB::query()
             ->fromSub($filteredSales, 'filtered_sales')
             ->join('sale_items', 'filtered_sales.id', '=', 'sale_items.sale_id')
-            ->join('items', 'sale_items.item_id', '=', 'items.id')
-            ->leftJoin('categories', 'items.category_id', '=', 'categories.id')
+            ->leftJoin('items', 'sale_items.item_id', '=', 'items.id')
+            ->leftJoin('categories', function ($join) {
+                $join->on('categories.id', '=', DB::raw('COALESCE(items.category_id, sale_items.category_id_snapshot)'));
+            })
             ->where('filtered_sales.status', 'closed');
 
         if (!empty($filters['category_id'])) {
             if ($filters['category_id'] === 'uncategorized') {
-                $totalsByCategoryQuery->whereNull('items.category_id');
+                $totalsByCategoryQuery->whereNull(DB::raw('COALESCE(items.category_id, sale_items.category_id_snapshot)'));
             } else {
-                $totalsByCategoryQuery->where('items.category_id', $filters['category_id']);
+                $totalsByCategoryQuery->where(DB::raw('COALESCE(items.category_id, sale_items.category_id_snapshot)'), $filters['category_id']);
             }
         }
 
@@ -144,13 +146,13 @@ class BuildSalesSummaryAction
             $query->whereExists(function ($subQuery) use ($categoryId) {
                 $subQuery->selectRaw('1')
                     ->from('sale_items')
-                    ->join('items', 'sale_items.item_id', '=', 'items.id')
+                    ->leftJoin('items', 'sale_items.item_id', '=', 'items.id')
                     ->whereColumn('sale_items.sale_id', 'sales.id');
 
                 if ($categoryId === 'uncategorized') {
-                    $subQuery->whereNull('items.category_id');
+                    $subQuery->whereNull(DB::raw('COALESCE(items.category_id, sale_items.category_id_snapshot)'));
                 } else {
-                    $subQuery->where('items.category_id', $categoryId);
+                    $subQuery->where(DB::raw('COALESCE(items.category_id, sale_items.category_id_snapshot)'), $categoryId);
                 }
             });
         }
