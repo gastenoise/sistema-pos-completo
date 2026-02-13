@@ -19,6 +19,7 @@ class CategoryResource extends JsonResource
             'business_id' => (int) $this->business_id,
             'name' => $this->name,
             'color' => $this->color,
+            'color_hex' => $this->color_hex,
             'icon' => $this->icon,
             'is_active' => (bool) $this->active,
             'created_at' => $this->created_at,
@@ -26,3 +27,4 @@ class CategoryResource extends JsonResource
         ];
     }
 }
+

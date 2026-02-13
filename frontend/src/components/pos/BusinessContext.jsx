@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { setBusinessContext } from '@/api/client';
-import { getIconCatalog, getSmtpStatus } from '@/api/business';
+import { getSmtpStatus } from '@/api/business';
 
 const BusinessContext = createContext(null);
 
@@ -9,7 +9,6 @@ const isNode = typeof window === 'undefined';
 const storage = isNode ? null : window.localStorage;
 const STORAGE_CURRENT = 'pos_current_business';
 const STORAGE_BUSINESSES = 'pos_businesses';
-const STORAGE_ICON_CATALOG = 'pos_icon_catalog';
 
 const readStorage = (key) => {
   if (!storage) return null;
@@ -30,7 +29,6 @@ const writeStorage = (key, value) => {
 export const BusinessProvider = ({ children }) => {
   const [businesses, setBusinessesState] = useState(() => readStorage(STORAGE_BUSINESSES) || []);
   const [currentBusiness, setCurrentBusiness] = useState(() => readStorage(STORAGE_CURRENT));
-  const [iconCatalog, setIconCatalog] = useState(() => readStorage(STORAGE_ICON_CATALOG) || {});
 
   useEffect(() => {
     setBusinessContext(currentBusiness);
@@ -61,22 +59,6 @@ export const BusinessProvider = ({ children }) => {
     retry: 1,
   });
 
-  const { data: iconCatalogResponse } = useQuery({
-    queryKey: ['iconCatalog', businessId],
-    queryFn: getIconCatalog,
-    enabled: !!businessId,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    retry: 1,
-  });
-
-  useEffect(() => {
-    if (!iconCatalogResponse || typeof iconCatalogResponse !== 'object') return;
-    setIconCatalog(iconCatalogResponse);
-    writeStorage(STORAGE_ICON_CATALOG, iconCatalogResponse);
-  }, [iconCatalogResponse]);
-
   const value = useMemo(() => ({
     businesses,
     currentBusiness,
@@ -85,8 +67,7 @@ export const BusinessProvider = ({ children }) => {
     setBusinesses,
     smtpStatus,
     isCheckingSmtpStatus,
-    iconCatalog,
-  }), [businesses, currentBusiness, businessId, smtpStatus, isCheckingSmtpStatus, iconCatalog]);
+  }), [businesses, currentBusiness, businessId, smtpStatus, isCheckingSmtpStatus]);
 
   return (
     <BusinessContext.Provider value={value}>

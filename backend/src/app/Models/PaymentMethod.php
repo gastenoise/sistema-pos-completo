@@ -2,21 +2,19 @@
 
 namespace App\Models;
 
-use App\Casts\IconNameCast;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\HasColor;
 
 class PaymentMethod extends Model
 {
+    use HasColor;
+
     protected $fillable = [
-        'code',
+        'code', // e.g., 'cash', 'debit', 'mp'
         'name',
         'icon',
-        'color',
-    ];
-
-    protected $casts = [
-        'icon' => IconNameCast::class,
+        'color', // integer, as per migration
     ];
 
     public function hides()

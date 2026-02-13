@@ -21,7 +21,6 @@ return new class extends Migration {
         Schema::create('businesses', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('color', 7)->nullable();
             $table->string('address')->nullable();
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
@@ -53,8 +52,9 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->string('color', 7)->default('#3B82F6');
-            $table->unsignedTinyInteger('icon')->nullable()->comment('Icon id entre 1 y 30');
+            $table->unsignedTinyInteger('color')->nullable()->comment('Valor entre 1 y 12, color asignado a la categoría');
+            $table->string('icon')->nullable();
+            $table->string('color_hex')->nullable();
             $table->timestamps();
             $table->unique(['business_id', 'name']);
         });
@@ -78,8 +78,8 @@ return new class extends Migration {
             $table->id();
             $table->string('code')->unique();
             $table->string('name');
-            $table->unsignedTinyInteger('icon')->nullable()->comment('Icon id entre 1 y 30');
-            $table->string('color', 7)->default('#1ABC9C');
+            $table->string('icon')->nullable();
+            $table->unsignedTinyInteger('color')->default(1)->comment('Valor del color asignado al método de pago, por defecto 1');
         });
 
         Schema::table('businesses', function (Blueprint $table) {

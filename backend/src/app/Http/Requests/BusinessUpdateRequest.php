@@ -18,7 +18,6 @@ class BusinessUpdateRequest extends FormRequest
     {
         return [
             'name' => 'nullable|string|max:255',
-            'color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6})$/'],
             'address' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
             'email' => 'nullable|email|max:255',

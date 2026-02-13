@@ -1,11 +1,14 @@
 import React from 'react';
-import { Tag, Pencil } from 'lucide-react';
+import { 
+  Package, Tag, Pencil,
+  ShoppingBag, Coffee, Utensils, Shirt, Laptop, Smartphone, 
+  Book, Wrench, Home, Car, Heart
+} from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useBusiness } from './BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
-import { getIconComponent } from '@/lib/iconCatalog';
 
 const typeColors = {
   product: 'bg-blue-100 text-blue-800',
@@ -22,13 +25,18 @@ export default function ItemRow({
   onDeactivate,
   showCheckbox = true 
 }) {
-  const { currentBusiness, iconCatalog } = useBusiness();
+  const { currentBusiness } = useBusiness();
 
   const findCategory = () => categories.find((category) => String(category.id) === String(item.category_id));
 
   const getItemIcon = () => {
     const category = findCategory();
-    const IconComponent = getIconComponent(category?.icon, iconCatalog);
+    const iconName = category?.icon || 'Package';
+    const iconMap = {
+      Package, ShoppingBag, Coffee, Utensils, Shirt, Laptop, Smartphone, 
+      Book, Wrench, Home, Car, Heart
+    };
+    const IconComponent = iconMap[iconName] || Package;
     return { Icon: IconComponent, color: category?.color || '#94a3b8' };
   };
 

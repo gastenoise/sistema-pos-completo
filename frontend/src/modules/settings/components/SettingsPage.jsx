@@ -43,13 +43,9 @@ import { useBusiness } from '@/components/pos/BusinessContext';
 import { useAuth } from '@/lib/AuthContext';
 import TopNav from '@/components/pos/TopNav';
 import { BUSINESS_BOOLEAN_PARAMETERS, normalizeBusinessParameters } from '@/lib/businessParameters';
-import ColorPickerField from '@/components/common/ColorPickerField';
-import IconPickerField from '@/components/common/IconPickerField';
-import { DEFAULT_COLOR_HEX, normalizeHexColor } from '@/lib/colors';
-import { DEFAULT_ICON_NAME, getIconComponent, resolveIconName } from '@/lib/iconCatalog';
 
 export default function Settings() {
-  const { businessId, currentBusiness, selectBusiness, iconCatalog } = useBusiness();
+  const { businessId, currentBusiness, selectBusiness } = useBusiness();
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
   
@@ -59,7 +55,6 @@ export default function Settings() {
     address: '',
     phone: '',
     tax_id: '',
-    color: DEFAULT_COLOR_HEX,
     currency: 'ARS',
     business_parameters: {}
   });
@@ -70,8 +65,31 @@ export default function Settings() {
   
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [categoryData, setCategoryData] = useState({ name: '', color: DEFAULT_COLOR_HEX, icon: DEFAULT_ICON_NAME });
+  const [categoryData, setCategoryData] = useState({ name: '', color: '#3B82F6', icon: 'Package' });
   const [savingCategory, setSavingCategory] = useState(false);
+
+  const availableIcons = [
+    'Package', 'ShoppingBag', 'Coffee', 'Utensils', 'Shirt', 'Laptop', 
+    'Smartphone', 'Book', 'Wrench', 'Home', 'Car', 'Heart',
+    'Gamepad', 'Pizza', 'Apple', 'Cake', 'Watch', 'Glasses',
+    'Plane', 'Music', 'Camera', 'Dumbbell', 'Paintbrush', 'Hammer',
+    'Scissors', 'Zap', 'Star', 'Gift', 'Tag', 'CreditCard'
+  ];
+
+  const iconComponents = {
+    Package, ShoppingBag, Coffee, Utensils, Shirt, Laptop, 
+    Smartphone, Book, Wrench, Home, Car, Heart, Gamepad, Pizza, 
+    Apple, Cake, Watch, Glasses, Plane, Music, Camera, Dumbbell, 
+    Paintbrush, Hammer, Scissors, Zap, Star, Gift, Tag, CreditCard
+  };
+
+  const availableColors = [
+    '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899',
+    '#06B6D4', '#84CC16', '#F97316', '#DC2626', '#7C3AED', '#DB2777',
+    '#0EA5E9', '#22C55E', '#EAB308', '#F43F5E', '#A855F7', '#E11D48',
+    '#0284C7', '#16A34A', '#CA8A04', '#BE123C', '#9333EA', '#C026D3',
+    '#0369A1', '#15803D', '#A16207', '#9F1239', '#7E22CE', '#A21CAF'
+  ];
 
   const [paymentStates, setPaymentStates] = useState({});
   const [defaultPaymentId, setDefaultPaymentId] = useState(null);
@@ -117,7 +135,6 @@ export default function Settings() {
         address: currentBusiness.address || '',
         phone: currentBusiness.phone || '',
         tax_id: currentBusiness.tax_id || '',
-        color: normalizeHexColor(currentBusiness.color || DEFAULT_COLOR_HEX),
         currency: currentBusiness.currency || 'ARS',
         business_parameters: normalizeBusinessParameters(currentBusiness)
       });
@@ -247,7 +264,6 @@ export default function Settings() {
       address: nextBusiness.address || '',
       phone: nextBusiness.phone || '',
       tax_id: nextBusiness.tax_id || '',
-      color: normalizeHexColor(nextBusiness.color || DEFAULT_COLOR_HEX),
       currency: nextBusiness.currency || 'ARS',
       business_parameters: normalizeBusinessParameters(nextBusiness)
     });
@@ -267,7 +283,6 @@ export default function Settings() {
         address: businessData.address,
         phone: businessData.phone,
         tax_id: businessData.tax_id,
-        color: normalizeHexColor(businessData.color),
         email: businessData.business_email || undefined,
       };
       const updated = await apiClient.put('/protected/business', payload);
@@ -336,7 +351,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ['categories', businessId] });
       setShowCategoryModal(false);
       setEditingCategory(null);
-      setCategoryData({ name: '', color: DEFAULT_COLOR_HEX, icon: DEFAULT_ICON_NAME });
+      setCategoryData({ name: '', color: '#3B82F6', icon: 'Package' });
     } catch (error) {
       toast.error('Failed to save category');
     } finally {
@@ -488,8 +503,8 @@ export default function Settings() {
     setEditingCategory(category);
     setCategoryData({ 
       name: category.name, 
-      color: normalizeHexColor(category.color || DEFAULT_COLOR_HEX),
-      icon: resolveIconName(category.icon, iconCatalog)
+      color: category.color || '#3B82F6',
+      icon: category.icon || 'Package'
     });
     setShowCategoryModal(true);
   };
@@ -563,14 +578,6 @@ export default function Settings() {
                       <Input
                         value={businessData.address}
                         onChange={(e) => setBusinessData({ ...businessData, address: e.target.value })}
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <ColorPickerField
-                        id="business-color"
-                        label="Business Color (optional)"
-                        value={businessData.color}
-                        onChange={(color) => setBusinessData({ ...businessData, color })}
                       />
                     </div>
                     <div>
@@ -652,7 +659,7 @@ export default function Settings() {
                   <CardTitle>Categories</CardTitle>
                   <CardDescription>Organize your items into categories</CardDescription>
                 </div>
-                <Button onClick={() => { setEditingCategory(null); setCategoryData({ name: '', color: DEFAULT_COLOR_HEX, icon: DEFAULT_ICON_NAME }); setShowCategoryModal(true); }}>
+                <Button onClick={() => { setEditingCategory(null); setCategoryData({ name: '', color: '#3B82F6', icon: 'Package' }); setShowCategoryModal(true); }}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Category
                 </Button>
@@ -667,15 +674,15 @@ export default function Settings() {
                 ) : (
                   <div className="space-y-2">
                     {categories.map((category) => {
-                     const IconComponent = getIconComponent(category.icon, iconCatalog);
+                     const IconComponent = iconComponents[category.icon] || Package;
                      return (
                        <div key={category.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                          <div className="flex items-center gap-3">
                            <div 
                              className="w-8 h-8 rounded-lg flex items-center justify-center" 
-                             style={{ backgroundColor: `${normalizeHexColor(category.color || DEFAULT_COLOR_HEX)}20` }}
+                             style={{ backgroundColor: (category.color || '#3B82F6') + '20' }}
                            >
-                             <IconComponent className="w-4 h-4" style={{ color: normalizeHexColor(category.color || DEFAULT_COLOR_HEX) }} />
+                             <IconComponent className="w-4 h-4" style={{ color: category.color || '#3B82F6' }} />
                            </div>
                            <span className="font-medium">{category.name}</span>
                            {category.is_active === false && (
@@ -745,7 +752,7 @@ export default function Settings() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       {paymentMethods.map((method) => {
-                        const IconComponent = getPaymentMethodIcon(method.icon, iconCatalog);
+                        const IconComponent = getPaymentMethodIcon(method.icon);
                         const isCash = (method.type || method.code) === 'cash';
                         const isDefaultPayment = method.id === defaultPaymentId
                           || method.is_default
@@ -1117,24 +1124,36 @@ export default function Settings() {
               />
             </div>
             <div>
-              <ColorPickerField
-                id="category-color"
-                label="Color de la categoría"
-                value={categoryData.color}
-                onChange={(color) => setCategoryData({ ...categoryData, color })}
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                Elegí un color predefinido o ingresá uno en formato HEX.
-              </p>
+              <Label>Color</Label>
+              <div className="grid grid-cols-6 gap-2 mt-1 max-h-32 overflow-y-auto pr-2">
+                {availableColors.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`w-8 h-8 rounded-full ${categoryData.color === color ? 'ring-2 ring-offset-2 ring-slate-400' : ''}`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setCategoryData({ ...categoryData, color })}
+                  />
+                ))}
+              </div>
             </div>
             <div>
-              <IconPickerField
-                id="category-icon"
-                label="Ícono"
-                iconCatalog={iconCatalog}
-                value={categoryData.icon}
-                onChange={(icon) => setCategoryData({ ...categoryData, icon })}
-              />
+              <Label>Icon</Label>
+              <div className="grid grid-cols-5 gap-2 mt-1 max-h-48 overflow-y-auto pr-2">
+                {availableIcons.map((iconName) => {
+                  const IconComponent = iconComponents[iconName];
+                  return (
+                    <button
+                      key={iconName}
+                      type="button"
+                      className={`p-2 border rounded-lg hover:bg-slate-50 ${categoryData.icon === iconName ? 'bg-blue-100 border-blue-500' : 'border-slate-200'}`}
+                      onClick={() => setCategoryData({ ...categoryData, icon: iconName })}
+                    >
+                      <IconComponent className="w-5 h-5 mx-auto" />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="flex justify-between gap-3">
               {editingCategory && (
