@@ -9,7 +9,15 @@ use App\Traits\HasBusiness;
 class Item extends Model
 {
     use HasBusiness;
+
     protected $guarded = ['id'];
+
+    protected $casts = [
+        'price' => 'decimal:2',
+        'presentation_quantity' => 'decimal:2',
+        'list_price' => 'decimal:2',
+        'active' => 'boolean',
+    ];
     
     public function category(): BelongsTo
     {

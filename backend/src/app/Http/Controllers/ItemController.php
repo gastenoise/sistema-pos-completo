@@ -206,6 +206,10 @@ class ItemController extends Controller
             'items' => 'required|array',
             'items.*.name' => 'required|string',
             'items.*.price' => 'required|numeric',
+            'items.*.presentation_quantity' => 'nullable|numeric|min:0',
+            'items.*.presentation_unit' => 'nullable|string|max:20',
+            'items.*.brand' => 'nullable|string|max:120',
+            'items.*.list_price' => 'nullable|numeric|min:0',
             'sync_by_sku' => 'boolean',
         ]);
 

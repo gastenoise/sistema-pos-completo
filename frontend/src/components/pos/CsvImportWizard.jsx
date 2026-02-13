@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, FileSpreadsheet, ArrowRight, Check, AlertCircle, Loader2, X } from 'lucide-react';
+import { Upload, FileSpreadsheet, ArrowRight, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,19 @@ import {
 } from "@/components/ui/table";
 
 const REQUIRED_FIELDS = ['name', 'price'];
-const OPTIONAL_FIELDS = ['sku', 'barcode', 'type', 'category', 'cost', 'stock_quantity'];
+const OPTIONAL_FIELDS = [
+  'sku',
+  'barcode',
+  'type',
+  'category',
+  'cost',
+  'stock_quantity',
+  'presentation_quantity',
+  'presentation_unit',
+  'brand',
+  'list_price'
+];
+const SKIP_OPTION_VALUE = '__skip__';
 
 export default function CsvImportWizard({ 
   open, 
@@ -91,7 +103,7 @@ export default function CsvImportWizard({
   const updateMapping = (field, column) => {
     setMapping(prev => ({
       ...prev,
-      [field]: column
+      [field]: column === SKIP_OPTION_VALUE ? '' : column
     }));
   };
 
@@ -203,7 +215,7 @@ export default function CsvImportWizard({
                         <SelectValue placeholder="Select column" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={null}>-- Skip --</SelectItem>
+                        <SelectItem value={SKIP_OPTION_VALUE}>-- Skip --</SelectItem>
                         {csvColumns.map((col) => (
                           <SelectItem key={col} value={col}>{col}</SelectItem>
                         ))}
