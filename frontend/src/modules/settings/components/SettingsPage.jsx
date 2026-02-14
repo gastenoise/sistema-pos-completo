@@ -507,19 +507,19 @@ export default function Settings() {
       
       <div className="max-w-4xl mx-auto p-4 lg:p-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Business Settings</h1>
-          <p className="text-slate-500">Manage your business configuration</p>
+          <h1 className="text-2xl font-bold text-slate-900">Ajustes del Negocio</h1>
+          <p className="text-slate-500">Administrá la configuración de tu negocio</p>
         </div>
 
         <Tabs defaultValue="business">
           <TabsList className="mb-6">
             <TabsTrigger value="business" className="gap-2">
               <Store className="w-4 h-4" />
-              Business
+              Negocio
             </TabsTrigger>
             <TabsTrigger value="categories" className="gap-2">
               <Tag className="w-4 h-4" />
-              Categories
+              Categorías
             </TabsTrigger>
             <TabsTrigger value="payments" className="gap-2">
               <CreditCard className="w-4 h-4" />
@@ -527,11 +527,11 @@ export default function Settings() {
             </TabsTrigger>
             <TabsTrigger value="integrations" className="gap-2">
               <Mail className="w-4 h-4" />
-              Integrations
+              Integraciones
             </TabsTrigger>
             <TabsTrigger value="modules" className="gap-2">
               <Package className="w-4 h-4" />
-              Modules
+              Módulos
             </TabsTrigger>
           </TabsList>
 
@@ -539,7 +539,7 @@ export default function Settings() {
           <TabsContent value="business" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Business Information</CardTitle>
+                <CardTitle>Información del negocio</CardTitle>
                 <CardDescription>Update your business details</CardDescription>
               </CardHeader>
               <CardContent>
@@ -654,12 +654,12 @@ export default function Settings() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Categories</CardTitle>
-                  <CardDescription>Organize your items into categories</CardDescription>
+                  <CardTitle>Categorías</CardTitle>
+                  <CardDescription className="pt-1">Seccioná tus productos en diferentes categorías</CardDescription>
                 </div>
                 <Button onClick={() => { setEditingCategory(null); setCategoryData({ name: '', color: DEFAULT_COLOR_HEX, icon: DEFAULT_ICON_NAME }); setShowCategoryModal(true); }}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Category
+                  Añadir
                 </Button>
               </CardHeader>
               <CardContent>
@@ -738,8 +738,8 @@ export default function Settings() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Payment Methods</CardTitle>
-                <CardDescription>Enable or disable payment methods (preset)</CardDescription>
+                <CardTitle>Métodos de pago</CardTitle>
+                <CardDescription>Activá o desactivá los métodos de pago que trabajás</CardDescription>
               </CardHeader>
               <CardContent>
                 {loadingPayments ? (
@@ -812,8 +812,8 @@ export default function Settings() {
             {/* Bank Account Configuration */}
             <Card>
               <CardHeader>
-                <CardTitle>Bank Transfer Configuration</CardTitle>
-                <CardDescription>Configure your bank account details for transfer payments</CardDescription>
+                <CardTitle>Datos bancarios</CardTitle>
+                <CardDescription>Cargá los detalles de tu cuenta bancaria para pagos por transferencia</CardDescription>
               </CardHeader>
               <CardContent>
                 <form ref={bankFormRef} className="space-y-4" onSubmit={handleSaveBankData}>
