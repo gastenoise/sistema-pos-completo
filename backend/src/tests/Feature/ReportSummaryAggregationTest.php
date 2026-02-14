@@ -41,7 +41,7 @@ class ReportSummaryAggregationTest extends TestCase
         $this->assertSame(1, (int) $totalsByPayment['card']['payments_count']);
 
         $totalsByCategory = collect($data['totals_by_category'])->keyBy('name');
-        $this->assertEquals(20.50, (float) $totalsByCategory['Bebidas']['total_amount']);
+        $this->assertEquals(20.50, (float) $totalsByCategory['Servicio']['total_amount']);
         $this->assertEquals(10.00, (float) $totalsByCategory['Sin categoría']['total_amount']);
     }
 
@@ -97,7 +97,7 @@ class ReportSummaryAggregationTest extends TestCase
 
         $categoryId = DB::table('categories')->insertGetId([
             'business_id' => $businessId,
-            'name' => 'Bebidas',
+            'name' => 'Servicio',
             'color' => 1,
             'created_at' => now(),
             'updated_at' => now(),
