@@ -15,7 +15,7 @@ export default function ProcessStep({
   return (
     <div className="space-y-4">
       {/* Back Button */}
-      {!hasAnyProcessing && (
+      {/* {!hasAnyProcessing && (
         <Button 
           variant="outline" 
           size="sm"
@@ -24,7 +24,7 @@ export default function ProcessStep({
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Division
         </Button>
-      )}
+      )} */}
 
       {/* Payment Cards */}
       <div className="space-y-3">

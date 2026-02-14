@@ -16,11 +16,11 @@ export default function CashRegisterOpenModal({
   onClose, 
   onConfirm,
   loading = false,
-  title = 'Open Cash Register',
+  title = 'Apertura de Caja',
   description = 'Enter the starting cash amount in the register',
   warningMessage = null,
-  cancelLabel = 'Cancel',
-  confirmLabel = 'Open Register'
+  cancelLabel = 'Cancelar',
+  confirmLabel = 'Abrir Caja'
 }) {
   const [openingAmount, setOpeningAmount] = useState('');
 
@@ -63,7 +63,7 @@ export default function CashRegisterOpenModal({
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="opening_amount">Opening Cash Amount</Label>
+            <Label htmlFor="opening_amount">Monto de apertura</Label>
             <Input
               id="opening_amount"
               type="number"

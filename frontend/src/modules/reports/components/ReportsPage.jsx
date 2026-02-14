@@ -288,7 +288,7 @@ export default function Reports() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <TopNav user={user} onLogout={handleLogout} currentPage="Reports" />
+      <TopNav user={user} onLogout={handleLogout} currentPage="Reportes" />
 
       <div className="max-w-7xl mx-auto p-4 lg:p-6">
         {/* Header */}

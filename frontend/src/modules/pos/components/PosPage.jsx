@@ -570,7 +570,7 @@ function POSContent() {
               </button>
             </div>
             {cashRegisterStatus?.status === 'closed' && (
-              <p className="text-xs text-amber-600 mt-1">Cash register is closed</p>
+              <p className="text-xs text-amber-600 mt-1">Caja registradora cerrada</p>
             )}
           </div>
           <SaleCart onCharge={handleCharge} />
@@ -600,11 +600,11 @@ function POSContent() {
         }}
         onConfirm={handleOpenCashRegister}
         loading={isOpeningCashRegister}
-        title="Open Cash Register"
-        description="Enter the starting cash amount in the register"
+        title="Apertura de Caja"
+        description="Ingresá el monto inicial que tenés en caja"
         warningMessage={
           pendingPayment
-            ? 'The cash register is closed. Open it to continue with payment.'
+            ? 'La caja registradora está cerrada, debes abrirla para continuar con el pago.'
             : null
         }
       />

@@ -66,6 +66,7 @@ return new class extends Migration {
             // $table->enum('type', ['product', 'service', 'fee']); // ELIMINADO
             $table->string('name');
             $table->string('sku')->nullable();
+            $table->string('barcode')->nullable(); // agregado desde 2026_02_14_000001_add_barcode_to_items_table.php
             $table->decimal('price', 12, 2);
             $table->decimal('presentation_quantity', 12, 2)->nullable();
             $table->string('presentation_unit', 20)->nullable();

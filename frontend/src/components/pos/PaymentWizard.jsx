@@ -142,12 +142,7 @@ export default function PaymentWizard({
     <Dialog open={open} onOpenChange={handleCancel}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>{step === 1 ? 'Divide Payment' : 'Process Payments'}</DialogTitle>
-            <button onClick={handleCancel} className="text-slate-400 hover:text-slate-600">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          <DialogTitle>{step === 1 ? 'División del Pago' : 'Confirmación de pagos'}</DialogTitle>
           <DialogDescription className="sr-only">
             {step === 1
               ? 'Split the sale into one or more payment methods.'
