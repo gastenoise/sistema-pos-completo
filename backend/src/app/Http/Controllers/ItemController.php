@@ -72,7 +72,7 @@ class ItemController extends Controller
             $query->where('active', filter_var($request->active, FILTER_VALIDATE_BOOLEAN));
         }
         if ($request->filled('category')) {
-            if ($request->category === 'null') {
+            if ($request->category === 'uncategorized') {
                 $query->whereNull('category_id');
             } else {
                 $query->where('category_id', $request->category);

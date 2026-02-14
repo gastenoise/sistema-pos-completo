@@ -311,21 +311,21 @@ export default function Reports() {
                   onClick={() => setQuickDate('today')}
                 >
                   <Calendar className="w-4 h-4 mr-1" />
-                  Today
+                  Hoy
                 </Button>
                 <Button
                   variant={dateMode === 'week' ? "default" : "outline"}
                   size="sm"
                   onClick={() => setQuickDate('week')}
                 >
-                  Last 7 days
+                  Últimos 7 días
                 </Button>
                 <Button
                   variant={dateMode === 'month' ? "default" : "outline"}
                   size="sm"
                   onClick={() => setQuickDate('month')}
                 >
-                  This month
+                  Este mes
                 </Button>
               </div>
 
@@ -336,10 +336,10 @@ export default function Reports() {
                   onClick={() => setQuickDate('custom')}
                   className="w-full sm:w-auto"
                 >
-                  Custom
+                  Otro
                 </Button>
                 <div className="flex w-full items-center gap-2 sm:w-auto">
-                  <Label className="text-xs text-slate-600">From</Label>
+                  <Label className="text-xs text-slate-600">Desde</Label>
                   <Input
                     type="date"
                     value={dateMode === 'custom' ? tempDateFrom : dateFrom}
@@ -349,7 +349,7 @@ export default function Reports() {
                   />
                 </div>
                 <div className="flex w-full items-center gap-2 sm:w-auto">
-                  <Label className="text-xs text-slate-600">To</Label>
+                  <Label className="text-xs text-slate-600">Hasta</Label>
                   <Input
                     type="date"
                     value={dateMode === 'custom' ? tempDateTo : dateTo}
@@ -364,7 +364,7 @@ export default function Reports() {
                   disabled={dateMode !== 'custom'}
                   className="w-full sm:w-auto"
                 >
-                  Apply
+                  Aplicar
                 </Button>
               </div>
 
@@ -375,7 +375,7 @@ export default function Reports() {
                   size="sm"
                   onClick={() => setIsMoreFiltersOpen(true)}
                 >
-                  More Filter
+                  Más Filtros
                 </Button>
                 <Button
                   type="button"
@@ -395,17 +395,17 @@ export default function Reports() {
         <Dialog open={isMoreFiltersOpen} onOpenChange={setIsMoreFiltersOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>More Filters</DialogTitle>
+              <DialogTitle>Más Filtros</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label className="text-sm">Payment method</Label>
+                <Label className="text-sm">Método de pago</Label>
                 <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Payment" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Methods</SelectItem>
+                    <SelectItem value="all">Todos los Métodos</SelectItem>
                     {paymentMethods.filter(m => m.is_active).map(m => (
                       <SelectItem key={m.id} value={m.type}>{m.name}</SelectItem>
                     ))}
@@ -414,17 +414,17 @@ export default function Reports() {
               </div>
 
               <div>
-                <Label className="text-sm">Category</Label>
+                <Label className="text-sm">Categoría</Label>
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="uncategorized">Sin categoría</SelectItem>
+                    <SelectItem value="all">Todas las Categorías</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>
                     ))}
+                    <SelectItem value="uncategorized">Sin categoría</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

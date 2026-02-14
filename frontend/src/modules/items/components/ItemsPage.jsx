@@ -314,8 +314,8 @@ export default function Items() {
               onValueChange={(v) => {
                 if (v === 'all') {
                   setCategoryFilter('all');
-                } else if (v === 'null') {
-                  setCategoryFilter('null');
+                } else if (v === 'uncategorized') {
+                  setCategoryFilter('uncategorized');
                 } else {
                   setCategoryFilter(Number(v));
                 }
@@ -330,7 +330,7 @@ export default function Items() {
                 {categories.map(cat => (
                   <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
                 ))}
-                <SelectItem value="null">Sin Categoría</SelectItem>
+                <SelectItem value="uncategorized">Sin Categoría</SelectItem>
               </SelectContent>
             </Select>
           </div>
