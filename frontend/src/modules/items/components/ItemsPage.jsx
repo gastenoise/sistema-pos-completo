@@ -239,7 +239,6 @@ export default function Items() {
         price: mapping.price ? parseFloat(row[mapping.price]) : undefined,
         sku: mapping.sku ? row[mapping.sku] : undefined,
         barcode: mapping.barcode ? row[mapping.barcode] : undefined,
-        type: mapping.type ? row[mapping.type] : undefined,
         category: mapping.category ? row[mapping.category] : undefined,
         cost: mapping.cost ? parseFloat(row[mapping.cost]) : undefined,
         stock_quantity: mapping.stock_quantity ? parseFloat(row[mapping.stock_quantity]) : undefined,

@@ -31,7 +31,6 @@ export default function ItemEditorModal({
     name: '',
     sku: '',
     barcode: '',
-    type: 'product',
     category_id: '',
     price: '',
     presentation_quantity: '',
@@ -50,7 +49,6 @@ export default function ItemEditorModal({
         name: item.name || '',
         sku: item.sku || '',
         barcode: item.barcode || '',
-        type: item.type || 'product',
         category_id: item.category_id ? String(item.category_id) : NO_CATEGORY_VALUE,
         price: item.price?.toString() || '',
         presentation_quantity: item.presentation_quantity?.toString() || '',
@@ -67,7 +65,6 @@ export default function ItemEditorModal({
         name: '',
         sku: '',
         barcode: '',
-        type: 'product',
         category_id: NO_CATEGORY_VALUE,
         price: '',
         presentation_quantity: '',
@@ -141,23 +138,6 @@ export default function ItemEditorModal({
                 onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
                 placeholder="123456789"
               />
-            </div>
-
-            <div>
-              <Label htmlFor="type">Type *</Label>
-              <Select 
-                value={formData.type} 
-                onValueChange={(value) => setFormData({ ...formData, type: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="product">Product</SelectItem>
-                  <SelectItem value="service">Service</SelectItem>
-                  <SelectItem value="fee">Fee</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <div>
@@ -251,30 +231,26 @@ export default function ItemEditorModal({
               />
             </div>
 
-            {formData.type === 'product' && (
-              <>
-                <div className="col-span-2 flex items-center justify-between py-2">
-                  <Label htmlFor="track_stock" className="cursor-pointer">Track Stock</Label>
-                  <Switch
-                    id="track_stock"
-                    checked={formData.track_stock}
-                    onCheckedChange={(checked) => setFormData({ ...formData, track_stock: checked })}
-                  />
-                </div>
+            <div className="col-span-2 flex items-center justify-between py-2">
+              <Label htmlFor="track_stock" className="cursor-pointer">Track Stock</Label>
+              <Switch
+                id="track_stock"
+                checked={formData.track_stock}
+                onCheckedChange={(checked) => setFormData({ ...formData, track_stock: checked })}
+              />
+            </div>
 
-                {formData.track_stock && (
-                  <div className="col-span-2">
-                    <Label htmlFor="stock_quantity">Stock Quantity</Label>
-                    <Input
-                      id="stock_quantity"
-                      type="number"
-                      min="0"
-                      value={formData.stock_quantity}
-                      onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
-                    />
-                  </div>
-                )}
-              </>
+            {formData.track_stock && (
+              <div className="col-span-2">
+                <Label htmlFor="stock_quantity">Stock Quantity</Label>
+                <Input
+                  id="stock_quantity"
+                  type="number"
+                  min="0"
+                  value={formData.stock_quantity}
+                  onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+                />
+              </div>
             )}
           </div>
 
