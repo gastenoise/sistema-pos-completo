@@ -63,7 +63,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
-            $table->enum('type', ['product', 'service', 'fee']);
+            // $table->enum('type', ['product', 'service', 'fee']); // ELIMINADO
             $table->string('name');
             $table->string('sku')->nullable();
             $table->decimal('price', 12, 2);
@@ -164,6 +164,10 @@ return new class extends Migration {
             $table->foreignId('item_id')->nullable()->constrained()->nullOnDelete();
             $table->string('item_name_snapshot');
             $table->decimal('unit_price_snapshot', 12, 2);
+            // Lo siguiente es lo que agrega la migración 2026_02_13_000002:
+            $table->string('item_type_snapshot', 20)->default('product');
+            $table->foreignId('category_id_snapshot')->nullable()->constrained('categories')->nullOnDelete();
+            // Fin de agregado
             $table->integer('quantity');
             $table->decimal('total', 12, 2);
             $table->timestamps();
