@@ -29,7 +29,6 @@ const REQUIRED_FIELDS = ['name', 'price'];
 const OPTIONAL_FIELDS = [
   'sku',
   'barcode',
-  'type',
   'category',
   'cost',
   'stock_quantity',
