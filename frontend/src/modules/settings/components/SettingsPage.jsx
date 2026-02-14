@@ -7,8 +7,8 @@ import {
   Utensils, Shirt, Laptop, Smartphone, Book, Wrench, Home, Car, Heart,
   Gamepad, Pizza, Apple, Cake, Watch, Glasses, Plane, Music,
   Camera, Dumbbell, Paintbrush, Hammer, Scissors, Zap, Star, Gift,
-  Mail, TestTube
-} from 'lucide-react';
+  Mail, Send
+} from 'lucide-react'; // Reemplaza TestTube por Send
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -981,7 +981,7 @@ export default function Settings() {
                       {testingSmtp ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
-                        <TestTube className="w-4 h-4 mr-2" />
+                        <Send className="w-4 h-4 mr-2" />
                       )}
                       Testear SMTP
                     </Button>
