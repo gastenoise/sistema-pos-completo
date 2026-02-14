@@ -22,7 +22,6 @@ class SaleStartRequest extends FormRequest
             'items.*.item_id' => 'nullable|integer|exists:items,id|required_without:items.*.quick_item_name',
             'items.*.quick_item_name' => 'nullable|string|max:255|required_without:items.*.item_id',
             'items.*.quick_item_price' => 'nullable|numeric|min:0|required_with:items.*.quick_item_name',
-            'items.*.quick_item_type' => 'nullable|in:product,service,fee|required_with:items.*.quick_item_name',
             'items.*.quick_item_category_id' => 'nullable|integer|exists:categories,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price_override' => 'nullable|numeric|min:0',

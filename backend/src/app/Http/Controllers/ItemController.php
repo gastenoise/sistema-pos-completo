@@ -77,9 +77,6 @@ class ItemController extends Controller
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
         }
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
-        }
         if ($request->filled('search')) {
             $term = $request->search;
             $query->where(function ($q) use ($term) {
