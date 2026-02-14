@@ -28,14 +28,7 @@ const buildTransferPlainText = (bankAccountData) => {
   return lines.join('\n');
 };
 
-export default function BankTransferShareDialog({
-  open,
-  onOpenChange,
-  bankAccountData,
-  onConfirmReceived,
-  isConfirming = false,
-  confirmLabel = 'Confirmar pago recibido'
-}) {
+export default function BankTransferShareDialog({ open, onOpenChange, bankAccountData }) {
   const [isWhatsappDialogOpen, setIsWhatsappDialogOpen] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isSharingWhatsapp, setIsSharingWhatsapp] = useState(false);
@@ -134,11 +127,6 @@ export default function BankTransferShareDialog({
             <Button type="button" onClick={() => setIsEmailDialogOpen(true)}>
               Compartir por e-mail
             </Button>
-            {onConfirmReceived && (
-              <Button type="button" onClick={onConfirmReceived} disabled={isConfirming}>
-                {confirmLabel}
-              </Button>
-            )}
           </div>
         </DialogContent>
       </Dialog>

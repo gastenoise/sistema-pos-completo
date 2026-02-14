@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle2, Clock, Loader2, Share2, XCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,13 +46,7 @@ export default function PaymentCard({
     setShowQrModal(true);
   };
 
-  const handleOpenTransferDialog = () => setShowTransferShareDialog(true);
-
-  const transferConfirmLabel = useMemo(() => {
-    if (loading) return 'Confirmando...';
-    const methodName = payment.method?.name || 'transferencia';
-    return `Confirmar ${methodName.toLowerCase()} recibida`;
-  }, [loading, payment.method?.name]);
+  const handleConfirmTransfer = () => confirmPayment('confirmed');
 
   const handleConfirmCard = () => confirmPayment('confirmed');
 
@@ -113,10 +107,19 @@ export default function PaymentCard({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={handleOpenTransferDialog}
+                onClick={() => setShowTransferShareDialog(true)}
               >
                 <Share2 className="w-4 h-4 mr-2" />
-                Ver y compartir datos bancarios
+                Compartir datos bancarios
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleConfirmTransfer}
+                disabled={loading}
+                className="bg-amber-600 hover:bg-amber-700 w-full"
+              >
+                <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
+                {loading ? 'Confirming...' : 'Confirm Transfer Received'}
               </Button>
             </div>
           </div>
@@ -187,9 +190,6 @@ export default function PaymentCard({
         open={showTransferShareDialog}
         onOpenChange={setShowTransferShareDialog}
         bankAccountData={bankAccountData}
-        onConfirmReceived={() => confirmPayment('confirmed')}
-        isConfirming={loading}
-        confirmLabel={transferConfirmLabel}
       />
 
       {payment.payment_method_type === 'mercado_pago' && (
