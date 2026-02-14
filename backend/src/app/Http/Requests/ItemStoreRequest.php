@@ -18,7 +18,7 @@ class ItemStoreRequest extends FormRequest
 
     public function rules(): array
     {
-        return array_merge($this->itemRules(), [
+        return array_merge($this->itemRules(itemId: null), [
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
         ]);
@@ -29,6 +29,8 @@ class ItemStoreRequest extends FormRequest
         return [
             'name.required' => 'El nombre del ítem es obligatorio.',
             'price.required' => 'El precio del ítem es obligatorio.',
+            'barcode.regex' => 'El código de barras solo puede contener letras, números, guiones, guiones bajos y puntos.',
+            'barcode.unique' => 'Ya existe un ítem con ese código de barras en este negocio.',
         ];
     }
 }

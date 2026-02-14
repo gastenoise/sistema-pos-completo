@@ -27,8 +27,8 @@ import {
 
 const REQUIRED_FIELDS = ['name', 'price'];
 const OPTIONAL_FIELDS = [
-  'sku',
   'barcode',
+  'sku',
   'category',
   'cost',
   'stock_quantity',
@@ -286,7 +286,7 @@ export default function CsvImportWizard({
                 <div>
                   <p className="font-medium text-green-900">Ready to import</p>
                   <p className="text-sm text-green-700">
-                    {previewData?.total_rows || 0} items will be imported
+                    {previewData?.total_rows || 0} ítems se importarán priorizando código de barras y usando SKU como auxiliar
                   </p>
                 </div>
               </div>

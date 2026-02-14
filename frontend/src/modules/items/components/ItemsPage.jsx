@@ -250,7 +250,8 @@ export default function Items() {
 
       const response = await importConfirmMutation.mutateAsync({
         items,
-        sync_by_sku: false
+        sync_by_sku: true,
+        sync_by_barcode: true
       });
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       const importedCount = response?.data?.imported_count
@@ -302,7 +303,7 @@ export default function Items() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
-                placeholder="Search items..."
+                placeholder="Buscar por nombre, código de barras o SKU..."
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                 className="pl-10"

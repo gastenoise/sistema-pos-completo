@@ -479,7 +479,9 @@ function POSContent() {
   const filteredItems = searchQuery
     ? items.filter((item) => {
         const q = searchQuery.toLowerCase();
-        return item.name.toLowerCase().includes(q) || item.sku?.toLowerCase().includes(q);
+        return item.name.toLowerCase().includes(q)
+          || item.barcode?.includes(q)
+          || item.sku?.toLowerCase().includes(q);
       })
     : items;
 
@@ -497,7 +499,7 @@ function POSContent() {
               <Input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search items... (press /)"
+                placeholder="Buscar por nombre, código de barras o SKU... (/)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-12 text-lg"
@@ -538,8 +540,11 @@ function POSContent() {
                       </div>
                       <p className="font-medium text-slate-900 truncate text-sm">{item.name}</p>
                       <p className="text-base font-bold text-blue-600">{formatPrice(item.price, currentBusiness)}</p>
+                      {item.barcode && (
+                        <p className="text-xs text-slate-400 mt-0.5">CB: {item.barcode}</p>
+                      )}
                       {item.sku && (
-                        <p className="text-xs text-slate-400 mt-0.5">{item.sku}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">SKU: {item.sku}</p>
                       )}
                     </button>
                   );
