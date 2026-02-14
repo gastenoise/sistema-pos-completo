@@ -47,6 +47,14 @@ const getSalePaymentBreakdown = (sale, paymentMethodLookup = {}) => {
   });
 };
 
+const getSaleItemCategoryName = (item) => {
+  return item?.category_name
+    ?? item?.category_snapshot?.name
+    ?? item?.categorySnapshot?.name
+    ?? item?.item?.category?.name
+    ?? 'Sin categoría';
+};
+
 export default function SaleDetailsDialog({
   open,
   onOpenChange,
@@ -117,7 +125,7 @@ export default function SaleDetailsDialog({
                   const unitPrice = item.unit_price ?? item.unit_price_snapshot ?? item.price ?? 0;
                   const subtotal = item.subtotal ?? item.total ?? (quantity * unitPrice);
                   const name = item.name ?? item.item_name_snapshot ?? item.item?.name ?? 'Item';
-                  const categoryName = item.category_name ?? item.item?.category?.name ?? 'Sin categoría';
+                  const categoryName = getSaleItemCategoryName(item);
                   return (
                     <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                       <div>

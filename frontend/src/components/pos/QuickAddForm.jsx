@@ -24,11 +24,11 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
     price: '',
     type: 'product',
-    category_id: 'none',
+    category_id: '',
     save_to_catalog: false,
+    name: '',
   });
 
   const handleOpenChange = (nextOpen) => {
@@ -39,21 +39,25 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
     }
   };
 
+  const selectedCategory = categories.find((category) => String(category.id) === String(formData.category_id));
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.price || !formData.type) return;
+    if (!formData.category_id || !selectedCategory || !formData.price || !formData.type) return;
 
     setIsLoading(true);
     try {
+      const resolvedName = formData.name.trim() || selectedCategory.name;
+
       await onAdd({
-        name: formData.name,
+        name: resolvedName,
         price: parseFloat(formData.price),
         type: formData.type,
         save_to_catalog: formData.save_to_catalog,
-        ...(formData.category_id !== 'none' && { category_id: Number(formData.category_id) })
+        category_id: Number(formData.category_id),
       });
       toast.success('Item agregado');
-      setFormData({ name: '', price: '', type: 'product', category_id: 'none', save_to_catalog: false });
+      setFormData({ price: '', type: 'product', category_id: '', save_to_catalog: false, name: '' });
       setOpen(false);
     } catch (error) {
       toast.error('No se pudo agregar el item');
@@ -78,13 +82,25 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label>Nombre</Label>
-            <Input
-              placeholder="Nombre del item"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              autoFocus
-            />
+            <Label>Categoría</Label>
+            <Select
+              value={formData.category_id}
+              onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona una categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={String(category.id)}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {categories.length === 0 && (
+              <p className="text-xs text-amber-600 mt-1">Primero crea al menos una categoría para usar Item Rápido.</p>
+            )}
           </div>
 
           <div>
@@ -100,7 +116,7 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
           </div>
 
           <div>
-            <Label>Type</Label>
+            <Label>Tipo</Label>
             <Select
               value={formData.type}
               onValueChange={(value) => setFormData({ ...formData, type: value })}
@@ -116,25 +132,6 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
             </Select>
           </div>
 
-          <div>
-            <Label>Categoría (opcional)</Label>
-            <Select
-              value={formData.category_id}
-              onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Category (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sin categoría</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={String(category.id)}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
           <label className="flex items-center gap-2">
             <Checkbox
@@ -144,7 +141,17 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
             <span className="text-sm text-slate-700">Guardar también en listado de items</span>
           </label>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting || !formData.name || !formData.price || !formData.type}>
+          <div>
+            <Label>Nombre (opcional)</Label>
+            <Input
+              type="text"
+              placeholder="Si lo dejas vacío, se usa el nombre de la categoría"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isSubmitting || !formData.category_id || !selectedCategory || !formData.price || !formData.type || categories.length === 0}>
             {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Agregar a la venta
           </Button>
