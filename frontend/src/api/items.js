@@ -77,9 +77,14 @@ export const previewItemsImport = async (file) => {
   return response?.data ?? response;
 };
 
-export const previewItemsImportPage = async (file, page, perPage) => {
+export const previewItemsImportPage = async ({ file = null, previewId = null, page, perPage }) => {
   const formData = new FormData();
-  formData.append('file', file);
+  if (file) {
+    formData.append('file', file);
+  }
+  if (previewId) {
+    formData.append('preview_id', previewId);
+  }
   formData.append('page', String(page));
   formData.append('per_page', String(perPage));
   const response = await request('/protected/items-import/preview/full', { method: 'POST', body: formData });
