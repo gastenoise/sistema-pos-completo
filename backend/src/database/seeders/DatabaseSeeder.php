@@ -111,11 +111,8 @@ class DatabaseSeeder extends Seeder
 
             // 6. Crear algunas categorías por defecto
             $defaultCategories = [
-                ['name' => 'General', 'color' => '#3B82F6'],
-                ['name' => 'Alimentos', 'color' => '#10B981'],
-                ['name' => 'Bebidas', 'color' => '#F59E0B'],
-                ['name' => 'Limpieza', 'color' => '#8B5CF6'],
-                ['name' => 'Otros', 'color' => '#EF4444'],
+                ['name' => 'Servicio', 'color' => '#3B82F6', 'icon' => 9],
+                ['name' => 'Comisión', 'color' => '#F59E0B', 'icon' => 26],
             ];
 
             foreach ($defaultCategories as $category) {
@@ -124,6 +121,7 @@ class DatabaseSeeder extends Seeder
                     'name' => $category['name'],
                 ], [
                     'color' => $category['color'],
+                    'icon' => $category['icon'],
                 ]);
             }
 
