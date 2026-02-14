@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { CheckCircle2, Clock, Loader2, Share2, XCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import BankTransferShareDialog from '@/components/payments/BankTransferShareDial
 
 export default function PaymentCard({
   payment,
-  businessData,
+  businessData: _businessData,
   bankAccountData,
   onUpdateStatus
 }) {
@@ -46,16 +46,24 @@ export default function PaymentCard({
     setShowQrModal(true);
   };
 
-  const handleConfirmTransfer = () => confirmPayment('confirmed');
+  const handleOpenTransferDialog = () => setShowTransferShareDialog(true);
+
+  const transferConfirmLabel = useMemo(() => {
+    if (loading) return 'Confirmando...';
+    const methodName = payment.method?.name || 'transferencia';
+    return `Confirmar ${methodName.toLowerCase()} recibida`;
+  }, [loading, payment.method?.name]);
 
   const handleConfirmCard = () => confirmPayment('confirmed');
+
+  const paymentMethodType = payment.payment_method_type || payment.method?.type || payment.method?.code;
 
   const renderActions = () => {
     if (payment.status === 'confirmed') {
       return <Badge className="bg-green-600">Confirmed</Badge>;
     }
 
-    switch (payment.payment_method_type) {
+    switch (paymentMethodType) {
       case 'cash':
         return (
           <Button
@@ -94,6 +102,7 @@ export default function PaymentCard({
         );
 
       case 'transfer':
+      case 'bank_transfer':
         return (
           <div className="space-y-2">
             {payment.status === 'pending' && (
@@ -107,19 +116,10 @@ export default function PaymentCard({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setShowTransferShareDialog(true)}
+                onClick={handleOpenTransferDialog}
               >
                 <Share2 className="w-4 h-4 mr-2" />
-                Compartir datos bancarios
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleConfirmTransfer}
-                disabled={loading}
-                className="bg-amber-600 hover:bg-amber-700 w-full"
-              >
-                <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
-                {loading ? 'Confirming...' : 'Confirm Transfer Received'}
+                Ver y compartir datos bancarios
               </Button>
             </div>
           </div>
@@ -190,9 +190,12 @@ export default function PaymentCard({
         open={showTransferShareDialog}
         onOpenChange={setShowTransferShareDialog}
         bankAccountData={bankAccountData}
+        onConfirmReceived={() => confirmPayment('confirmed')}
+        isConfirming={loading}
+        confirmLabel={transferConfirmLabel}
       />
 
-      {payment.payment_method_type === 'mercado_pago' && (
+      {paymentMethodType === 'mercado_pago' && (
         <QrModal
           open={showQrModal}
           onClose={() => setShowQrModal(false)}
