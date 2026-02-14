@@ -1,22 +1,39 @@
-import React, { useState } from 'react';
-import { CheckCircle2, Clock, Loader2, Share2, XCircle } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { CheckCircle2, Clock, Loader2, QrCode, XCircle } from 'lucide-react';
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import QrModal from './QrModal';
 import { useBusiness } from '../BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
-import BankTransferShareDialog from '@/components/payments/BankTransferShareDialog';
+import PaymentShareActions from './PaymentShareActions';
+
+const resolveBankAccountData = (bankAccountData = {}) => ({
+  bank_name: bankAccountData.bank_name || '',
+  account_holder_name: bankAccountData.account_holder_name || '',
+  cbu: bankAccountData.cbu || '',
+  alias: bankAccountData.alias || '',
+});
+
+const buildTransferPlainText = (bankAccountData) => {
+  const lines = [
+    'Datos bancarios para transferencia:',
+    `Banco: ${bankAccountData.bank_name || 'No configurado'}`,
+    `Titular: ${bankAccountData.account_holder_name || 'No configurado'}`,
+    `CBU/CVU: ${bankAccountData.cbu || 'No configurado'}`,
+    `Alias: ${bankAccountData.alias || 'No configurado'}`,
+  ];
+
+  return lines.join('\n');
+};
 
 export default function PaymentCard({
   payment,
-  businessData,
+  businessData: _businessData,
   bankAccountData,
   onUpdateStatus
 }) {
-  const [showQrModal, setShowQrModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showTransferShareDialog, setShowTransferShareDialog] = useState(false);
   const { currentBusiness } = useBusiness();
 
   const statusConfig = {
@@ -30,6 +47,16 @@ export default function PaymentCard({
   const color = payment.method?.color || '#6B7280';
   const Icon = status.icon;
   const MethodIcon = getPaymentMethodIcon(payment.method?.icon);
+  const paymentMethodType = payment.payment_method_type || payment.method?.type || payment.method?.code;
+  const accountData = resolveBankAccountData(bankAccountData);
+  const transferText = buildTransferPlainText(accountData);
+
+  const mercadoPagoLink = payment.payment_reference || payment.reference || 'https://mercadopago.com/example-qr';
+  const mercadoPagoShareText = useMemo(() => ([
+    'Link de cobro por Mercado Pago:',
+    mercadoPagoLink,
+    `Importe: ${formatPrice(payment.amount, currentBusiness)}`,
+  ].join('\n')), [mercadoPagoLink, payment.amount, currentBusiness]);
 
   const confirmPayment = async (statusValue) => {
     setLoading(true);
@@ -41,13 +68,8 @@ export default function PaymentCard({
   };
 
   const handleConfirmCash = () => confirmPayment('confirmed');
-
-  const handleStartMercadoPago = () => {
-    setShowQrModal(true);
-  };
-
   const handleConfirmTransfer = () => confirmPayment('confirmed');
-
+  const handleConfirmMercadoPago = () => confirmPayment('confirmed');
   const handleConfirmCard = () => confirmPayment('confirmed');
 
   const renderActions = () => {
@@ -55,7 +77,7 @@ export default function PaymentCard({
       return <Badge className="bg-green-600">Confirmed</Badge>;
     }
 
-    switch (payment.payment_method_type) {
+    switch (paymentMethodType) {
       case 'cash':
         return (
           <Button
@@ -70,56 +92,73 @@ export default function PaymentCard({
         );
 
       case 'mercado_pago':
-        if (payment.status === 'processing') {
-          return (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowQrModal(true)}
-            >
-              <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
-              View QR Code
-            </Button>
-          );
-        }
         return (
-          <Button
-            size="sm"
-            onClick={handleStartMercadoPago}
-            className="bg-sky-600 hover:bg-sky-700"
-          >
-            <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
-            Generate QR Code
-          </Button>
+          <div className="space-y-3">
+            <div className="rounded-md border bg-sky-50 p-3">
+              <div className="flex items-center gap-2 mb-2 text-sky-800">
+                <QrCode className="w-4 h-4" />
+                <span className="text-sm font-medium">QR Mercado Pago</span>
+              </div>
+              <div className="w-20 h-20 rounded-md bg-white border border-sky-200 flex items-center justify-center">
+                <QrCode className="w-10 h-10 text-sky-400" />
+              </div>
+              <p className="text-xs text-slate-600 mt-2 break-all">{mercadoPagoLink}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <PaymentShareActions
+                shareText={mercadoPagoShareText}
+                whatsappTitle="Compartir link de pago por WhatsApp"
+                emailTitle="Compartir link de pago por e-mail"
+                defaultSubject="Link de pago Mercado Pago"
+                defaultMessage={`Te compartimos el link para abonar ${formatPrice(payment.amount, currentBusiness)}.`}
+                phoneFieldId={`payment-mp-whatsapp-${payment.id}`}
+                fieldPrefix={`payment-mp-share-${payment.id}`}
+              />
+
+              <Button
+                size="sm"
+                onClick={handleConfirmMercadoPago}
+                disabled={loading}
+                className="bg-sky-600 hover:bg-sky-700"
+              >
+                <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
+                {loading ? 'Confirmando...' : 'Confirmar pago recibido'}
+              </Button>
+            </div>
+          </div>
         );
 
       case 'transfer':
+      case 'bank_transfer':
         return (
           <div className="space-y-2">
-            {payment.status === 'pending' && (
-              <div className="text-xs space-y-1 bg-slate-50 p-2 rounded">
-                <p><strong>Bank:</strong> {bankAccountData?.bank_name || 'Not configured'}</p>
-                <p><strong>CBU:</strong> {bankAccountData?.cbu || 'Not configured'}</p>
-                {bankAccountData?.alias && <p><strong>Alias:</strong> {bankAccountData.alias}</p>}
-              </div>
-            )}
-            <div className="flex flex-col gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowTransferShareDialog(true)}
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                Compartir datos bancarios
-              </Button>
+            <div className="text-xs space-y-1 bg-slate-50 p-2 rounded">
+              <p><strong>Bank:</strong> {accountData.bank_name || 'Not configured'}</p>
+              <p><strong>Holder:</strong> {accountData.account_holder_name || 'Not configured'}</p>
+              <p><strong>CBU:</strong> {accountData.cbu || 'Not configured'}</p>
+              <p><strong>Alias:</strong> {accountData.alias || 'Not configured'}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <PaymentShareActions
+                shareText={transferText}
+                whatsappTitle="Compartir datos bancarios por WhatsApp"
+                emailTitle="Compartir datos bancarios por e-mail"
+                defaultSubject="Datos bancarios para transferencia"
+                defaultMessage="Te compartimos los datos bancarios para realizar la transferencia."
+                phoneFieldId={`payment-transfer-whatsapp-${payment.id}`}
+                fieldPrefix={`payment-transfer-share-${payment.id}`}
+              />
+
               <Button
                 size="sm"
                 onClick={handleConfirmTransfer}
                 disabled={loading}
-                className="bg-amber-600 hover:bg-amber-700 w-full"
+                className="bg-amber-600 hover:bg-amber-700"
               >
                 <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
-                {loading ? 'Confirming...' : 'Confirm Transfer Received'}
+                {loading ? 'Confirmando...' : 'Confirmar pago recibido'}
               </Button>
             </div>
           </div>
@@ -153,56 +192,35 @@ export default function PaymentCard({
   };
 
   return (
-    <>
-      <div
-        className="border-2 rounded-lg p-4"
-        style={{ borderColor: color + '40', backgroundColor: color + '08' }}
-      >
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div
-              className="p-2 rounded-lg"
-              style={{ backgroundColor: color + '20' }}
-            >
-              <MethodIcon className="w-5 h-5" style={{ color }} />
-            </div>
-            <div>
-              <p className="font-medium capitalize">{payment.method?.name || payment.payment_method_type}</p>
-              <p className="text-2xl font-bold" style={{ color }}>
-                {formatPrice(payment.amount, currentBusiness)}
-              </p>
-            </div>
+    <div
+      className="border-2 rounded-lg p-4"
+      style={{ borderColor: color + '40', backgroundColor: color + '08' }}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div
+            className="p-2 rounded-lg"
+            style={{ backgroundColor: color + '20' }}
+          >
+            <MethodIcon className="w-5 h-5" style={{ color }} />
           </div>
-
-          <Badge className={status.color}>
-            <Icon className={`w-3 h-3 mr-1 ${payment.status === 'processing' ? 'animate-spin' : ''}`} />
-            {status.label}
-          </Badge>
+          <div>
+            <p className="font-medium capitalize">{payment.method?.name || payment.payment_method_type}</p>
+            <p className="text-2xl font-bold" style={{ color }}>
+              {formatPrice(payment.amount, currentBusiness)}
+            </p>
+          </div>
         </div>
 
-        <div className="mt-3">
-          {renderActions()}
-        </div>
+        <Badge className={status.color}>
+          <Icon className={`w-3 h-3 mr-1 ${payment.status === 'processing' ? 'animate-spin' : ''}`} />
+          {status.label}
+        </Badge>
       </div>
 
-
-      <BankTransferShareDialog
-        open={showTransferShareDialog}
-        onOpenChange={setShowTransferShareDialog}
-        bankAccountData={bankAccountData}
-      />
-
-      {payment.payment_method_type === 'mercado_pago' && (
-        <QrModal
-          open={showQrModal}
-          onClose={() => setShowQrModal(false)}
-          amount={payment.amount}
-          onConfirm={async () => {
-            await confirmPayment('confirmed');
-            setShowQrModal(false);
-          }}
-        />
-      )}
-    </>
+      <div className="mt-3">
+        {renderActions()}
+      </div>
+    </div>
   );
 }
