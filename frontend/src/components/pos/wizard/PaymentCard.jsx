@@ -1,12 +1,35 @@
-import React, { useMemo, useState } from 'react';
-import { CheckCircle2, Clock, Loader2, Share2, XCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle2, Clock, Loader2, Mail, MessageCircle, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import QrModal from './QrModal';
 import { useBusiness } from '../BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
-import BankTransferShareDialog from '@/components/payments/BankTransferShareDialog';
+import EmailShareDialog from '@/components/payments/EmailShareDialog';
+import WhatsappShareDialog from '@/components/payments/WhatsappShareDialog';
+import { sanitizeEmailAddress, sanitizePhoneNumber } from '@/lib/sanitize';
+
+const resolveBankAccountData = (bankAccountData = {}) => ({
+  bank_name: bankAccountData.bank_name || '',
+  account_holder_name: bankAccountData.account_holder_name || '',
+  cbu: bankAccountData.cbu || '',
+  alias: bankAccountData.alias || '',
+});
+
+const buildTransferPlainText = (bankAccountData) => {
+  const lines = [
+    'Datos bancarios para transferencia:',
+    `Banco: ${bankAccountData.bank_name || 'No configurado'}`,
+    `Titular: ${bankAccountData.account_holder_name || 'No configurado'}`,
+    `CBU/CVU: ${bankAccountData.cbu || 'No configurado'}`,
+    `Alias: ${bankAccountData.alias || 'No configurado'}`,
+  ];
+
+  return lines.join('\n');
+};
 
 export default function PaymentCard({
   payment,
@@ -16,7 +39,10 @@ export default function PaymentCard({
 }) {
   const [showQrModal, setShowQrModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showTransferShareDialog, setShowTransferShareDialog] = useState(false);
+  const [isWhatsappDialogOpen, setIsWhatsappDialogOpen] = useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [isSharingWhatsapp, setIsSharingWhatsapp] = useState(false);
+  const [isSharingEmail, setIsSharingEmail] = useState(false);
   const { currentBusiness } = useBusiness();
 
   const statusConfig = {
@@ -30,6 +56,9 @@ export default function PaymentCard({
   const color = payment.method?.color || '#6B7280';
   const Icon = status.icon;
   const MethodIcon = getPaymentMethodIcon(payment.method?.icon);
+  const paymentMethodType = payment.payment_method_type || payment.method?.type || payment.method?.code;
+  const accountData = resolveBankAccountData(bankAccountData);
+  const transferText = buildTransferPlainText(accountData);
 
   const confirmPayment = async (statusValue) => {
     setLoading(true);
@@ -46,17 +75,53 @@ export default function PaymentCard({
     setShowQrModal(true);
   };
 
-  const handleOpenTransferDialog = () => setShowTransferShareDialog(true);
-
-  const transferConfirmLabel = useMemo(() => {
-    if (loading) return 'Confirmando...';
-    const methodName = payment.method?.name || 'transferencia';
-    return `Confirmar ${methodName.toLowerCase()} recibida`;
-  }, [loading, payment.method?.name]);
+  const handleConfirmTransfer = () => confirmPayment('confirmed');
 
   const handleConfirmCard = () => confirmPayment('confirmed');
 
-  const paymentMethodType = payment.payment_method_type || payment.method?.type || payment.method?.code;
+  const handleShareWhatsapp = async (phoneNumber) => {
+    if (!phoneNumber) return;
+
+    try {
+      setIsSharingWhatsapp(true);
+      const safePhoneNumber = sanitizePhoneNumber(phoneNumber);
+      if (!safePhoneNumber) return;
+      const whatsappUrl = `https://wa.me/${safePhoneNumber}?text=${encodeURIComponent(transferText)}`;
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      setIsWhatsappDialogOpen(false);
+      toast.success('WhatsApp abierto con los datos bancarios listos para enviar.');
+    } catch (error) {
+      toast.error(error?.message || 'No se pudo abrir WhatsApp.');
+    } finally {
+      setIsSharingWhatsapp(false);
+    }
+  };
+
+  const handleShareEmail = async ({ to_email, subject, message }) => {
+    if (!to_email?.trim()) return;
+
+    try {
+      setIsSharingEmail(true);
+      const safeEmail = sanitizeEmailAddress(to_email);
+      if (!safeEmail) return;
+
+      const finalSubject = subject?.trim() || 'Datos bancarios para transferencia';
+      const bodyParts = [];
+      if (message?.trim()) {
+        bodyParts.push(message.trim(), '');
+      }
+      bodyParts.push(transferText);
+
+      const mailtoUrl = `mailto:${encodeURIComponent(safeEmail)}?subject=${encodeURIComponent(finalSubject)}&body=${encodeURIComponent(bodyParts.join('\n'))}`;
+      window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
+      setIsEmailDialogOpen(false);
+      toast.success('Cliente de correo abierto con los datos bancarios.');
+    } catch (error) {
+      toast.error(error?.message || 'No se pudo abrir el cliente de correo.');
+    } finally {
+      setIsSharingEmail(false);
+    }
+  };
 
   const renderActions = () => {
     if (payment.status === 'confirmed') {
@@ -105,21 +170,37 @@ export default function PaymentCard({
       case 'bank_transfer':
         return (
           <div className="space-y-2">
-            {payment.status === 'pending' && (
-              <div className="text-xs space-y-1 bg-slate-50 p-2 rounded">
-                <p><strong>Bank:</strong> {bankAccountData?.bank_name || 'Not configured'}</p>
-                <p><strong>CBU:</strong> {bankAccountData?.cbu || 'Not configured'}</p>
-                {bankAccountData?.alias && <p><strong>Alias:</strong> {bankAccountData.alias}</p>}
-              </div>
-            )}
-            <div className="flex flex-col gap-2">
+            <div className="text-xs space-y-1 bg-slate-50 p-2 rounded">
+              <p><strong>Bank:</strong> {accountData.bank_name || 'Not configured'}</p>
+              <p><strong>Holder:</strong> {accountData.account_holder_name || 'Not configured'}</p>
+              <p><strong>CBU:</strong> {accountData.cbu || 'Not configured'}</p>
+              <p><strong>Alias:</strong> {accountData.alias || 'Not configured'}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={handleOpenTransferDialog}
+                onClick={() => setIsWhatsappDialogOpen(true)}
               >
-                <Share2 className="w-4 h-4 mr-2" />
-                Ver y compartir datos bancarios
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Compartir por WhatsApp
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsEmailDialogOpen(true)}
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Compartir por e-mail
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleConfirmTransfer}
+                disabled={loading}
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
+                {loading ? 'Confirmando...' : 'Confirmar pago recibido'}
               </Button>
             </div>
           </div>
@@ -185,14 +266,25 @@ export default function PaymentCard({
         </div>
       </div>
 
+      <WhatsappShareDialog
+        open={isWhatsappDialogOpen}
+        onOpenChange={setIsWhatsappDialogOpen}
+        isSharing={isSharingWhatsapp}
+        onConfirm={handleShareWhatsapp}
+        title="Compartir datos bancarios por WhatsApp"
+        phoneFieldId="payment-transfer-whatsapp-phone"
+      />
 
-      <BankTransferShareDialog
-        open={showTransferShareDialog}
-        onOpenChange={setShowTransferShareDialog}
-        bankAccountData={bankAccountData}
-        onConfirmReceived={() => confirmPayment('confirmed')}
-        isConfirming={loading}
-        confirmLabel={transferConfirmLabel}
+      <EmailShareDialog
+        open={isEmailDialogOpen}
+        onOpenChange={setIsEmailDialogOpen}
+        isSending={isSharingEmail}
+        onSend={handleShareEmail}
+        defaultSubject="Datos bancarios para transferencia"
+        defaultMessage="Te compartimos los datos bancarios para realizar la transferencia."
+        title="Compartir datos bancarios por e-mail"
+        submitLabel="Abrir e-mail"
+        fieldPrefix="payment-transfer-share"
       />
 
       {paymentMethodType === 'mercado_pago' && (
