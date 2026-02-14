@@ -195,9 +195,9 @@ export default function Reports() {
   };
 
   const statusOptions = [
-    { value: 'closed', label: getSaleStatusLabel('closed') },
-    { value: 'open', label: getSaleStatusLabel('open') },
-    { value: 'voided', label: getSaleStatusLabel('voided') }
+    { value: 'closed', label: 'Cerradas' },
+    { value: 'open', label: 'Abiertas' },
+    { value: 'voided', label: 'Eliminadas' }
   ];
 
   const clearFilters = () => {
@@ -294,8 +294,8 @@ export default function Reports() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Sales Reports</h1>
-            <p className="text-slate-500">View and export your sales data</p>
+            <h1 className="text-2xl font-bold text-slate-900">Reportes de Ventas</h1>
+            <p className="text-slate-500">Visualiza y exporta la información de tus ventas</p>
           </div>
           <CsvExportButton onExport={handleExportCsv} />
         </div>
@@ -444,9 +444,8 @@ export default function Reports() {
                     <FileText className="w-6 h-6 text-amber-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-amber-600 font-medium">Closed Transactions</p>
+                    <p className="text-sm text-amber-600 font-medium">Transacciones cerradas</p>
                     <p className="text-2xl font-bold text-amber-900">{summary.sales_count ?? 0}</p>
-                    <p className="text-xs text-amber-600">Closed sales only</p>
                   </div>
                 </div>
 
@@ -456,9 +455,8 @@ export default function Reports() {
                     <DollarSign className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-blue-600 font-medium">Closed Sales Total</p>
+                    <p className="text-sm text-blue-600 font-medium">Total de ventas</p>
                     <p className="text-2xl font-bold text-blue-900">{formatPrice(summary.total_sales ?? 0, currentBusiness)}</p>
-                    <p className="text-xs text-blue-600">Closed sales only</p>
                   </div>
                 </div>
               </div>
@@ -545,7 +543,7 @@ export default function Reports() {
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="text-lg">Sales</CardTitle>
+              <CardTitle className="text-lg">Ventas</CardTitle>
               <Tabs value={statusTab} onValueChange={setStatusTab}>
                 <TabsList>
                   {statusOptions.map((status) => (
@@ -565,17 +563,17 @@ export default function Reports() {
             ) : sales.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                 <FileText className="w-12 h-12 mb-3" />
-                <p className="text-lg font-medium">No sales found</p>
+                <p className="text-lg font-medium">No se encontraron ventas</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Estado</TableHead>
                       <TableHead>Items</TableHead>
-                      <TableHead>Payment</TableHead>
+                      <TableHead>Forma de pago</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>

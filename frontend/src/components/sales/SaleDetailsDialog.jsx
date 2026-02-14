@@ -93,7 +93,7 @@ export default function SaleDetailsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Sale Details</DialogTitle>
+          <DialogTitle>Detalle de venta</DialogTitle>
         </DialogHeader>
         {sale && (
           <div className="space-y-6">
@@ -131,7 +131,7 @@ export default function SaleDetailsDialog({
                       <div>
                         <p className="font-medium">{name}</p>
                         <p className="text-[11px] text-slate-400">Categoría: {categoryName}</p>
-                        <p className="text-sm text-slate-500">Qty: {quantity} × {formatPrice(unitPrice, currentBusiness)}</p>
+                        <p className="text-sm text-slate-500">{quantity} × {formatPrice(unitPrice, currentBusiness)}</p>
                       </div>
                       <p className="font-medium">{formatPrice(subtotal, currentBusiness)}</p>
                     </div>
@@ -165,7 +165,7 @@ export default function SaleDetailsDialog({
                   <span className="font-bold text-lg">{formatPrice(sale.total_amount ?? sale.total ?? 0, currentBusiness)}</span>
                 </div>
                 <div className="space-y-2 pt-2">
-                  <span className="text-slate-600">Payment Methods</span>
+                  <span className="text-slate-600">Forma de pago</span>
                   <div className="space-y-2">
                     {paymentBreakdown.map((payment, idx) => (
                       <div key={`${payment.code}-${idx}`} className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2">

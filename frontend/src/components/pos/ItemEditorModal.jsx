@@ -231,14 +231,14 @@ export default function ItemEditorModal({
               />
             </div>
 
-            <div className="col-span-2 flex items-center justify-between py-2">
+            {/* <div className="col-span-2 flex items-center justify-between py-2">
               <Label htmlFor="track_stock" className="cursor-pointer">Track Stock</Label>
               <Switch
                 id="track_stock"
                 checked={formData.track_stock}
                 onCheckedChange={(checked) => setFormData({ ...formData, track_stock: checked })}
               />
-            </div>
+            </div> */}
 
             {formData.track_stock && (
               <div className="col-span-2">

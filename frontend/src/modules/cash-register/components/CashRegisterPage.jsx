@@ -141,8 +141,8 @@ export default function CashRegister() {
       <div className="max-w-4xl mx-auto p-4 lg:p-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Cash Register</h1>
-          <p className="text-slate-500">Manage your cash register sessions</p>
+          <h1 className="text-2xl font-bold text-slate-900">Caja Registradora</h1>
+          <p className="text-slate-500">Gestioná tus aperturas y cierres de caja</p>
         </div>
 
         {loadingSession ? (

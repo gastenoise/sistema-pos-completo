@@ -71,7 +71,7 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1">
           <Plus className="w-4 h-4" />
-          + Item Rápido
+          Item Rápido
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm">

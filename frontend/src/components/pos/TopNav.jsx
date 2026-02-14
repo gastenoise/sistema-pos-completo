@@ -25,9 +25,9 @@ export default function TopNav({ user, onLogout, currentPage }) {
   const navItems = [
     { name: 'POS', href: createPageUrl('POS'), icon: ShoppingCart },
     { name: 'Items', href: createPageUrl('Items'), icon: Package },
-    { name: 'Reports', href: createPageUrl('Reports'), icon: BarChart3 },
-    { name: 'Cash Register', href: createPageUrl('CashRegister'), icon: CreditCard },
-    { name: 'Settings', href: createPageUrl('Settings'), icon: Settings },
+    { name: 'Reportes', href: createPageUrl('Reports'), icon: BarChart3 },
+    { name: 'Caja', href: createPageUrl('CashRegister'), icon: CreditCard },
+    { name: 'Ajustes', href: createPageUrl('Settings'), icon: Settings },
   ];
 
   const isCurrentPage = (itemName) => {

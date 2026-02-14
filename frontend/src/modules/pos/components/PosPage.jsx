@@ -558,7 +558,7 @@ function POSContent() {
         <div className="w-full lg:w-[450px] bg-white border-l border-slate-200 flex flex-col">
           <div className="p-4 border-b border-slate-200">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-bold text-slate-900">Current Sale</h2>
+              <h2 className="text-lg font-bold text-slate-900">Esta venta</h2>
               <button
                 type="button"
                 className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 disabled:text-slate-400"
@@ -566,7 +566,7 @@ function POSContent() {
                 onClick={() => setIsLastSaleDialogOpen(true)}
               >
                 <Eye className="w-3.5 h-3.5" />
-                Última venta
+                Venta anterior
               </button>
             </div>
             {cashRegisterStatus?.status === 'closed' && (

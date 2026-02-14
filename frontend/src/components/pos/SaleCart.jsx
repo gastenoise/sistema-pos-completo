@@ -15,8 +15,8 @@ export default function SaleCart({ onCharge }) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
         <ShoppingCart className="w-12 h-12 mb-3" />
-        <p className="text-lg font-medium">Cart is empty</p>
-        <p className="text-sm">Add items to start a sale</p>
+        <p className="text-lg font-medium">Carro de compras vacío</p>
+        <p className="text-sm">Agregá items para iniciar la venta</p>
       </div>
     );
   }
@@ -82,13 +82,13 @@ export default function SaleCart({ onCharge }) {
             className="flex-1"
             onClick={clearCart}
           >
-            Clear
+            Limpiar
           </Button>
           <Button 
             className="flex-[2] bg-green-600 hover:bg-green-700 text-lg py-6"
             onClick={onCharge}
           >
-            Charge {formatPrice(total, currentBusiness)}
+            Cobrar {formatPrice(total, currentBusiness)}
           </Button>
         </div>
       </div>
