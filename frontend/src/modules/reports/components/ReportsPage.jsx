@@ -56,6 +56,13 @@ import {
 } from '@/modules/reports/hooks/useSalesReports';
 import { exportSalesReport } from '@/api/reports';
 
+// Utilidad reutilizable para la fecha de mañana en formato yyyy-MM-dd
+function getTomorrowISODateLocal(referenceDate = new Date()) {
+  const date = new Date(referenceDate);
+  date.setDate(date.getDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
 export default function Reports() {
   const { businessId, currentBusiness, businesses } = useBusiness();
   const queryClient = useQueryClient();
@@ -63,11 +70,12 @@ export default function Reports() {
 
   // Keep yyyy-MM-dd for API compatibility; dates are computed from the browser local day.
   const today = getTodayISODateLocal();
+  const tomorrow = getTomorrowISODateLocal();
   const [dateFrom, setDateFrom] = useState(today);
-  const [dateTo, setDateTo] = useState(today);
+  const [dateTo, setDateTo] = useState(tomorrow);
   const [dateMode, setDateMode] = useState('today'); // 'today', 'week', 'month', 'custom'
   const [tempDateFrom, setTempDateFrom] = useState(today);
-  const [tempDateTo, setTempDateTo] = useState(today);
+  const [tempDateTo, setTempDateTo] = useState(tomorrow);
   const [selectedSale, setSelectedSale] = useState(null);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -241,10 +249,12 @@ export default function Reports() {
     switch (preset) {
       case 'today': {
         const todayStr = getTodayISODateLocal(now);
+        const tomorrowStr = getTomorrowISODateLocal(now);
+
         setDateFrom(todayStr);
-        setDateTo(todayStr);
+        setDateTo(tomorrowStr);
         setTempDateFrom(todayStr);
-        setTempDateTo(todayStr);
+        setTempDateTo(tomorrowStr);
         break;
       }
       case 'week': {
