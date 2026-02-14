@@ -1,16 +1,12 @@
-import React, { useState } from 'react';
-import { CheckCircle2, Clock, Loader2, Mail, MessageCircle, XCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import React, { useMemo, useState } from 'react';
+import { CheckCircle2, Clock, Loader2, QrCode, XCircle } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import QrModal from './QrModal';
 import { useBusiness } from '../BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
-import EmailShareDialog from '@/components/payments/EmailShareDialog';
-import WhatsappShareDialog from '@/components/payments/WhatsappShareDialog';
-import { sanitizeEmailAddress, sanitizePhoneNumber } from '@/lib/sanitize';
+import PaymentShareActions from './PaymentShareActions';
 
 const resolveBankAccountData = (bankAccountData = {}) => ({
   bank_name: bankAccountData.bank_name || '',
@@ -37,12 +33,7 @@ export default function PaymentCard({
   bankAccountData,
   onUpdateStatus
 }) {
-  const [showQrModal, setShowQrModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isWhatsappDialogOpen, setIsWhatsappDialogOpen] = useState(false);
-  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
-  const [isSharingWhatsapp, setIsSharingWhatsapp] = useState(false);
-  const [isSharingEmail, setIsSharingEmail] = useState(false);
   const { currentBusiness } = useBusiness();
 
   const statusConfig = {
@@ -60,6 +51,13 @@ export default function PaymentCard({
   const accountData = resolveBankAccountData(bankAccountData);
   const transferText = buildTransferPlainText(accountData);
 
+  const mercadoPagoLink = payment.payment_reference || payment.reference || 'https://mercadopago.com/example-qr';
+  const mercadoPagoShareText = useMemo(() => ([
+    'Link de cobro por Mercado Pago:',
+    mercadoPagoLink,
+    `Importe: ${formatPrice(payment.amount, currentBusiness)}`,
+  ].join('\n')), [mercadoPagoLink, payment.amount, currentBusiness]);
+
   const confirmPayment = async (statusValue) => {
     setLoading(true);
     try {
@@ -70,58 +68,9 @@ export default function PaymentCard({
   };
 
   const handleConfirmCash = () => confirmPayment('confirmed');
-
-  const handleStartMercadoPago = () => {
-    setShowQrModal(true);
-  };
-
   const handleConfirmTransfer = () => confirmPayment('confirmed');
-
+  const handleConfirmMercadoPago = () => confirmPayment('confirmed');
   const handleConfirmCard = () => confirmPayment('confirmed');
-
-  const handleShareWhatsapp = async (phoneNumber) => {
-    if (!phoneNumber) return;
-
-    try {
-      setIsSharingWhatsapp(true);
-      const safePhoneNumber = sanitizePhoneNumber(phoneNumber);
-      if (!safePhoneNumber) return;
-      const whatsappUrl = `https://wa.me/${safePhoneNumber}?text=${encodeURIComponent(transferText)}`;
-      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-      setIsWhatsappDialogOpen(false);
-      toast.success('WhatsApp abierto con los datos bancarios listos para enviar.');
-    } catch (error) {
-      toast.error(error?.message || 'No se pudo abrir WhatsApp.');
-    } finally {
-      setIsSharingWhatsapp(false);
-    }
-  };
-
-  const handleShareEmail = async ({ to_email, subject, message }) => {
-    if (!to_email?.trim()) return;
-
-    try {
-      setIsSharingEmail(true);
-      const safeEmail = sanitizeEmailAddress(to_email);
-      if (!safeEmail) return;
-
-      const finalSubject = subject?.trim() || 'Datos bancarios para transferencia';
-      const bodyParts = [];
-      if (message?.trim()) {
-        bodyParts.push(message.trim(), '');
-      }
-      bodyParts.push(transferText);
-
-      const mailtoUrl = `mailto:${encodeURIComponent(safeEmail)}?subject=${encodeURIComponent(finalSubject)}&body=${encodeURIComponent(bodyParts.join('\n'))}`;
-      window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
-      setIsEmailDialogOpen(false);
-      toast.success('Cliente de correo abierto con los datos bancarios.');
-    } catch (error) {
-      toast.error(error?.message || 'No se pudo abrir el cliente de correo.');
-    } finally {
-      setIsSharingEmail(false);
-    }
-  };
 
   const renderActions = () => {
     if (payment.status === 'confirmed') {
@@ -143,27 +92,41 @@ export default function PaymentCard({
         );
 
       case 'mercado_pago':
-        if (payment.status === 'processing') {
-          return (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowQrModal(true)}
-            >
-              <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
-              View QR Code
-            </Button>
-          );
-        }
         return (
-          <Button
-            size="sm"
-            onClick={handleStartMercadoPago}
-            className="bg-sky-600 hover:bg-sky-700"
-          >
-            <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
-            Generate QR Code
-          </Button>
+          <div className="space-y-3">
+            <div className="rounded-md border bg-sky-50 p-3">
+              <div className="flex items-center gap-2 mb-2 text-sky-800">
+                <QrCode className="w-4 h-4" />
+                <span className="text-sm font-medium">QR Mercado Pago</span>
+              </div>
+              <div className="w-20 h-20 rounded-md bg-white border border-sky-200 flex items-center justify-center">
+                <QrCode className="w-10 h-10 text-sky-400" />
+              </div>
+              <p className="text-xs text-slate-600 mt-2 break-all">{mercadoPagoLink}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <PaymentShareActions
+                shareText={mercadoPagoShareText}
+                whatsappTitle="Compartir link de pago por WhatsApp"
+                emailTitle="Compartir link de pago por e-mail"
+                defaultSubject="Link de pago Mercado Pago"
+                defaultMessage={`Te compartimos el link para abonar ${formatPrice(payment.amount, currentBusiness)}.`}
+                phoneFieldId={`payment-mp-whatsapp-${payment.id}`}
+                fieldPrefix={`payment-mp-share-${payment.id}`}
+              />
+
+              <Button
+                size="sm"
+                onClick={handleConfirmMercadoPago}
+                disabled={loading}
+                className="bg-sky-600 hover:bg-sky-700"
+              >
+                <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
+                {loading ? 'Confirmando...' : 'Confirmar pago recibido'}
+              </Button>
+            </div>
+          </div>
         );
 
       case 'transfer':
@@ -176,23 +139,18 @@ export default function PaymentCard({
               <p><strong>CBU:</strong> {accountData.cbu || 'Not configured'}</p>
               <p><strong>Alias:</strong> {accountData.alias || 'Not configured'}</p>
             </div>
+
             <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setIsWhatsappDialogOpen(true)}
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Compartir por WhatsApp
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setIsEmailDialogOpen(true)}
-              >
-                <Mail className="w-4 h-4 mr-2" />
-                Compartir por e-mail
-              </Button>
+              <PaymentShareActions
+                shareText={transferText}
+                whatsappTitle="Compartir datos bancarios por WhatsApp"
+                emailTitle="Compartir datos bancarios por e-mail"
+                defaultSubject="Datos bancarios para transferencia"
+                defaultMessage="Te compartimos los datos bancarios para realizar la transferencia."
+                phoneFieldId={`payment-transfer-whatsapp-${payment.id}`}
+                fieldPrefix={`payment-transfer-share-${payment.id}`}
+              />
+
               <Button
                 size="sm"
                 onClick={handleConfirmTransfer}
@@ -234,70 +192,35 @@ export default function PaymentCard({
   };
 
   return (
-    <>
-      <div
-        className="border-2 rounded-lg p-4"
-        style={{ borderColor: color + '40', backgroundColor: color + '08' }}
-      >
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div
-              className="p-2 rounded-lg"
-              style={{ backgroundColor: color + '20' }}
-            >
-              <MethodIcon className="w-5 h-5" style={{ color }} />
-            </div>
-            <div>
-              <p className="font-medium capitalize">{payment.method?.name || payment.payment_method_type}</p>
-              <p className="text-2xl font-bold" style={{ color }}>
-                {formatPrice(payment.amount, currentBusiness)}
-              </p>
-            </div>
+    <div
+      className="border-2 rounded-lg p-4"
+      style={{ borderColor: color + '40', backgroundColor: color + '08' }}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div
+            className="p-2 rounded-lg"
+            style={{ backgroundColor: color + '20' }}
+          >
+            <MethodIcon className="w-5 h-5" style={{ color }} />
           </div>
-
-          <Badge className={status.color}>
-            <Icon className={`w-3 h-3 mr-1 ${payment.status === 'processing' ? 'animate-spin' : ''}`} />
-            {status.label}
-          </Badge>
+          <div>
+            <p className="font-medium capitalize">{payment.method?.name || payment.payment_method_type}</p>
+            <p className="text-2xl font-bold" style={{ color }}>
+              {formatPrice(payment.amount, currentBusiness)}
+            </p>
+          </div>
         </div>
 
-        <div className="mt-3">
-          {renderActions()}
-        </div>
+        <Badge className={status.color}>
+          <Icon className={`w-3 h-3 mr-1 ${payment.status === 'processing' ? 'animate-spin' : ''}`} />
+          {status.label}
+        </Badge>
       </div>
 
-      <WhatsappShareDialog
-        open={isWhatsappDialogOpen}
-        onOpenChange={setIsWhatsappDialogOpen}
-        isSharing={isSharingWhatsapp}
-        onConfirm={handleShareWhatsapp}
-        title="Compartir datos bancarios por WhatsApp"
-        phoneFieldId="payment-transfer-whatsapp-phone"
-      />
-
-      <EmailShareDialog
-        open={isEmailDialogOpen}
-        onOpenChange={setIsEmailDialogOpen}
-        isSending={isSharingEmail}
-        onSend={handleShareEmail}
-        defaultSubject="Datos bancarios para transferencia"
-        defaultMessage="Te compartimos los datos bancarios para realizar la transferencia."
-        title="Compartir datos bancarios por e-mail"
-        submitLabel="Abrir e-mail"
-        fieldPrefix="payment-transfer-share"
-      />
-
-      {paymentMethodType === 'mercado_pago' && (
-        <QrModal
-          open={showQrModal}
-          onClose={() => setShowQrModal(false)}
-          amount={payment.amount}
-          onConfirm={async () => {
-            await confirmPayment('confirmed');
-            setShowQrModal(false);
-          }}
-        />
-      )}
-    </>
+      <div className="mt-3">
+        {renderActions()}
+      </div>
+    </div>
   );
 }
