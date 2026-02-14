@@ -189,6 +189,39 @@ class ItemController extends Controller
         return $rows;
     }
 
+
+    private function buildImportEstimateFromRows(array $rows, int $businessId, ImportItemsAction $importItemsAction): array
+    {
+        return $importItemsAction->estimateMetrics($rows, $businessId, true, false);
+    }
+
+    private function getAllCsvRows(string $path, string $delimiter, array $columns): array
+    {
+        if ($columns === []) {
+            return [];
+        }
+
+        $rows = [];
+        $file = $this->getCsvStreamIterator($path, $delimiter);
+        $file->fgetcsv();
+        $headerCount = count($columns);
+
+        foreach ($file as $row) {
+            if (!is_array($row) || $row === [null] || count($row) !== $headerCount) {
+                continue;
+            }
+
+            $combined = array_combine($columns, $row);
+            if ($combined === false) {
+                continue;
+            }
+
+            $rows[] = $combined;
+        }
+
+        return $rows;
+    }
+
     private function persistImportPreviewFile(Request $request): string
     {
         $previewId = (string) Str::uuid();
@@ -284,7 +317,7 @@ class ItemController extends Controller
         return response()->json(['success' => true, 'data' => $result]);
     }
 
-    public function importPreview(Request $request)
+    public function importPreview(Request $request, ImportItemsAction $importItemsAction)
     {
         $validated = $request->validate([
             'file' => 'required|file|mimes:csv,txt|max:2048',
@@ -300,6 +333,13 @@ class ItemController extends Controller
         $parsed = $this->parseCsvFile($absolutePath, $delimiter, $lowerCaseHeaders);
         $previewId = pathinfo($storedPath, PATHINFO_FILENAME);
 
+        $estimatedMetrics = null;
+
+        if (in_array('barcode', $parsed['columns'], true)) {
+            $allRows = $this->getAllCsvRows($absolutePath, $delimiter, $parsed['columns']);
+            $estimatedMetrics = $this->buildImportEstimateFromRows($allRows, app(BusinessContext::class)->getBusinessId(), $importItemsAction);
+        }
+
         Cache::put(self::IMPORT_PREVIEW_CACHE_PREFIX . $previewId, [
             'path' => $storedPath,
             'delimiter' => $delimiter,
@@ -308,6 +348,7 @@ class ItemController extends Controller
             'sample' => $parsed['sample'],
             'total_rows' => $parsed['total_rows'],
             'parsing_errors' => $parsed['parsing_errors'],
+            'estimated_metrics' => $estimatedMetrics,
         ], now()->addSeconds(self::IMPORT_PREVIEW_CACHE_TTL_SECONDS));
 
 
@@ -320,11 +361,12 @@ class ItemController extends Controller
                 'parsing_errors' => $parsed['parsing_errors'],
                 'preview_id' => $previewId,
                 'delimiter' => $delimiter,
+                'estimated_metrics' => $estimatedMetrics,
             ],
         ]);
     }
 
-    public function importPreviewFull(Request $request)
+    public function importPreviewFull(Request $request, ImportItemsAction $importItemsAction)
     {
         $request->validate([
             'file' => 'nullable|file|mimes:csv,txt|max:2048',
@@ -367,6 +409,7 @@ class ItemController extends Controller
             'sample' => $cachePayload['sample'] ?? null,
             'total_rows' => $cachePayload['total_rows'] ?? null,
             'parsing_errors' => $cachePayload['parsing_errors'] ?? null,
+            'estimated_metrics' => $cachePayload['estimated_metrics'] ?? null,
         ];
 
         if (!is_array($parsedMetadata['columns']) || !is_array($parsedMetadata['sample']) || !is_int($parsedMetadata['total_rows']) || !is_array($parsedMetadata['parsing_errors'])) {
@@ -381,7 +424,13 @@ class ItemController extends Controller
             'sample' => $parsedMetadata['sample'],
             'total_rows' => $parsedMetadata['total_rows'],
             'parsing_errors' => $parsedMetadata['parsing_errors'],
+            'estimated_metrics' => $parsedMetadata['estimated_metrics'] ?? null,
         ], now()->addSeconds(self::IMPORT_PREVIEW_CACHE_TTL_SECONDS));
+
+        if (!is_array($parsedMetadata['estimated_metrics']) && in_array('barcode', $parsedMetadata['columns'], true)) {
+            $allRows = $this->getAllCsvRows($absolutePath, $delimiter, $parsedMetadata['columns']);
+            $parsedMetadata['estimated_metrics'] = $this->buildImportEstimateFromRows($allRows, app(BusinessContext::class)->getBusinessId(), $importItemsAction);
+        }
 
         $page = (int) $request->input('page', 1);
         $perPage = (int) $request->input('per_page', 100);
@@ -398,6 +447,7 @@ class ItemController extends Controller
                 'parsing_errors' => $parsedMetadata['parsing_errors'],
                 'preview_id' => $previewId,
                 'delimiter' => $delimiter,
+                'estimated_metrics' => $parsedMetadata['estimated_metrics'] ?? null,
                 'pagination' => [
                     'current_page' => $page,
                     'per_page' => $perPage,
@@ -427,6 +477,13 @@ class ItemController extends Controller
         ]);
 
         try {
+            $estimatedMetrics = $importItemsAction->estimateMetrics(
+                $validated['items'],
+                $businessId,
+                $request->boolean('sync_by_barcode', true),
+                $request->boolean('sync_by_sku')
+            );
+
             $result = $importItemsAction->execute(
                 $validated['items'],
                 $request->boolean('sync_by_sku'),
@@ -435,7 +492,7 @@ class ItemController extends Controller
                 $validated['category_id'] ?? null
             );
 
-            return response()->json(['success' => true, 'data' => $result]);
+            return response()->json(['success' => true, 'data' => $result + ['estimated_metrics' => $estimatedMetrics]]);
         } catch (\Throwable $exception) {
             return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
         }
