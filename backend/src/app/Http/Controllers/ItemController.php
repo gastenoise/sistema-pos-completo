@@ -410,7 +410,9 @@ class ItemController extends Controller
 
     public function importConfirm(Request $request, ImportItemsAction $importItemsAction)
     {
-        $request->validate([
+        $businessId = app(BusinessContext::class)->getBusinessId();
+
+        $validated = $request->validate([
             'items' => 'required|array',
             'items.*.name' => 'required|string',
             'items.*.price' => 'required|numeric',
@@ -419,16 +421,18 @@ class ItemController extends Controller
             'items.*.presentation_unit' => 'nullable|string|max:20',
             'items.*.brand' => 'nullable|string|max:120',
             'items.*.list_price' => 'nullable|numeric|min:0',
+            'category_id' => ['nullable', Rule::exists('categories', 'id')->where('business_id', $businessId)],
             'sync_by_sku' => 'boolean',
             'sync_by_barcode' => 'boolean',
         ]);
 
         try {
             $result = $importItemsAction->execute(
-                $request->input('items'),
+                $validated['items'],
                 $request->boolean('sync_by_sku'),
-                app(BusinessContext::class)->getBusinessId(),
-                $request->boolean('sync_by_barcode', true)
+                $businessId,
+                $request->boolean('sync_by_barcode', true),
+                $validated['category_id'] ?? null
             );
 
             return response()->json(['success' => true, 'data' => $result]);

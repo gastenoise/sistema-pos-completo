@@ -29,19 +29,35 @@ class ImportItemsAction
         return $trimmed !== '' ? $trimmed : null;
     }
 
-    public function execute(array $items, bool $syncBySku, int $businessId, bool $syncByBarcode = true): array
+    private function parseNullableInteger(mixed $value): ?int
     {
-        return DB::transaction(function () use ($items, $syncBySku, $businessId, $syncByBarcode) {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        return (int) $value;
+    }
+
+    public function execute(array $items, bool $syncBySku, int $businessId, bool $syncByBarcode = true, ?int $globalCategoryId = null): array
+    {
+        return DB::transaction(function () use ($items, $syncBySku, $businessId, $syncByBarcode, $globalCategoryId) {
             $count = 0;
             foreach ($items as $row) {
                 $barcode = $this->parseNullableText($row['barcode'] ?? null);
                 $sku = $this->parseNullableText($row['sku'] ?? null);
+
+                $rowCategoryId = $this->parseNullableInteger($row['category_id'] ?? null);
 
                 $payload = [
                     'name' => $row['name'],
                     'price' => round((float) $row['price'], 2),
                     'sku' => $sku,
                     'barcode' => $barcode,
+                    'category_id' => $rowCategoryId ?? $globalCategoryId,
                     'presentation_quantity' => $this->parseNullableDecimal($row['presentation_quantity'] ?? null),
                     'presentation_unit' => $this->parseNullableText($row['presentation_unit'] ?? null),
                     'brand' => $this->parseNullableText($row['brand'] ?? null),
