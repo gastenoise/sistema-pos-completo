@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import { Mail, MessageCircle } from 'lucide-react';
+import { ChevronDown, Mail, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import EmailShareDialog from '@/components/payments/EmailShareDialog';
 import WhatsappShareDialog from '@/components/payments/WhatsappShareDialog';
 import { sanitizeEmailAddress, sanitizePhoneNumber } from '@/lib/sanitize';
@@ -68,23 +74,24 @@ export default function PaymentShareActions({
 
   return (
     <>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => setIsWhatsappDialogOpen(true)}
-      >
-        <MessageCircle className="w-4 h-4 mr-2" />
-        Compartir por WhatsApp
-      </Button>
-
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => setIsEmailDialogOpen(true)}
-      >
-        <Mail className="w-4 h-4 mr-2" />
-        Compartir por e-mail
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button type="button" size="sm" variant="outline">
+            Compartir
+            <ChevronDown className="ml-2 h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setIsWhatsappDialogOpen(true)}>
+            <MessageCircle className="mr-2 h-4 w-4" />
+            Enviar por WhatsApp
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setIsEmailDialogOpen(true)}>
+            <Mail className="mr-2 h-4 w-4" />
+            Enviar por e-mail
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <WhatsappShareDialog
         open={isWhatsappDialogOpen}
