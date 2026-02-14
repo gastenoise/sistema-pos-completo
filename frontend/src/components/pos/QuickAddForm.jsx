@@ -25,7 +25,6 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     price: '',
-    type: 'product',
     category_id: '',
     save_to_catalog: false,
     name: '',
@@ -43,7 +42,7 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.category_id || !selectedCategory || !formData.price || !formData.type) return;
+    if (!formData.category_id || !selectedCategory || !formData.price) return;
 
     setIsLoading(true);
     try {
@@ -52,12 +51,11 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
       await onAdd({
         name: resolvedName,
         price: parseFloat(formData.price),
-        type: formData.type,
         save_to_catalog: formData.save_to_catalog,
         category_id: Number(formData.category_id),
       });
       toast.success('Item agregado');
-      setFormData({ price: '', type: 'product', category_id: '', save_to_catalog: false, name: '' });
+      setFormData({ price: '', category_id: '', save_to_catalog: false, name: '' });
       setOpen(false);
     } catch (error) {
       toast.error('No se pudo agregar el item');
@@ -115,24 +113,6 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
             />
           </div>
 
-          <div>
-            <Label>Tipo</Label>
-            <Select
-              value={formData.type}
-              onValueChange={(value) => setFormData({ ...formData, type: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="product">Product</SelectItem>
-                <SelectItem value="service">Service</SelectItem>
-                <SelectItem value="fee">Fee</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-
           <label className="flex items-center gap-2">
             <Checkbox
               checked={formData.save_to_catalog}
@@ -151,7 +131,7 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting || !formData.category_id || !selectedCategory || !formData.price || !formData.type || categories.length === 0}>
+          <Button type="submit" className="w-full" disabled={isSubmitting || !formData.category_id || !selectedCategory || !formData.price || categories.length === 0}>
             {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Agregar a la venta
           </Button>
