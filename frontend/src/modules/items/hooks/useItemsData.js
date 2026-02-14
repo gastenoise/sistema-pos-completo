@@ -12,11 +12,10 @@ import {
 
 export const ITEMS_PER_PAGE = 20;
 
-export const useItemsQuery = ({ businessId, searchQuery, typeFilter, categoryFilter, page }) => useQuery({
-  queryKey: ['items', businessId, searchQuery, typeFilter, categoryFilter, page],
+export const useItemsQuery = ({ businessId, searchQuery, categoryFilter, page }) => useQuery({
+  queryKey: ['items', businessId, searchQuery, categoryFilter, page],
   queryFn: () => getItems({
     search: searchQuery,
-    type: typeFilter,
     category: categoryFilter,
     page,
     per_page: ITEMS_PER_PAGE
