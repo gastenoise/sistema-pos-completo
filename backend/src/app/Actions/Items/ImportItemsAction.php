@@ -52,16 +52,25 @@ class ImportItemsAction
 
                 $rowCategoryId = $this->parseNullableInteger($row['category_id'] ?? null);
 
+                $parsedPrice = $this->parseNullableDecimal($row['price'] ?? null);
+                $parsedListPrice = $this->parseNullableDecimal($row['list_price'] ?? null);
+                $resolvedPrice = $parsedPrice ?? $parsedListPrice;
+                $resolvedListPrice = $parsedListPrice ?? $parsedPrice;
+
+                if ($resolvedPrice === null) {
+                    continue;
+                }
+
                 $payload = [
                     'name' => $row['name'],
-                    'price' => round((float) $row['price'], 2),
+                    'price' => $resolvedPrice,
                     'sku' => $sku,
                     'barcode' => $barcode,
                     'category_id' => $rowCategoryId ?? $globalCategoryId,
                     'presentation_quantity' => $this->parseNullableDecimal($row['presentation_quantity'] ?? null),
                     'presentation_unit' => $this->parseNullableText($row['presentation_unit'] ?? null),
                     'brand' => $this->parseNullableText($row['brand'] ?? null),
-                    'list_price' => $this->parseNullableDecimal($row['list_price'] ?? null),
+                    'list_price' => $resolvedListPrice,
                 ];
 
                 if ($syncByBarcode && $barcode !== null) {

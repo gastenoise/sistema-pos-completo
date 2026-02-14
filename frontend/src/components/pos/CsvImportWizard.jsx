@@ -24,9 +24,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 
-const REQUIRED_FIELDS = ['name', 'price'];
+const REQUIRED_FIELDS = ['name'];
 const OPTIONAL_FIELDS = [
+  'price',
   'barcode',
   'sku',
   'category',
@@ -52,6 +54,7 @@ export default function CsvImportWizard({
   const [file, setFile] = useState(null);
   const [mapping, setMapping] = useState({});
   const [globalCategoryId, setGlobalCategoryId] = useState('__none__');
+  const [useListPriceAsPrice, setUseListPriceAsPrice] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
   const handleDrag = useCallback((e) => {
@@ -94,7 +97,7 @@ export default function CsvImportWizard({
       ? undefined
       : (globalCategoryId === '__uncategorized__' ? null : Number(globalCategoryId));
 
-    await onConfirm(mapping, resolvedCategoryId);
+    await onConfirm(mapping, resolvedCategoryId, { useListPriceAsPrice });
     handleClose();
   };
 
@@ -103,8 +106,12 @@ export default function CsvImportWizard({
     setFile(null);
     setMapping({});
     setGlobalCategoryId('__none__');
+    setUseListPriceAsPrice(false);
     onClose();
   };
+
+  const hasRequiredMapping = Boolean(mapping.name)
+    && (Boolean(mapping.price) || (useListPriceAsPrice && Boolean(mapping.list_price)));
 
   const updateMapping = (field, column) => {
     setMapping(prev => ({
@@ -232,6 +239,17 @@ export default function CsvImportWizard({
               </div>
             </div>
 
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 p-3">
+              <Checkbox
+                id="use-list-price-as-price"
+                checked={useListPriceAsPrice}
+                onCheckedChange={(checked) => setUseListPriceAsPrice(Boolean(checked))}
+              />
+              <Label htmlFor="use-list-price-as-price" className="text-sm font-medium cursor-pointer">
+                Usar precio de lista como precio
+              </Label>
+            </div>
+
 
             {parsingErrors.length > 0 && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
@@ -275,7 +293,7 @@ export default function CsvImportWizard({
                 <Button variant="outline" onClick={handleClose}>Cancel</Button>
                 <Button 
                   onClick={() => setStep(3)} 
-                  disabled={!mapping.name || !mapping.price}
+                  disabled={!hasRequiredMapping}
                 >
                   Continue
                 </Button>
@@ -308,6 +326,10 @@ export default function CsvImportWizard({
                     <span className="font-medium">{column}</span>
                   </div>
                 ))}
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Usar precio de lista como precio:</span>
+                  <span className="font-medium">{useListPriceAsPrice ? 'Sí' : 'No'}</span>
+                </div>
               </div>
             </div>
 
