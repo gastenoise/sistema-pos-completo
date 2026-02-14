@@ -237,23 +237,31 @@ export default function Items() {
     return rows;
   };
 
-  const handleImportConfirm = async (mapping, categoryId) => {
+  const handleImportConfirm = async (mapping, categoryId, options = {}) => {
+    const useListPriceAsPrice = Boolean(options?.useListPriceAsPrice);
     setImportLoading(true);
     try {
       const rows = await fetchAllPreviewRows();
-      const items = rows.map((row) => ({
-        name: mapping.name ? row[mapping.name] : undefined,
-        price: mapping.price ? parseFloat(row[mapping.price]) : undefined,
-        sku: mapping.sku ? row[mapping.sku] : undefined,
-        barcode: mapping.barcode ? row[mapping.barcode] : undefined,
-        category: mapping.category ? row[mapping.category] : undefined,
-        cost: mapping.cost ? parseFloat(row[mapping.cost]) : undefined,
-        stock_quantity: mapping.stock_quantity ? parseFloat(row[mapping.stock_quantity]) : undefined,
-        presentation_quantity: mapping.presentation_quantity ? parseFloat(row[mapping.presentation_quantity]) : undefined,
-        presentation_unit: mapping.presentation_unit ? row[mapping.presentation_unit] : undefined,
-        brand: mapping.brand ? row[mapping.brand] : undefined,
-        list_price: mapping.list_price ? parseFloat(row[mapping.list_price]) : undefined
-      })).filter((item) => item.name && typeof item.price === 'number' && !Number.isNaN(item.price));
+      const items = rows.map((row) => {
+        const rawPrice = mapping.price ? parseFloat(row[mapping.price]) : undefined;
+        const rawListPrice = mapping.list_price ? parseFloat(row[mapping.list_price]) : undefined;
+        const parsedPrice = typeof rawPrice === 'number' && !Number.isNaN(rawPrice) ? rawPrice : undefined;
+        const parsedListPrice = typeof rawListPrice === 'number' && !Number.isNaN(rawListPrice) ? rawListPrice : undefined;
+
+        return {
+          name: mapping.name ? row[mapping.name] : undefined,
+          price: parsedPrice ?? ((useListPriceAsPrice && parsedListPrice !== undefined) ? parsedListPrice : undefined),
+          sku: mapping.sku ? row[mapping.sku] : undefined,
+          barcode: mapping.barcode ? row[mapping.barcode] : undefined,
+          category: mapping.category ? row[mapping.category] : undefined,
+          cost: mapping.cost ? parseFloat(row[mapping.cost]) : undefined,
+          stock_quantity: mapping.stock_quantity ? parseFloat(row[mapping.stock_quantity]) : undefined,
+          presentation_quantity: mapping.presentation_quantity ? parseFloat(row[mapping.presentation_quantity]) : undefined,
+          presentation_unit: mapping.presentation_unit ? row[mapping.presentation_unit] : undefined,
+          brand: mapping.brand ? row[mapping.brand] : undefined,
+          list_price: parsedListPrice,
+        };
+      }).filter((item) => item.name && typeof item.price === 'number' && !Number.isNaN(item.price));
 
       const response = await importConfirmMutation.mutateAsync({
         items,
