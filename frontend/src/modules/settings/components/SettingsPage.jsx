@@ -540,21 +540,21 @@ export default function Settings() {
             <Card>
               <CardHeader>
                 <CardTitle>Información del negocio</CardTitle>
-                <CardDescription>Update your business details</CardDescription>
+                <CardDescription>Actualizá los detalles de tu negocio</CardDescription>
               </CardHeader>
               <CardContent>
                 <form ref={businessInfoFormRef} className="space-y-4" onSubmit={handleSaveBusinessInfo}>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                      <Label>Business Name</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Nombre</Label>
                       <Input
                         disabled
                         value={businessData.name}
                         onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
                       />
                     </div>
-                    <div className="col-span-2">
-                      <Label>Business Email</Label>
+                    <div>
+                      <Label>E-mail</Label>
                       <Input
                         disabled
                         type="email"
@@ -564,22 +564,14 @@ export default function Settings() {
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label>Address</Label>
+                      <Label>Dirección</Label>
                       <Input
                         value={businessData.address}
                         onChange={(e) => setBusinessData({ ...businessData, address: e.target.value })}
                       />
                     </div>
-                    <div className="col-span-2">
-                      <ColorPickerField
-                        id="business-color"
-                        label="Business Color (optional)"
-                        value={businessData.color}
-                        onChange={(color) => setBusinessData({ ...businessData, color })}
-                      />
-                    </div>
                     <div>
-                      <Label>Phone</Label>
+                      <Label>Teléfono</Label>
                       <Input
                         value={businessData.phone}
                         onChange={(e) => setBusinessData({ ...businessData, phone: e.target.value })}
@@ -592,6 +584,14 @@ export default function Settings() {
                         onChange={(e) => setBusinessData({ ...businessData, tax_id: e.target.value })}
                       />
                     </div>
+                    <div className="col-span-2">
+                      <ColorPickerField
+                        id="business-color"
+                        label="Color característico"
+                        value={businessData.color}
+                        onChange={(color) => setBusinessData({ ...businessData, color })}
+                      />
+                    </div>
                   </div>
 
                   <Button type="submit" disabled={savingBusinessInfo}>
@@ -600,7 +600,7 @@ export default function Settings() {
                     ) : (
                       <Save className="w-4 h-4 mr-2" />
                     )}
-                    Save Business Information
+                    Guardar Información
                   </Button>
                 </form>
               </CardContent>
@@ -608,9 +608,9 @@ export default function Settings() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Extra Business Options</CardTitle>
+                <CardTitle>Opciones del negocio</CardTitle>
                 <CardDescription>
-                  Optional behavior toggles for this business.
+                  Modifica algunas funcionalidades para este negocio
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -642,7 +642,7 @@ export default function Settings() {
                     ) : (
                       <Save className="w-4 h-4 mr-2" />
                     )}
-                    Save Business Options
+                    Guardar Opciones
                   </Button>
                 </form>
               </CardContent>
@@ -769,7 +769,7 @@ export default function Settings() {
                               </div>
                               <div>
                                 <span className="font-medium">{method.name}</span>
-                                <p className="text-xs text-slate-500 capitalize">{method.type}</p>
+                                {/* <p className="text-xs text-slate-500 capitalize">{method.type}</p> */}
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
@@ -802,7 +802,7 @@ export default function Settings() {
                       ) : (
                         <Save className="w-4 h-4 mr-2" />
                       )}
-                      Save Changes
+                      Guardar Cambios
                     </Button>
                   </div>
                 )}
@@ -819,7 +819,7 @@ export default function Settings() {
                 <form ref={bankFormRef} className="space-y-4" onSubmit={handleSaveBankData}>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
-                      <Label>Bank Name</Label>
+                      <Label>Nombre del banco</Label>
                       <Input
                         value={bankData.bank_name}
                         onChange={(e) => setBankData({ ...bankData, bank_name: e.target.value })}
@@ -827,7 +827,7 @@ export default function Settings() {
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label>Account Holder</Label>
+                      <Label>Propietario de la cuenta</Label>
                       <Input
                         value={bankData.account_holder_name}
                         onChange={(e) => setBankData({ ...bankData, account_holder_name: e.target.value })}
@@ -835,7 +835,7 @@ export default function Settings() {
                       />
                     </div>
                     <div>
-                      <Label>CBU</Label>
+                      <Label>CBU / CVU</Label>
                       <Input
                         value={bankData.cbu}
                         onChange={(e) => {
@@ -850,7 +850,7 @@ export default function Settings() {
                       />
                       {cbuTooLong && (
                         <p className="mt-1 text-xs text-red-600">
-                          The CBU must be 22 digits or fewer.
+                          El CBU debe tener 22 dígitos o menos.
                         </p>
                       )}
                     </div>
@@ -859,7 +859,7 @@ export default function Settings() {
                       <Input
                         value={bankData.alias}
                         onChange={(e) => setBankData({ ...bankData, alias: e.target.value })}
-                        placeholder="my.business.alias"
+                        placeholder="alias.mi.cuenta"
                       />
                     </div>
                   </div>
@@ -869,7 +869,7 @@ export default function Settings() {
                     ) : (
                       <Save className="w-4 h-4 mr-2" />
                     )}
-                    Save Bank Details
+                    Guardar Datos
                   </Button>
                 </form>
               </CardContent>
@@ -880,14 +880,14 @@ export default function Settings() {
           <TabsContent value="integrations">
             <Card>
               <CardHeader>
-                <CardTitle>SMTP Configuration</CardTitle>
-                <CardDescription>Configure email settings for sending receipts and notifications</CardDescription>
+                <CardTitle>Configuración SMTP</CardTitle>
+                <CardDescription>Configurá los datos para enviar tickets o notificaciones por e-mail</CardDescription>
               </CardHeader>
               <CardContent>
                 <form ref={smtpFormRef} className="space-y-4" onSubmit={handleSaveSmtp}>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2 sm:col-span-1">
-                      <Label>Host</Label>
+                      <Label>Servidor</Label>
                       <Input
                         required
                         value={smtpData.host}
@@ -896,7 +896,7 @@ export default function Settings() {
                       />
                     </div>
                     <div className="col-span-2 sm:col-span-1">
-                      <Label>Port</Label>
+                      <Label>Puerto</Label>
                       <Input
                         required
                         min={1}
@@ -907,7 +907,7 @@ export default function Settings() {
                       />
                     </div>
                     <div className="col-span-2 sm:col-span-1">
-                      <Label>Username</Label>
+                      <Label>Usuario</Label>
                       <Input
                         required
                         value={smtpData.username}
@@ -916,7 +916,7 @@ export default function Settings() {
                       />
                     </div>
                     <div className="col-span-2 sm:col-span-1">
-                      <Label>Password</Label>
+                      <Label>Contraseña</Label>
                       <Input
                         required={!smtpConfig}
                         type="password"
@@ -926,34 +926,46 @@ export default function Settings() {
                       />
                     </div>
                     <div className="col-span-2 sm:col-span-1">
-                      <Label>Encryption</Label>
+                      <Label>Encriptación</Label>
                       <Select value={smtpData.encryption} onValueChange={(v) => setSmtpData({ ...smtpData, encryption: v })}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
+                          <SelectItem value="none">Ninguna</SelectItem>
                           <SelectItem value="tls">TLS</SelectItem>
                           <SelectItem value="ssl">SSL</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-2 sm:col-span-1">
-                      <Label>From Name</Label>
-                      <Input
-                        value={smtpData.from_name}
-                        onChange={(e) => setSmtpData({ ...smtpData, from_name: e.target.value })}
-                        placeholder={currentBusiness?.name || 'My Business'}
-                      />
-                    </div>
+                    {/* Sender info grouped in a small card */}
                     <div className="col-span-2">
-                      <Label>From Email</Label>
-                      <Input
-                        type="email"
-                        value={smtpData.from_email}
-                        onChange={(e) => setSmtpData({ ...smtpData, from_email: e.target.value })}
-                        placeholder={currentBusiness?.email || currentBusiness?.business_email || 'noreply@example.com'}
-                      />
+                      <Card className="border border-slate-200 bg-slate-50">
+                        <CardHeader className="py-2 px-3">
+                          <CardTitle className="text-sm font-semibold text-slate-700">Remitente</CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-3 pb-3 pt-0">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <Label>Nombre</Label>
+                              <Input
+                                value={smtpData.from_name}
+                                onChange={(e) => setSmtpData({ ...smtpData, from_name: e.target.value })}
+                                placeholder={currentBusiness?.name || 'My Business'}
+                              />
+                            </div>
+                            <div>
+                              <Label>E-mail</Label>
+                              <Input
+                                type="email"
+                                value={smtpData.from_email}
+                                onChange={(e) => setSmtpData({ ...smtpData, from_email: e.target.value })}
+                                placeholder={currentBusiness?.email || currentBusiness?.business_email || 'noreply@example.com'}
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
                   </div>
                   <div className="flex gap-3">
@@ -963,7 +975,7 @@ export default function Settings() {
                       ) : (
                         <Save className="w-4 h-4 mr-2" />
                       )}
-                      Save Configuration
+                      Guardar Configuración
                     </Button>
                     <Button type="button" variant="outline" onClick={handleTestSmtp} disabled={testingSmtp}>
                       {testingSmtp ? (
@@ -971,7 +983,7 @@ export default function Settings() {
                       ) : (
                         <TestTube className="w-4 h-4 mr-2" />
                       )}
-                      Test SMTP
+                      Testear SMTP
                     </Button>
                   </div>
                 </form>
@@ -1110,11 +1122,11 @@ export default function Settings() {
       <Dialog open={showCategoryModal} onOpenChange={setShowCategoryModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingCategory ? 'Edit Category' : 'Add Category'}</DialogTitle>
+            <DialogTitle>{editingCategory ? 'Editar Categoría' : 'Agregar Categoría'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Name</Label>
+              <Label>Nombre</Label>
               <Input
                 value={categoryData.name}
                 onChange={(e) => setCategoryData({ ...categoryData, name: e.target.value })}
@@ -1128,15 +1140,15 @@ export default function Settings() {
                 value={categoryData.color}
                 onChange={(color) => setCategoryData({ ...categoryData, color })}
               />
-              <p className="mt-1 text-xs text-slate-500">
+              {/* <p className="mt-1 text-xs text-slate-500">
                 Elegí un color predefinido o ingresá uno en formato HEX.
-              </p>
+              </p> */}
             </div>
             <div>
               <IconPickerField
                 id="category-icon"
                 label="Ícono"
-                                value={categoryData.icon}
+                value={categoryData.icon}
                 onChange={(icon) => setCategoryData({ ...categoryData, icon })}
               />
             </div>
@@ -1150,16 +1162,16 @@ export default function Settings() {
                   }}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete
+                  Borrar
                 </Button>
               )}
               <div className="flex gap-3 ml-auto">
                 <Button variant="outline" onClick={() => setShowCategoryModal(false)}>
-                  Cancel
+                  Cancelar
                 </Button>
                 <Button onClick={handleSaveCategory} disabled={savingCategory || !categoryData.name}>
                   {savingCategory && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Save
+                  Guardar
                 </Button>
               </div>
             </div>
