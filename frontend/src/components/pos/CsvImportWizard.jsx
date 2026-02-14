@@ -211,6 +211,21 @@ export default function CsvImportWizard({
         {/* Step 2: Map Columns */}
         {step === 2 && previewData && (
           <div className="space-y-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-amber-900">Advertencia de sincronización por código de barras</p>
+                  <p className="text-sm text-amber-800">
+                    Si el barcode ya existe en este negocio, el item será actualizado/reemplazado.
+                  </p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    Si el barcode viene vacío, se creará un nuevo item sin clave de sincronización.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-slate-50 rounded-lg p-4">
               <p className="text-sm font-medium mb-3">Map CSV columns to item fields</p>
               <div className="grid grid-cols-2 gap-4">
@@ -313,6 +328,11 @@ export default function CsvImportWizard({
                   <p className="text-sm text-green-700">
                     {previewData?.total_rows || 0} ítems se importarán priorizando código de barras y usando SKU como auxiliar
                   </p>
+                  {previewData?.estimated_metrics && (
+                    <p className="text-xs text-green-800 mt-1">
+                      Estimado: crear {previewData.estimated_metrics.to_create ?? 0} · actualizar {previewData.estimated_metrics.to_update ?? 0}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

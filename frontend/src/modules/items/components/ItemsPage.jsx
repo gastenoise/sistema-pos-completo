@@ -275,7 +275,9 @@ export default function Items() {
         || response?.count
         || response?.items?.length
         || importPreviewData?.total_rows;
-      toast.success(`Imported ${importedCount || 0} items`);
+      const createdCount = response?.data?.created_count ?? response?.created_count ?? 0;
+      const updatedCount = response?.data?.updated_count ?? response?.updated_count ?? 0;
+      toast.success(`Imported ${importedCount || 0} items (created: ${createdCount}, updated: ${updatedCount})`);
       setShowImportWizard(false);
       setImportPreviewData(null);
       setImportFile(null);
