@@ -995,31 +995,31 @@ export default function Settings() {
           <TabsContent value="modules">
             <Card>
               <CardHeader>
-                <CardTitle>System Modules</CardTitle>
-                <CardDescription>Enable or disable additional features</CardDescription>
+                <CardTitle>Módulos del Sistema</CardTitle>
+                <CardDescription>Activá o descativá funciones adicionales</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <div className="flex-1">
-                    <p className="font-medium text-slate-900">Inventory Management</p>
-                    <p className="text-sm text-slate-500">Track stock levels and receive alerts</p>
+                    <p className="font-medium text-slate-900">Caja Registradora</p>
+                    <p className="text-sm text-slate-500">Llevá el recuento de tu efectivo en caja con movimientos de apertura y cierre</p>
                   </div>
                   <Switch
                     checked={modules.inventory}
-                    onCheckedChange={() => handleToggleModule('inventory', false)}
+                    onCheckedChange={() => handleToggleModule('caja', false)}
                   />
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-900">Customer Management</p>
+                      <p className="font-medium text-slate-900">Sistema de Suscripciones</p>
                       <Badge variant="secondary" className="bg-amber-100 text-amber-700">
                         <Lock className="w-3 h-3 mr-1" />
                         Premium
                       </Badge>
                     </div>
-                    <p className="text-sm text-slate-500">Store customer data and purchase history</p>
+                    <p className="text-sm text-slate-500">Vendé suscripciones mensuales y llevá el registro contable de tus clientes</p>
                   </div>
                   <Switch
                     checked={modules.customers}
@@ -1030,13 +1030,13 @@ export default function Settings() {
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-900">Invoicing & Billing</p>
+                      <p className="font-medium text-slate-900">Control de stock y Proveedores</p>
                       <Badge variant="secondary" className="bg-amber-100 text-amber-700">
                         <Lock className="w-3 h-3 mr-1" />
                         Premium
                       </Badge>
                     </div>
-                    <p className="text-sm text-slate-500">Generate invoices and manage billing</p>
+                    <p className="text-sm text-slate-500">Cargá tus proveedores, tu stock previsto, y armá tus pedidos de manera rápida</p>
                   </div>
                   <Switch
                     checked={modules.invoicing}
@@ -1047,13 +1047,13 @@ export default function Settings() {
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-900">Advanced Analytics</p>
+                      <p className="font-medium text-slate-900">Catálogo Electrónico</p>
                       <Badge variant="secondary" className="bg-amber-100 text-amber-700">
                         <Lock className="w-3 h-3 mr-1" />
                         Premium
                       </Badge>
                     </div>
-                    <p className="text-sm text-slate-500">Detailed insights and forecasting</p>
+                    <p className="text-sm text-slate-500">Cargá fotos y detalles de tus productos y generá ventas desde sitios externos</p>
                   </div>
                   <Switch
                     checked={modules.analytics}
@@ -1061,20 +1061,21 @@ export default function Settings() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                {/* Nuevo módulo: Facturación (En desarrollo) */}
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg opacity-60 cursor-not-allowed">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-900">Loyalty Program</p>
-                      <Badge variant="secondary" className="bg-amber-100 text-amber-700">
-                        <Lock className="w-3 h-3 mr-1" />
-                        Premium
+                      <p className="font-medium text-slate-900">Facturación</p>
+                      <Badge variant="secondary" className="bg-gray-200 text-gray-600">
+                        En desarrollo
                       </Badge>
                     </div>
-                    <p className="text-sm text-slate-500">Reward customers with points and discounts</p>
+                    <p className="text-sm text-slate-500">Generá facturas electrónicas con CAE directamente desde el sistema (próximamente)</p>
                   </div>
-                  <Switch
-                    checked={modules.loyalty}
-                    onCheckedChange={() => handleToggleModule('loyalty', true)}
+                  <Switch 
+                    checked={false}
+                    onCheckedChange={() => {}} // No hace nada
+                    disabled
                   />
                 </div>
               </CardContent>
@@ -1089,29 +1090,28 @@ export default function Settings() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lock className="w-5 h-5 text-amber-600" />
-              Premium Feature
+              Función Premium
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-slate-600">
-              This module is only available with the Premium plan. Upgrade now to unlock advanced features and take your business to the next level.
+              Este módulo está disponible solo con el plan Premium. Mejorá tu cuenta ahora para desbloquear funciones avanzadas y llevar tu negocio al próximo nivel.
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm font-medium text-blue-900 mb-2">Premium Plan includes:</p>
+              <p className="text-sm font-medium text-blue-900 mb-2">El plan Premium incluye:</p>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Customer Management</li>
-                <li>• Invoicing & Billing</li>
-                <li>• Advanced Analytics</li>
-                <li>• Loyalty Program</li>
-                <li>• Priority Support</li>
+                <li>• Gestión de clientes</li>
+                <li>• Facturación y cobros</li>
+                <li>• Análisis avanzado</li>
+                <li>• Soporte prioritario</li>
               </ul>
             </div>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setShowPremiumDialog(false)}>
-                Cancel
+                Cancelar
               </Button>
               <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
-                Upgrade to Premium
+                Mejorar a Premium
               </Button>
             </div>
           </div>
