@@ -683,9 +683,9 @@ export default function Settings() {
                              <IconComponent className="w-4 h-4" style={{ color: normalizeHexColor(category.color || DEFAULT_COLOR_HEX) }} />
                            </div>
                            <span className="font-medium">{category.name}</span>
-                           {category.is_active === false && (
+                           {/* {category.is_active === false && (
                              <Badge variant="secondary">Inactive</Badge>
-                           )}
+                           )} */}
                          </div>
                          <Button variant="ghost" size="icon" onClick={() => openEditCategory(category)}>
                            <Pencil className="w-4 h-4" />
