@@ -43,7 +43,6 @@ class SaleItemAuthorizationTest extends TestCase
 
         $item = Item::create([
             'business_id' => $business->id,
-            'type' => 'product',
             'name' => 'Producto 1',
             'price' => 100,
             'active' => true,

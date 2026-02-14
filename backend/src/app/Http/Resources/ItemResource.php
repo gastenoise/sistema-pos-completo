@@ -25,7 +25,6 @@ class ItemResource extends JsonResource
             'presentation_unit' => $this->presentation_unit,
             'brand' => $this->brand,
             'list_price' => $this->list_price !== null ? (float) $this->list_price : null,
-            'type' => $this->type,
             'is_active' => (bool) $this->active,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

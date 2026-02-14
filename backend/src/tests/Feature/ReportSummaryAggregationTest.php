@@ -106,7 +106,6 @@ class ReportSummaryAggregationTest extends TestCase
         $itemWithCategoryId = DB::table('items')->insertGetId([
             'business_id' => $businessId,
             'category_id' => $categoryId,
-            'type' => 'product',
             'name' => 'Agua',
             'price' => 10,
             'active' => 1,
@@ -117,7 +116,6 @@ class ReportSummaryAggregationTest extends TestCase
         $itemWithoutCategoryId = DB::table('items')->insertGetId([
             'business_id' => $businessId,
             'category_id' => null,
-            'type' => 'product',
             'name' => 'Snack',
             'price' => 5,
             'active' => 1,

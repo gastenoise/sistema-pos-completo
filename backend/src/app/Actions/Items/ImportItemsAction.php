@@ -37,7 +37,6 @@ class ImportItemsAction
                 $payload = [
                     'name' => $row['name'],
                     'price' => round((float) $row['price'], 2),
-                    'type' => $row['type'] ?? 'product',
                     'presentation_quantity' => $this->parseNullableDecimal($row['presentation_quantity'] ?? null),
                     'presentation_unit' => $this->parseNullableText($row['presentation_unit'] ?? null),
                     'brand' => $this->parseNullableText($row['brand'] ?? null),
