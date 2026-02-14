@@ -26,7 +26,10 @@ class ItemUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-        return $this->itemRules(partial: true);
+        /** @var Item|null $item */
+        $item = $this->route('item');
+
+        return $this->itemRules(partial: true, itemId: $item?->id);
     }
 
     public function messages(): array
@@ -34,6 +37,8 @@ class ItemUpdateRequest extends FormRequest
         return [
             'name.string' => 'El nombre del ítem debe ser texto válido.',
             'price.numeric' => 'El precio debe ser un número válido.',
+            'barcode.regex' => 'El código de barras solo puede contener letras, números, guiones, guiones bajos y puntos.',
+            'barcode.unique' => 'Ya existe un ítem con ese código de barras en este negocio.',
         ];
     }
 }

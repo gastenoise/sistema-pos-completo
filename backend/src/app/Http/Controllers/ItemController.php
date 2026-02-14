@@ -81,7 +81,8 @@ class ItemController extends Controller
             $term = $request->search;
             $query->where(function ($q) use ($term) {
                 $q->where('name', 'like', "%{$term}%")
-                    ->orWhere('sku', 'like', "%{$term}%");
+                    ->orWhere('sku', 'like', "%{$term}%")
+                    ->orWhere('barcode', 'like', "%{$term}%");
             });
         }
 
@@ -203,18 +204,21 @@ class ItemController extends Controller
             'items' => 'required|array',
             'items.*.name' => 'required|string',
             'items.*.price' => 'required|numeric',
+            'items.*.barcode' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9\-_.]+$/'],
             'items.*.presentation_quantity' => 'nullable|numeric|min:0',
             'items.*.presentation_unit' => 'nullable|string|max:20',
             'items.*.brand' => 'nullable|string|max:120',
             'items.*.list_price' => 'nullable|numeric|min:0',
             'sync_by_sku' => 'boolean',
+            'sync_by_barcode' => 'boolean',
         ]);
 
         try {
             $result = $importItemsAction->execute(
                 $request->input('items'),
                 $request->boolean('sync_by_sku'),
-                app(BusinessContext::class)->getBusinessId()
+                app(BusinessContext::class)->getBusinessId(),
+                $request->boolean('sync_by_barcode', true)
             );
 
             return response()->json(['success' => true, 'data' => $result]);

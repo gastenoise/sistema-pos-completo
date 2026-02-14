@@ -48,8 +48,11 @@ export default function ItemRow({
           </div>
           <div>
             <p className="font-medium text-slate-900">{item.name}</p>
+            {item.barcode && (
+              <p className="text-xs text-slate-500">Código de barras: {item.barcode}</p>
+            )}
             {item.sku && (
-              <p className="text-xs text-slate-500">SKU: {item.sku}</p>
+              <p className="text-xs text-slate-500">SKU (auxiliar): {item.sku}</p>
             )}
             {item.brand && (
               <p className="text-xs text-slate-500">Marca: {item.brand}</p>

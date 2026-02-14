@@ -29,29 +29,38 @@ class ImportItemsAction
         return $trimmed !== '' ? $trimmed : null;
     }
 
-    public function execute(array $items, bool $syncBySku, int $businessId): array
+    public function execute(array $items, bool $syncBySku, int $businessId, bool $syncByBarcode = true): array
     {
-        return DB::transaction(function () use ($items, $syncBySku, $businessId) {
+        return DB::transaction(function () use ($items, $syncBySku, $businessId, $syncByBarcode) {
             $count = 0;
             foreach ($items as $row) {
+                $barcode = $this->parseNullableText($row['barcode'] ?? null);
+                $sku = $this->parseNullableText($row['sku'] ?? null);
+
                 $payload = [
                     'name' => $row['name'],
                     'price' => round((float) $row['price'], 2),
+                    'sku' => $sku,
+                    'barcode' => $barcode,
                     'presentation_quantity' => $this->parseNullableDecimal($row['presentation_quantity'] ?? null),
                     'presentation_unit' => $this->parseNullableText($row['presentation_unit'] ?? null),
                     'brand' => $this->parseNullableText($row['brand'] ?? null),
                     'list_price' => $this->parseNullableDecimal($row['list_price'] ?? null),
                 ];
 
-                if ($syncBySku && !empty($row['sku'])) {
+                if ($syncByBarcode && $barcode !== null) {
                     Item::updateOrCreate(
-                        ['business_id' => $businessId, 'sku' => $row['sku']],
+                        ['business_id' => $businessId, 'barcode' => $barcode],
+                        $payload + ['active' => true]
+                    );
+                } elseif ($syncBySku && $sku !== null) {
+                    Item::updateOrCreate(
+                        ['business_id' => $businessId, 'sku' => $sku],
                         $payload + ['active' => true]
                     );
                 } else {
                     Item::create($payload + [
                         'business_id' => $businessId,
-                        'sku' => $row['sku'] ?? null,
                     ]);
                 }
                 $count++;

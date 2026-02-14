@@ -121,22 +121,22 @@ export default function ItemEditorModal({
             </div>
 
             <div>
-              <Label htmlFor="sku">SKU</Label>
+              <Label htmlFor="sku">SKU (auxiliar)</Label>
               <Input
                 id="sku"
                 value={formData.sku}
                 onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                placeholder="SKU-001"
+                placeholder="Opcional, para referencia interna"
               />
             </div>
 
             <div>
-              <Label htmlFor="barcode">Barcode</Label>
+              <Label htmlFor="barcode">Código de barras</Label>
               <Input
                 id="barcode"
                 value={formData.barcode}
                 onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                placeholder="123456789"
+                placeholder="Principal para escaneo/sincronización"
               />
             </div>
 

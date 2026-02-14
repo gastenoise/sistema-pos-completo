@@ -8,7 +8,7 @@ export default function ItemSearch({
   items = [], 
   onSelect, 
   loading = false,
-  placeholder = "Search items..."
+  placeholder = "Buscar por nombre, código de barras o SKU..."
 }) {
   const [query, setQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
@@ -106,8 +106,11 @@ export default function ItemSearch({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-900 truncate">{item.name}</p>
+                {item.barcode && (
+                  <p className="text-xs text-slate-500">Código de barras: {item.barcode}</p>
+                )}
                 {item.sku && (
-                  <p className="text-xs text-slate-500">SKU: {item.sku}</p>
+                  <p className="text-xs text-slate-500">SKU (aux): {item.sku}</p>
                 )}
               </div>
               <span className="font-bold text-blue-600">{formatPrice(item.price, currentBusiness)}</span>
