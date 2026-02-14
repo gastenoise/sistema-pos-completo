@@ -10,29 +10,116 @@ use App\Http\Resources\ItemResource;
 use App\Models\Item;
 use App\Services\BusinessContext;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ItemController extends Controller
 {
-    private function parseCsvFile(string $path): array
-    {
-        $rawRows = array_map('str_getcsv', file($path));
-        $header = array_shift($rawRows) ?? [];
-        $normalizedHeader = array_map(static fn ($column) => trim((string) $column), $header);
+    private const IMPORT_PREVIEW_CACHE_PREFIX = 'items_import_preview:';
+    private const IMPORT_PREVIEW_CACHE_TTL_SECONDS = 3600;
+    private const DEFAULT_DELIMITERS = ['|', ',', ';', "\t"];
 
-        $rows = [];
+    private function resolveDelimiter(?string $requestedDelimiter, string $path): string
+    {
+        if (is_string($requestedDelimiter) && in_array($requestedDelimiter, self::DEFAULT_DELIMITERS, true)) {
+            return $requestedDelimiter;
+        }
+
+        return $this->detectDelimiter($path);
+    }
+
+    private function detectDelimiter(string $path): string
+    {
+        $file = new \SplFileObject($path, 'r');
+        $sampleLines = [];
+
+        while (!$file->eof() && count($sampleLines) < 5) {
+            $line = trim((string) $file->fgets());
+            if ($line !== '') {
+                $sampleLines[] = $line;
+            }
+        }
+
+        if ($sampleLines === []) {
+            return ',';
+        }
+
+        $bestDelimiter = ',';
+        $bestScore = -1;
+
+        foreach (self::DEFAULT_DELIMITERS as $delimiter) {
+            $fieldCounts = array_map(static fn ($line) => count(str_getcsv($line, $delimiter)), $sampleLines);
+            $score = 0;
+
+            if ($fieldCounts !== []) {
+                $maxCount = max($fieldCounts);
+                $minCount = min($fieldCounts);
+                $score = $maxCount > 1 ? ($maxCount * 10) - ($maxCount - $minCount) : 0;
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestDelimiter = $delimiter;
+            }
+        }
+
+        return $bestDelimiter;
+    }
+
+    private function normalizeHeader(array $header, bool $lowerCase = true): array
+    {
+        return array_map(static function ($column) use ($lowerCase) {
+            $normalized = trim((string) $column);
+
+            return $lowerCase ? mb_strtolower($normalized) : $normalized;
+        }, $header);
+    }
+
+    private function getCsvStreamIterator(string $path, string $delimiter): \SplFileObject
+    {
+        $file = new \SplFileObject($path, 'r');
+        $file->setFlags(\SplFileObject::READ_CSV | \SplFileObject::SKIP_EMPTY | \SplFileObject::DROP_NEW_LINE);
+        $file->setCsvControl($delimiter);
+
+        return $file;
+    }
+
+    private function parseCsvFile(string $path, string $delimiter, bool $lowerCaseHeaders = true): array
+    {
+        $file = $this->getCsvStreamIterator($path, $delimiter);
+        $header = $file->fgetcsv();
+        $normalizedHeader = $this->normalizeHeader(is_array($header) ? $header : [], $lowerCaseHeaders);
+
+        if ($normalizedHeader === [null] || $normalizedHeader === []) {
+            return [
+                'columns' => [],
+                'sample' => [],
+                'total_rows' => 0,
+                'parsing_errors' => [],
+            ];
+        }
+
         $sample = [];
         $parsingErrors = [];
+        $totalRows = 0;
 
-        foreach ($rawRows as $index => $row) {
-            $lineNumber = $index + 2;
-            if (count($row) !== count($normalizedHeader)) {
+        $headerCount = count($normalizedHeader);
+
+        foreach ($file as $index => $row) {
+            if (!is_array($row) || $row === [null]) {
+                continue;
+            }
+
+            $lineNumber = $index + 1;
+            if (count($row) !== $headerCount) {
                 $parsingErrors[] = [
                     'line' => $lineNumber,
                     'message' => sprintf(
                         'Column count mismatch at line %d: expected %d, got %d.',
                         $lineNumber,
-                        count($normalizedHeader),
+                        $headerCount,
                         count($row)
                     ),
                 ];
@@ -49,7 +136,7 @@ class ItemController extends Controller
                 continue;
             }
 
-            $rows[] = $combined;
+            $totalRows++;
             if (count($sample) < 5) {
                 $sample[] = $combined;
             }
@@ -57,11 +144,60 @@ class ItemController extends Controller
 
         return [
             'columns' => $normalizedHeader,
-            'rows' => $rows,
             'sample' => $sample,
-            'total_rows' => count($rows),
+            'total_rows' => $totalRows,
             'parsing_errors' => $parsingErrors,
         ];
+    }
+
+    private function getCsvRowsPage(string $path, string $delimiter, array $columns, int $page, int $perPage): array
+    {
+        if ($columns === []) {
+            return [];
+        }
+
+        $targetStart = ($page - 1) * $perPage;
+        $targetEnd = $targetStart + $perPage;
+        $rows = [];
+
+        $file = $this->getCsvStreamIterator($path, $delimiter);
+        $file->fgetcsv();
+        $validRowIndex = 0;
+        $headerCount = count($columns);
+
+        foreach ($file as $row) {
+            if (!is_array($row) || $row === [null] || count($row) !== $headerCount) {
+                continue;
+            }
+
+            $combined = array_combine($columns, $row);
+            if ($combined === false) {
+                continue;
+            }
+
+            if ($validRowIndex >= $targetStart && $validRowIndex < $targetEnd) {
+                $rows[] = $combined;
+            }
+
+            $validRowIndex++;
+
+            if ($validRowIndex >= $targetEnd) {
+                break;
+            }
+        }
+
+        return $rows;
+    }
+
+    private function persistImportPreviewFile(Request $request): string
+    {
+        $previewId = (string) Str::uuid();
+        $extension = $request->file('file')->getClientOriginalExtension() ?: 'csv';
+        $directory = 'tmp/items-import-previews';
+        $filename = sprintf('%s.%s', $previewId, $extension);
+        $storedPath = $request->file('file')->storeAs($directory, $filename, 'local');
+
+        return $storedPath;
     }
 
     public function index(Request $request)
@@ -150,9 +286,30 @@ class ItemController extends Controller
 
     public function importPreview(Request $request)
     {
-        $request->validate(['file' => 'required|file|mimes:csv,txt|max:2048']);
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:2048',
+            'delimiter' => ['nullable', Rule::in(self::DEFAULT_DELIMITERS)],
+            'lowercase_headers' => 'nullable|boolean',
+        ]);
 
-        $parsed = $this->parseCsvFile($request->file('file')->getRealPath());
+        $storedPath = $this->persistImportPreviewFile($request);
+        $absolutePath = Storage::disk('local')->path($storedPath);
+        $delimiter = $this->resolveDelimiter($validated['delimiter'] ?? null, $absolutePath);
+        $lowerCaseHeaders = $request->boolean('lowercase_headers', true);
+
+        $parsed = $this->parseCsvFile($absolutePath, $delimiter, $lowerCaseHeaders);
+        $previewId = pathinfo($storedPath, PATHINFO_FILENAME);
+
+        Cache::put(self::IMPORT_PREVIEW_CACHE_PREFIX . $previewId, [
+            'path' => $storedPath,
+            'delimiter' => $delimiter,
+            'lowercase_headers' => $lowerCaseHeaders,
+            'columns' => $parsed['columns'],
+            'sample' => $parsed['sample'],
+            'total_rows' => $parsed['total_rows'],
+            'parsing_errors' => $parsed['parsing_errors'],
+        ], now()->addSeconds(self::IMPORT_PREVIEW_CACHE_TTL_SECONDS));
+
 
         return response()->json([
             'success' => true,
@@ -161,6 +318,8 @@ class ItemController extends Controller
                 'sample' => $parsed['sample'],
                 'total_rows' => $parsed['total_rows'],
                 'parsing_errors' => $parsed['parsing_errors'],
+                'preview_id' => $previewId,
+                'delimiter' => $delimiter,
             ],
         ]);
     }
@@ -168,27 +327,77 @@ class ItemController extends Controller
     public function importPreviewFull(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:2048',
+            'file' => 'nullable|file|mimes:csv,txt|max:2048',
+            'preview_id' => 'nullable|string',
+            'delimiter' => ['nullable', Rule::in(self::DEFAULT_DELIMITERS)],
+            'lowercase_headers' => 'nullable|boolean',
             'page' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:500',
         ]);
 
-        $parsed = $this->parseCsvFile($request->file('file')->getRealPath());
+        $cachePayload = null;
+        $storedPath = null;
+        $previewId = $request->input('preview_id');
+
+        if ($previewId) {
+            $cachePayload = Cache::get(self::IMPORT_PREVIEW_CACHE_PREFIX . $previewId);
+            $storedPath = $cachePayload['path'] ?? null;
+        }
+
+        if (!$storedPath && $request->hasFile('file')) {
+            $storedPath = $this->persistImportPreviewFile($request);
+            $previewId = pathinfo($storedPath, PATHINFO_FILENAME);
+        }
+
+        if (!$storedPath) {
+            return response()->json(['success' => false, 'message' => 'Provide preview_id or file for import preview.'], 422);
+        }
+
+        $absolutePath = Storage::disk('local')->path($storedPath);
+        $delimiter = $this->resolveDelimiter(
+            $request->input('delimiter') ?? ($cachePayload['delimiter'] ?? null),
+            $absolutePath
+        );
+        $lowerCaseHeaders = $request->has('lowercase_headers')
+            ? $request->boolean('lowercase_headers')
+            : (bool) ($cachePayload['lowercase_headers'] ?? true);
+
+        $parsedMetadata = [
+            'columns' => $cachePayload['columns'] ?? null,
+            'sample' => $cachePayload['sample'] ?? null,
+            'total_rows' => $cachePayload['total_rows'] ?? null,
+            'parsing_errors' => $cachePayload['parsing_errors'] ?? null,
+        ];
+
+        if (!is_array($parsedMetadata['columns']) || !is_array($parsedMetadata['sample']) || !is_int($parsedMetadata['total_rows']) || !is_array($parsedMetadata['parsing_errors'])) {
+            $parsedMetadata = $this->parseCsvFile($absolutePath, $delimiter, $lowerCaseHeaders);
+        }
+
+        Cache::put(self::IMPORT_PREVIEW_CACHE_PREFIX . $previewId, [
+            'path' => $storedPath,
+            'delimiter' => $delimiter,
+            'lowercase_headers' => $lowerCaseHeaders,
+            'columns' => $parsedMetadata['columns'],
+            'sample' => $parsedMetadata['sample'],
+            'total_rows' => $parsedMetadata['total_rows'],
+            'parsing_errors' => $parsedMetadata['parsing_errors'],
+        ], now()->addSeconds(self::IMPORT_PREVIEW_CACHE_TTL_SECONDS));
 
         $page = (int) $request->input('page', 1);
         $perPage = (int) $request->input('per_page', 100);
-        $offset = ($page - 1) * $perPage;
-        $rows = array_slice($parsed['rows'], $offset, $perPage);
-        $total = $parsed['total_rows'];
+        $rows = $this->getCsvRowsPage($absolutePath, $delimiter, $parsedMetadata['columns'], $page, $perPage);
+        $total = $parsedMetadata['total_rows'];
 
         return response()->json([
             'success' => true,
             'data' => [
-                'columns' => $parsed['columns'],
+                'columns' => $parsedMetadata['columns'],
                 'rows' => $rows,
-                'sample' => $parsed['sample'],
+                'sample' => $parsedMetadata['sample'],
                 'total_rows' => $total,
-                'parsing_errors' => $parsed['parsing_errors'],
+                'parsing_errors' => $parsedMetadata['parsing_errors'],
+                'preview_id' => $previewId,
+                'delimiter' => $delimiter,
                 'pagination' => [
                     'current_page' => $page,
                     'per_page' => $perPage,

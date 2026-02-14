@@ -217,8 +217,15 @@ export default function Items() {
     let lastPage = 1;
     const rows = [];
 
+    const previewId = importPreviewData?.preview_id || null;
+
     do {
-      const payload = await importPreviewPageMutation.mutateAsync({ file: importFile, page: currentPage, perPage });
+      const payload = await importPreviewPageMutation.mutateAsync({
+        file: currentPage === 1 && !previewId ? importFile : null,
+        previewId,
+        page: currentPage,
+        perPage
+      });
       const pageRows = payload?.rows || [];
       const pagination = payload?.pagination || {};
 

@@ -34,7 +34,7 @@ export const useToggleItemStatusMutation = () => useMutation({ mutationFn: toggl
 export const useBulkItemsMutation = () => useMutation({ mutationFn: bulkUpdateItems });
 export const usePreviewItemsImportMutation = () => useMutation({ mutationFn: previewItemsImport });
 export const usePreviewItemsImportPageMutation = () => useMutation({
-  mutationFn: ({ file, page, perPage }) => previewItemsImportPage(file, page, perPage)
+  mutationFn: ({ file, previewId, page, perPage }) => previewItemsImportPage({ file, previewId, page, perPage })
 });
 export const useConfirmItemsImportMutation = () => useMutation({ mutationFn: confirmItemsImport });
 
