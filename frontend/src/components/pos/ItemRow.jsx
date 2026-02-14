@@ -7,12 +7,6 @@ import { useBusiness } from './BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
 import { getIconComponent } from '@/lib/iconCatalog';
 
-const typeColors = {
-  product: 'bg-blue-100 text-blue-800',
-  service: 'bg-purple-100 text-purple-800',
-  fee: 'bg-amber-100 text-amber-800'
-};
-
 export default function ItemRow({ 
   item, 
   categories = [],
@@ -67,11 +61,6 @@ export default function ItemRow({
             )}
           </div>
         </div>
-      </td>
-      <td className="px-4 py-3">
-        <Badge variant="secondary" className={typeColors[item.type] || typeColors.product}>
-          {item.type}
-        </Badge>
       </td>
       <td className="px-4 py-3">
         {item.category_id ? (

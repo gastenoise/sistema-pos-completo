@@ -45,7 +45,6 @@ export default function Items() {
   const { user, logout } = useAuth();
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -80,7 +79,6 @@ export default function Items() {
   const { data: itemsResponse = { items: [], pagination: null }, isLoading: loadingItems } = useItemsQuery({
     businessId,
     searchQuery,
-    typeFilter,
     categoryFilter,
     page
   });
@@ -311,17 +309,6 @@ export default function Items() {
                 className="pl-10"
               />
             </div>
-            <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="product">Product</SelectItem>
-                <SelectItem value="service">Service</SelectItem>
-                <SelectItem value="fee">Fee</SelectItem>
-              </SelectContent>
-            </Select>
             <Select
               value={String(categoryFilter)}
               onValueChange={(v) => {
@@ -379,7 +366,6 @@ export default function Items() {
                       />
                     </TableHead>
                     <TableHead>Item</TableHead>
-                    <TableHead>Type</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="text-right">Price</TableHead>
                     <TableHead className="text-center">Stock</TableHead>
