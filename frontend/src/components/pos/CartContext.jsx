@@ -36,12 +36,12 @@ export function CartProvider({ children }) {
   const addToCart = (item, quantity = 1) => {
     setCartItems(prev => {
       const incomingKey = item.is_quick_item
-        ? `quick-${item.name}-${item.price}-${item.type || 'product'}-${item.category_id ?? 'none'}`
+        ? `quick-${item.name}-${item.price}-${item.category_id ?? 'none'}`
         : String(item.id);
 
       const existing = prev.find((i) => {
         const rowKey = i.is_quick_item
-          ? `quick-${i.name}-${i.unit_price}-${i.type || 'product'}-${i.category_id ?? 'none'}`
+          ? `quick-${i.name}-${i.unit_price}-${i.category_id ?? 'none'}`
           : String(i.item_id);
         return rowKey === incomingKey;
       });
@@ -49,7 +49,7 @@ export function CartProvider({ children }) {
       if (existing) {
         return prev.map((i) => {
           const rowKey = i.is_quick_item
-            ? `quick-${i.name}-${i.unit_price}-${i.type || 'product'}-${i.category_id ?? 'none'}`
+            ? `quick-${i.name}-${i.unit_price}-${i.category_id ?? 'none'}`
             : String(i.item_id);
 
           return rowKey === incomingKey
@@ -62,7 +62,6 @@ export function CartProvider({ children }) {
         item_id: item.id,
         name: item.name,
         unit_price: item.price,
-        type: item.type || 'product',
         category_id: item.category_id ?? null,
         is_quick_item: Boolean(item.is_quick_item),
         quantity,

@@ -200,7 +200,6 @@ function POSContent() {
           ? {
               quick_item_name: item.name,
               quick_item_price: item.unit_price,
-              quick_item_type: item.type || 'product',
               quick_item_category_id: item.category_id ?? null,
             }
           : { item_id: item.item_id }),
@@ -405,7 +404,6 @@ function POSContent() {
       const payload = {
         name: itemData.name,
         price: Number(itemData.price),
-        type: itemData.type,
         is_active: true,
         ...(itemData.category_id !== undefined && { category_id: itemData.category_id }),
       };
@@ -421,7 +419,6 @@ function POSContent() {
         id: createdItem.id,
         name: createdItem.name,
         price: Number(createdItem.price),
-        type: createdItem.type,
         category_id: createdItem.category_id ?? itemData.category_id ?? null,
       });
 
@@ -433,7 +430,6 @@ function POSContent() {
       id: `quick-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: itemData.name,
       price: Number(itemData.price),
-      type: itemData.type,
       category_id: itemData.category_id ?? null,
       is_quick_item: true,
     });
