@@ -44,12 +44,14 @@ export default function CsvImportWizard({
   onClose,
   onPreview,
   onConfirm,
+  categories = [],
   previewData = null,
   loading = false
 }) {
   const [step, setStep] = useState(1);
   const [file, setFile] = useState(null);
   const [mapping, setMapping] = useState({});
+  const [globalCategoryId, setGlobalCategoryId] = useState('__none__');
   const [dragActive, setDragActive] = useState(false);
 
   const handleDrag = useCallback((e) => {
@@ -88,7 +90,11 @@ export default function CsvImportWizard({
   };
 
   const handleConfirmImport = async () => {
-    await onConfirm(mapping);
+    const resolvedCategoryId = globalCategoryId === '__none__'
+      ? undefined
+      : (globalCategoryId === '__uncategorized__' ? null : Number(globalCategoryId));
+
+    await onConfirm(mapping, resolvedCategoryId);
     handleClose();
   };
 
@@ -96,6 +102,7 @@ export default function CsvImportWizard({
     setStep(1);
     setFile(null);
     setMapping({});
+    setGlobalCategoryId('__none__');
     onClose();
   };
 
@@ -302,6 +309,22 @@ export default function CsvImportWizard({
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-lg p-4 space-y-2">
+              <Label className="text-sm font-medium">Categoría global (opcional)</Label>
+              <Select value={globalCategoryId} onValueChange={setGlobalCategoryId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No aplicar categoría global" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No aplicar categoría global</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>
+                  ))}
+                  <SelectItem value="__uncategorized__">Sin categoría</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex justify-between gap-3">

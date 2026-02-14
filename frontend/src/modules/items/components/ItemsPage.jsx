@@ -237,7 +237,7 @@ export default function Items() {
     return rows;
   };
 
-  const handleImportConfirm = async (mapping) => {
+  const handleImportConfirm = async (mapping, categoryId) => {
     setImportLoading(true);
     try {
       const rows = await fetchAllPreviewRows();
@@ -257,6 +257,7 @@ export default function Items() {
 
       const response = await importConfirmMutation.mutateAsync({
         items,
+        category_id: categoryId,
         sync_by_sku: true,
         sync_by_barcode: true
       });
@@ -451,6 +452,7 @@ export default function Items() {
         onClose={() => { setShowImportWizard(false); setImportPreviewData(null); setImportFile(null); }}
         onPreview={handleImportPreview}
         onConfirm={handleImportConfirm}
+        categories={categories}
         previewData={importPreviewData}
         loading={importLoading}
       />
