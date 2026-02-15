@@ -1,21 +1,12 @@
 # ============================================
 # Script: Dump-CodigoCompleto.ps1
-# Descripción: Dumpea todo el código del directorio indicado (te pregunta por el path)
+# Descripción: Dumpea todo el código del directorio actual a un archivo .txt
 # ============================================
 
-# Preguntar al usuario por el directorio a dumpear (con default ./)
-$inputPath = Read-Host "¿Qué directorio quieres dumpear? (deja vacío para usar el actual ./)"
-if ([string]::IsNullOrWhiteSpace($inputPath)) {
-    $directorioBase = Get-Location
-} else {
-    # Expandir la ruta relativa o absoluta
-    $directorioBase = Resolve-Path $inputPath -ErrorAction Stop
-}
-
+# Obtener el directorio donde se ejecuta el script
+$directorioBase = Get-Location
 $fecha = Get-Date -Format "yyyyMMdd_HHmmss"
-$nombreDir = Split-Path -Path $directorioBase -Leaf
-if ([string]::IsNullOrWhiteSpace($nombreDir)) { $nombreDir = "root" }
-$archivoSalida = "dump_codigo_completo_${nombreDir}_$fecha.txt"
+$archivoSalida = "dump_codigo_completo_$fecha.txt"
 
 # Extensiones de archivos de código a incluir (puedes modificar esta lista)
 $extensionesCodigo = @(
@@ -125,11 +116,7 @@ Write-Host "📁 Directorio base: $directorioBase" -ForegroundColor Gray
 Write-Host ""
 
 # Normalizar la ruta base para comparaciones
-if ($directorioBase -is [System.Management.Automation.PathInfo]) {
-    $rutaBaseNormalizada = $directorioBase.Path.TrimEnd('\', '/')
-} else {
-    $rutaBaseNormalizada = $directorioBase.ToString().TrimEnd('\', '/')
-}
+$rutaBaseNormalizada = $directorioBase.Path.TrimEnd('\', '/')
 
 # Crear/acceder al archivo de salida
 $streamWriter = [System.IO.StreamWriter]::new($archivoSalida, $false, [System.Text.Encoding]::UTF8)
@@ -185,7 +172,7 @@ try {
         }
     }
     
-    Get-ArbolDirectorios -Path $rutaBaseNormalizada
+    Get-ArbolDirectorios -Path $directorioBase
     
     # ============================================
     # SECCIÓN 2: CONTENIDO DE ARCHIVOS
@@ -200,7 +187,7 @@ try {
     $streamWriter.WriteLine("")
     
     # Obtener todos los archivos recursivamente
-    $todosLosArchivos = Get-ChildItem -Path $rutaBaseNormalizada -Recurse -File -Force -ErrorAction SilentlyContinue | 
+    $todosLosArchivos = Get-ChildItem -Path $directorioBase -Recurse -File -Force -ErrorAction SilentlyContinue | 
         Where-Object {
             $archivo = $_
             $extension = $archivo.Extension.ToLower()
@@ -210,6 +197,7 @@ try {
             # Usar FullName y verificar si contiene alguno de los directorios excluidos
             $enDirectorioExcluido = $false
             foreach ($dirExcluido in $directoriosExcluir) {
+                # Usar un patrón que funcione con ambos separadores
                 $patron1 = "\$dirExcluido\"
                 $patron2 = "/$dirExcluido/"
                 if ($archivo.FullName.Contains($patron1) -or $archivo.FullName.Contains($patron2)) {
