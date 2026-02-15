@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>API Pública | OpenVenta</title>
-    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+    <link rel="stylesheet" href="/swagger-ui/swagger-ui.css">
     <style>
       :root {
         color-scheme: light;
@@ -175,18 +175,11 @@
       <div id="swagger-ui"></div>
     </div>
 
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-    <script>
-      window.onload = function () {
-        SwaggerUIBundle({
-          url: "{{ $openapiUrl }}",
-          dom_id: "#swagger-ui",
-          deepLinking: true,
-          docExpansion: "list",
-          displayRequestDuration: true,
-          persistAuthorization: true
-        });
-      };
-    </script>
+    <script src="/swagger-ui/swagger-ui-bundle.js"></script>
+    <script src="/swagger-ui/swagger-ui-setup.js"></script>
+    <div id="swagger-ui-init"
+         data-openapi-url="{{ $openapiUrl }}">
+    </div>
   </body>
 </html>
+
