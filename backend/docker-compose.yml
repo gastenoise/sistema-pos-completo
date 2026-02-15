@@ -34,7 +34,7 @@ services:
     container_name: pos_db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: swift_pos
+      MYSQL_DATABASE: openventa
       MYSQL_ROOT_PASSWORD: ""
       MYSQL_PASSWORD: ""
       # MYSQL_USER: root

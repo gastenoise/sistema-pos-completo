@@ -1,6 +1,6 @@
 {
-  "name": "QuickPOS",
-  "short_name": "QPOS",
+  "name": "OpenVenta",
+  "short_name": "OV",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

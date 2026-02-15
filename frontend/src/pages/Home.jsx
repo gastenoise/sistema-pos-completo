@@ -51,13 +51,13 @@ export default function Home() {
         <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
           <Store className="w-10 h-10 text-blue-600" />
         </div>
-        <h1 className="text-3xl font-bold text-white mb-2">QuickPOS</h1>
-        <p className="text-blue-200 mb-8">Point of Sale System</p>
+        <h1 className="text-3xl font-bold text-white mb-2">OpenVenta</h1>
+        <p className="text-blue-200 mb-8">Sistema de Punto de Venta</p>
 
         {loading && (
           <div className="flex items-center justify-center gap-2 text-white">
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Loading...</span>
+            <span>Cargando...</span>
           </div>
         )}
       </div>

@@ -50,7 +50,7 @@ export default function TopNav({ user, onLogout, currentPage }) {
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <Store className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-slate-900 hidden sm:block">QuickPOS</span>
+              <span className="font-bold text-slate-900 hidden sm:block">OpenVenta</span>
             </Link>
 
             {currentBusiness && businesses.length > 0 && (
