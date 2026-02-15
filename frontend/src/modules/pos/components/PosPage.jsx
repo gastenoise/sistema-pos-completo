@@ -608,7 +608,7 @@ function POSContent() {
       />
 
       {/* Network Indicator */}
-      <NetworkIndicator onSyncQueue={handleSyncOfflineQueue} />
+      {/* <NetworkIndicator onSyncQueue={handleSyncOfflineQueue} /> */}
 
       <SaleDetailsDialog
         open={isLastSaleDialogOpen && !!lastCompletedSale}

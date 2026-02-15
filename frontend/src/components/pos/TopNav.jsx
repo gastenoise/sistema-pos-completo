@@ -112,14 +112,14 @@ export default function TopNav({ user, onLogout, currentPage }) {
           {/* Right side */}
           <div className="flex items-center gap-3">
             {/* Network indicator */}
-            <div className={`flex items-center gap-1 text-xs ${isOnline ? 'text-green-600' : 'text-red-500'}`}>
+            {/* <div className={`flex items-center gap-1 text-xs ${isOnline ? 'text-green-600' : 'text-red-500'}`}>
               {isOnline ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
               {offlineQueue.length > 0 && (
                 <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full text-xs">
                   {offlineQueue.length} queued
                 </span>
               )}
-            </div>
+            </div> */}
 
             {/* User menu */}
             <DropdownMenu>
