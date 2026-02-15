@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '@/api/client';
 import { createPageUrl } from '@/utils';
-import { Store, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 import { useBusiness } from '../components/pos/BusinessContext';
 import { normalizeListResponse } from '@/lib/normalizeResponse';
@@ -49,7 +49,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
       <div className="text-center">
         <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl">
-          <Store className="w-10 h-10 text-blue-600" />
+          <img src="/logo_white.svg" alt="OpenVenta logo" className="w-20 h-20" />
         </div>
         <h1 className="text-3xl font-bold text-white mb-2">OpenVenta</h1>
         <p className="text-blue-200 mb-8">Sistema de Punto de Venta</p>

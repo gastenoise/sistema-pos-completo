@@ -67,12 +67,13 @@ export default function BusinessSelect() {
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Store className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            {/* Use favicon.svg instead of Store icon for system logo */}
+            <img src="/favicon.svg" alt="OpenVenta logo" className="w-16 h-16" />
           </div>
-          <CardTitle className="text-2xl">Select Business</CardTitle>
+          <CardTitle className="text-2xl">Selección de negocio</CardTitle>
           <CardDescription>
-            Choose a business to continue
+            Elegí en cuál negocio vas a iniciar tu sesión
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

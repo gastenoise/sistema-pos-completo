@@ -47,9 +47,7 @@ export default function TopNav({ user, onLogout, currentPage }) {
           {/* Logo & Business Selector */}
           <div className="flex items-center gap-4">
             <Link to={createPageUrl('POS')} className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Store className="w-5 h-5 text-white" />
-              </div>
+              <img src="/favicon.svg" alt="logo" className="w-8 h-8" />
               <span className="font-bold text-slate-900 hidden sm:block">OpenVenta</span>
             </Link>
 
