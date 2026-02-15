@@ -138,16 +138,16 @@ export default function TopNav({ user, onLogout, currentPage }) {
                     Mi Perfil
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                {/* <DropdownMenuItem asChild>
                   <Link to={createPageUrl('Settings')}>
                     <Settings className="w-4 h-4 mr-2" />
                     Business Settings
                   </Link>
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onLogout} className="text-red-600">
                   <LogOut className="w-4 h-4 mr-2" />
-                  Logout
+                  Cerrar sesión
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

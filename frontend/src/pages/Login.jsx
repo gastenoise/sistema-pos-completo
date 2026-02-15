@@ -27,9 +27,9 @@ const getSessionMessage = (search) => {
 
   switch (reason) {
     case 'api_unreachable':
-      return 'No pudimos validar tu sesión porque la API no responde. Inicia sesión nuevamente.';
+      return 'No pudimos validar tu sesión porque el sistema no responde, iniciá sesión nuevamente.';
     case 'session_expired':
-      return 'Tu sesión expiró. Inicia sesión nuevamente para continuar.';
+      return 'Tu sesión expiró, iniciá sesión nuevamente para continuar.';
     default:
       return '';
   }
