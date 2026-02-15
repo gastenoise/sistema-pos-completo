@@ -1,6 +1,6 @@
 {
-  "name": "POS Front",
-  "short_name": "POS",
+  "name": "QuickPOS",
+  "short_name": "QPOS",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
