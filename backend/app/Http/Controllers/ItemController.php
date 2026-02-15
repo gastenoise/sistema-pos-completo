@@ -320,7 +320,7 @@ class ItemController extends Controller
     public function importPreview(Request $request, ImportItemsAction $importItemsAction)
     {
         $validated = $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:2048',
+            'file' => 'required|file|mimes:csv,txt|max:20480',
             'delimiter' => ['nullable', Rule::in(self::DEFAULT_DELIMITERS)],
             'lowercase_headers' => 'nullable|boolean',
         ]);
@@ -369,7 +369,7 @@ class ItemController extends Controller
     public function importPreviewFull(Request $request, ImportItemsAction $importItemsAction)
     {
         $request->validate([
-            'file' => 'nullable|file|mimes:csv,txt|max:2048',
+            'file' => 'nullable|file|mimes:csv,txt|max:20480',
             'preview_id' => 'nullable|string',
             'delimiter' => ['nullable', Rule::in(self::DEFAULT_DELIMITERS)],
             'lowercase_headers' => 'nullable|boolean',
