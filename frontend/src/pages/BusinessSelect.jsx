@@ -84,31 +84,51 @@ export default function BusinessSelect() {
           ) : (
             <>
               <div className="space-y-2">
-                {businesses.map((business) => (
-                  <button
-                    key={business.id}
-                    onClick={() => handleSelectBusiness(business)}
-                    disabled={selectingId !== null}
-                    className="w-full p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-between transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Store className="w-5 h-5 text-blue-600" />
+                {businesses.map((business) => {
+                  // Usa una sola variable para el color base
+                  const color = business.color || '#2563EB'; // #2563EB es azul (text-blue-600)
+
+                  // Fondo: utiliza el color con menos opacidad si business.color existe; si no, el fallback azul claro
+                  // Si business.color es hexa del tipo "#RRGGBB", agregamos 22 como opacidad baja (aprox. 13%)
+                  let bgColor;
+                  if (business.color && /^#([A-Fa-f0-9]{6})$/.test(business.color)) {
+                    bgColor = business.color + '22'; // baja opacidad
+                  } else {
+                    bgColor = '#DBEAFE'; // bg-blue-100
+                  }
+
+                  return (
+                    <button
+                      key={business.id}
+                      onClick={() => handleSelectBusiness(business)}
+                      disabled={selectingId !== null}
+                      className="w-full p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-between transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: bgColor }}
+                        >
+                          <Store
+                            className="w-5 h-5"
+                            style={{ color: color }}
+                          />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-medium text-slate-900">{business.name}</p>
+                          {business.address && (
+                            <p className="text-sm text-slate-500">{business.address}</p>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-left">
-                        <p className="font-medium text-slate-900">{business.name}</p>
-                        {business.address && (
-                          <p className="text-sm text-slate-500">{business.address}</p>
-                        )}
-                      </div>
-                    </div>
-                    {selectingId === business.id ? (
-                      <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-slate-400" />
-                    )}
-                  </button>
-                ))}
+                      {selectingId === business.id ? (
+                        <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-slate-400" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </>
           )}

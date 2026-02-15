@@ -54,22 +54,38 @@ export default function TopNav({ user, onLogout, currentPage }) {
             {currentBusiness && businesses.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="gap-2 text-sm">
+                  <Button variant="ghost" className="gap-2 text-sm flex items-center">
+                    {/* Solo el ícono, sin fondo, con color personalizado si corresponde */}
+                    <Store
+                      className="w-6 h-6 mr-2"
+                      style={{
+                        color:
+                          currentBusiness.color && /^#([A-Fa-f0-9]{6})$/.test(currentBusiness.color)
+                            ? currentBusiness.color
+                            : '#2563EB'
+                      }}
+                    />
                     <span className="max-w-[150px] truncate">{currentBusiness.name}</span>
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className="w-4 h-4 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
-                  {businesses.map((business) => (
-                    <DropdownMenuItem 
-                      key={business.id}
-                      onClick={() => handleBusinessSwitch(business)}
-                      className={currentBusiness?.id === business.id ? 'bg-blue-50' : ''}
-                    >
-                      <Store className="w-4 h-4 mr-2" />
-                      {business.name}
-                    </DropdownMenuItem>
-                  ))}
+                  {businesses.map((business) => {
+                    const iconColor =
+                      business.color && /^#([A-Fa-f0-9]{6})$/.test(business.color)
+                        ? business.color
+                        : '#2563EB';
+                    return (
+                      <DropdownMenuItem 
+                        key={business.id}
+                        onClick={() => handleBusinessSwitch(business)}
+                        className={currentBusiness?.id === business.id ? 'bg-blue-50' : ''}
+                      >
+                        <Store className="w-4 h-4 mr-2" style={{ color: iconColor }} />
+                        {business.name}
+                      </DropdownMenuItem>
+                    );
+                  })}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

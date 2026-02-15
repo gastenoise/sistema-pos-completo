@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "API Pública - Sistema de Ventas",
+    "title": "API Pública - OpenVenta",
     "version": "1.0.0",
     "description": "Documentación OpenAPI para integraciones externas usando API Key."
   },

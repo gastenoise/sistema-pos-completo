@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "API Protegida - Sistema de Ventas",
+    "name": "API Protegida - OpenVenta",
     "description": "Colección Postman para consumir la API protegida. Usa el login para obtener el token y envía el header X-Business-Id en todos los requests autenticados.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -610,7 +610,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"host\": \"smtp.example.com\",\n  \"port\": 587,\n  \"username\": \"smtp-user\",\n  \"password\": \"smtp-pass\",\n  \"encryption\": \"tls\",\n  \"from_email\": \"no-reply@example.com\",\n  \"from_name\": \"Sistema de Ventas\",\n  \"active\": true\n}"
+              "raw": "{\n  \"host\": \"smtp.example.com\",\n  \"port\": 587,\n  \"username\": \"smtp-user\",\n  \"password\": \"smtp-pass\",\n  \"encryption\": \"tls\",\n  \"from_email\": \"no-reply@example.com\",\n  \"from_name\": \"OpenVenta\",\n  \"active\": true\n}"
             },
             "url": {
               "raw": "{{base_url}}/protected/business/smtp",
