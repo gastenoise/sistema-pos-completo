@@ -17,7 +17,7 @@ export default function CashRegisterOpenModal({
   onConfirm,
   loading = false,
   title = 'Apertura de Caja',
-  description = 'Enter the starting cash amount in the register',
+  description="Ingresá el monto inicial que tenés en caja",
   warningMessage = null,
   cancelLabel = 'Cancelar',
   confirmLabel = 'Abrir Caja'
@@ -52,11 +52,6 @@ export default function CashRegisterOpenModal({
           {warningMessage && (
             <DialogDescription className="text-amber-600">
               {warningMessage}
-            </DialogDescription>
-          )}
-          {!warningMessage && description && (
-            <DialogDescription>
-              {description}
             </DialogDescription>
           )}
         </DialogHeader>

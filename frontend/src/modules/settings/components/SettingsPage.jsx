@@ -1001,7 +1001,7 @@ export default function Settings() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <div className="flex-1">
-                    <p className="font-medium text-slate-900">Caja Registradora</p>
+                    <p className="font-medium text-slate-900">Caja registradora</p>
                     <p className="text-sm text-slate-500">Llevá el recuento de tu efectivo en caja con movimientos de apertura y cierre</p>
                   </div>
                   <Switch
@@ -1013,7 +1013,24 @@ export default function Settings() {
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-900">Sistema de Suscripciones</p>
+                      <p className="font-medium text-slate-900">Control de stock y proveedores</p>
+                      <Badge variant="secondary" className="bg-amber-100 text-amber-700">
+                        <Lock className="w-3 h-3 mr-1" />
+                        Premium
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-slate-500">Cargá tus pagos a proveedores, stock previsto, y armá tus pedidos de manera rápida</p>
+                  </div>
+                  <Switch
+                    checked={modules.invoicing}
+                    onCheckedChange={() => handleToggleModule('invoicing', true)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-slate-900">Sistema de suscripciones</p>
                       <Badge variant="secondary" className="bg-amber-100 text-amber-700">
                         <Lock className="w-3 h-3 mr-1" />
                         Premium
@@ -1030,24 +1047,7 @@ export default function Settings() {
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-900">Control de stock y Proveedores</p>
-                      <Badge variant="secondary" className="bg-amber-100 text-amber-700">
-                        <Lock className="w-3 h-3 mr-1" />
-                        Premium
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-slate-500">Cargá tus proveedores, tu stock previsto, y armá tus pedidos de manera rápida</p>
-                  </div>
-                  <Switch
-                    checked={modules.invoicing}
-                    onCheckedChange={() => handleToggleModule('invoicing', true)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-900">Catálogo Electrónico</p>
+                      <p className="font-medium text-slate-900">Catálogo digital</p>
                       <Badge variant="secondary" className="bg-amber-100 text-amber-700">
                         <Lock className="w-3 h-3 mr-1" />
                         Premium
@@ -1065,7 +1065,7 @@ export default function Settings() {
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg opacity-60 cursor-not-allowed">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-900">Facturación</p>
+                      <p className="font-medium text-slate-900">Facturación electrónica</p>
                       <Badge variant="secondary" className="bg-gray-200 text-gray-600">
                         En desarrollo
                       </Badge>
@@ -1100,8 +1100,10 @@ export default function Settings() {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm font-medium text-blue-900 mb-2">El plan Premium incluye:</p>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Gestión de clientes</li>
-                <li>• Facturación y cobros</li>
+                <li>• Control de stock y proveedores</li>
+                <li>• Sistema de suscripciones</li>
+                <li>• Facturación electrónica</li>
+                <li>• Catálogo digital</li>
                 <li>• Análisis avanzado</li>
                 <li>• Soporte prioritario</li>
               </ul>

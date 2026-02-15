@@ -335,13 +335,13 @@ function POSContent() {
       const shouldContinuePayment = Boolean(pendingPayment);
       setShowCashOpenModal(false);
       setPendingPayment(null);
-      toast.success('Cash register opened');
+      toast.success('Se abrió la caja');
 
       if (shouldContinuePayment) {
         setShowWizard(true);
       }
     } catch (error) {
-      toast.error('Failed to open cash register');
+      toast.error('Error al abrir la caja');
     } finally {
       setIsOpeningCashRegister(false);
     }
@@ -519,7 +519,7 @@ function POSContent() {
                 <Package className="w-12 h-12 mb-3" />
                 <p className="text-lg font-medium">No se encontraron items</p>
                 <p className="text-sm">
-                  {searchQuery ? 'Try a different search.' : 'Add items from the Items page'}
+                  {searchQuery ? 'Probá con un filtro diferente' : 'Creá tus productos y servicios desde la sección "Items"'}
                 </p>
               </div>
             ) : (
@@ -600,8 +600,6 @@ function POSContent() {
         }}
         onConfirm={handleOpenCashRegister}
         loading={isOpeningCashRegister}
-        title="Apertura de Caja"
-        description="Ingresá el monto inicial que tenés en caja"
         warningMessage={
           pendingPayment
             ? 'La caja registradora está cerrada, debes abrirla para continuar con el pago.'

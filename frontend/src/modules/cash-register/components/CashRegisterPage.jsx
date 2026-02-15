@@ -102,9 +102,9 @@ export default function CashRegister() {
       await openRegisterMutation.mutateAsync(amount);
       await refetchSession();
       setShowOpenDialog(false);
-      toast.success('Cash register opened');
+      toast.success('Caja registradora abierta');
     } catch (error) {
-      toast.error('Failed to open register');
+      toast.error('Error al hacer apertura de caja');
     } finally {
       setLoading(false);
     }
@@ -122,9 +122,9 @@ export default function CashRegister() {
       queryClient.invalidateQueries({ queryKey: ['recentSessions', businessId] });
       setShowCloseDialog(false);
       setRealCash('');
-      toast.success('Cash register closed');
+      toast.success('Caja registradora cerrada');
     } catch (error) {
-      toast.error('Failed to close register');
+      toast.error('Error al hacer cierre de caja');
     } finally {
       setLoading(false);
     }
@@ -161,13 +161,13 @@ export default function CashRegister() {
                       <Unlock className="w-6 h-6 text-green-600" />
                     </div>
                     <div>
-                      <CardTitle className="text-green-900">Register Open</CardTitle>
+                      <CardTitle className="text-green-900">Caja abierta</CardTitle>
                       <CardDescription className="text-green-700">
-                        Opened {formatDateTimeLocal(currentSession.opened_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })} by {currentSession.opened_by}
+                        Se abrió el {formatDateTimeLocal(currentSession.opened_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })} por {currentSession.opened_by_name}
                       </CardDescription>
                     </div>
                   </div>
-                  <Badge className="bg-green-600">Active</Badge>
+                  <Badge className="bg-green-600">Activa</Badge>
                 </div>
               </CardHeader>
             </Card>
@@ -176,27 +176,27 @@ export default function CashRegister() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500 mb-1">Opening Cash</p>
+                  <p className="text-xs text-slate-500 mb-1">Efectivo en apertura</p>
                   <p className="text-xl font-bold">{formatPrice(currentSession.opening_cash_amount || 0, currentBusiness)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500 mb-1">Cash Sales</p>
+                  <p className="text-xs text-slate-500 mb-1">Ventas en efectivo</p>
                   <p className="text-xl font-bold text-green-600">{formatPrice(cashSalesTotal, currentBusiness)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500 mb-1">Expected Cash</p>
+                  <p className="text-xs text-slate-500 mb-1">Efectivo esperado</p>
                   <p className="text-xl font-bold text-blue-600">{formatPrice(expectedCash, currentBusiness)}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-xs text-slate-500 mb-1">Total Sales</p>
+                  <p className="text-xs text-slate-500 mb-1">Total de ventas</p>
                   <p className="text-xl font-bold">{formatPrice(sessionTotals.total, currentBusiness)}</p>
-                  <p className="text-xs text-slate-400">{sessionTotals.count} transactions</p>
+                  <p className="text-xs text-slate-400">{sessionTotals.count} transacciones</p>
                 </CardContent>
               </Card>
             </div>
@@ -204,7 +204,7 @@ export default function CashRegister() {
             {/* Sales by Payment Method */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Sales by Payment Method</CardTitle>
+                <CardTitle className="text-lg">Ventas por método de pago</CardTitle>
               </CardHeader>
               <CardContent>
                 {paymentMovements.length > 0 ? (
@@ -242,7 +242,7 @@ export default function CashRegister() {
               onClick={() => setShowCloseDialog(true)}
             >
               <Lock className="w-5 h-5 mr-2" />
-              Close Cash Register
+              Cerrar caja registradora
             </Button>
 
             {/* Recent Sessions (also shown when open) */}
@@ -330,7 +330,7 @@ export default function CashRegister() {
                   <CollapsibleTrigger className="w-full">
                     <CardHeader className="cursor-pointer hover:bg-slate-50 transition-colors">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">Recent Sessions</CardTitle>
+                        <CardTitle className="text-lg">Sesiones recientes</CardTitle>
                         <ChevronDown className={`w-5 h-5 transition-transform ${showRecentSessions ? 'rotate-180' : ''}`} />
                       </div>
                     </CardHeader>
@@ -343,7 +343,7 @@ export default function CashRegister() {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="font-medium">
-                                  {formatDateTimeLocal(session.opened_at, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  {formatDateTimeLocal(session.opened_at, { month: 'long', day: 'numeric', year: 'numeric' })}
                                 </p>
                                 <p className="text-sm text-slate-500">
                                   {formatDateTimeLocal(session.opened_at, { hour: '2-digit', minute: '2-digit', hour12: false })} - {formatDateTimeLocal(session.closed_at, { hour: '2-digit', minute: '2-digit', hour12: false })}
@@ -383,36 +383,35 @@ export default function CashRegister() {
           handleOpenRegister(amount);
         }}
         loading={loading}
-        description="Enter the starting cash amount in the register"
       />
 
       {/* Close Dialog */}
       <Dialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Close Cash Register</DialogTitle>
+            <DialogTitle>Cierre de Caja</DialogTitle>
             <DialogDescription>
-              Count your cash and enter the actual amount
+              Contá el efectivo actual e ingresá el monto
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="bg-slate-100 rounded-lg p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600">Opening Cash</span>
+                <span className="text-slate-600">Efectivo en apertura</span>
                 <span>{formatPrice(currentSession?.opening_cash_amount || 0, currentBusiness)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-600">Cash Sales</span>
+                <span className="text-slate-600">Ventas en efectivo</span>
                 <span className="text-green-600">+{formatPrice(cashSalesTotal, currentBusiness)}</span>
               </div>
               <div className="flex justify-between font-medium pt-2 border-t">
-                <span>Expected Cash</span>
+                <span>Efectivo esperado</span>
                 <span>{formatPrice(expectedCash, currentBusiness)}</span>
               </div>
             </div>
             
             <div>
-              <Label>Actual Cash Amount</Label>
+              <Label>Monto actual en caja</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -425,18 +424,18 @@ export default function CashRegister() {
                 <p className={`text-sm mt-1 ${
                   parseFloat(realCash) >= expectedCash ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  Difference: {parseFloat(realCash) >= expectedCash ? '+' : ''}{formatPrice((parseFloat(realCash) || 0) - expectedCash, currentBusiness)}
+                  Diferencia: {parseFloat(realCash) >= expectedCash ? '+' : ''}{formatPrice((parseFloat(realCash) || 0) - expectedCash, currentBusiness)}
                 </p>
               )}
             </div>
             
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setShowCloseDialog(false)}>
-                Cancel
+                Cancelar
               </Button>
               <Button variant="destructive" className="flex-1" onClick={handleCloseRegister} disabled={loading}>
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Close Register
+                Cerrar caja
               </Button>
             </div>
           </div>

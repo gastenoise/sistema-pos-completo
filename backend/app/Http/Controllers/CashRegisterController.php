@@ -7,6 +7,7 @@ use App\Actions\CashRegister\OpenCashRegisterAction;
 use App\Models\CashRegisterSession;
 use App\Models\PaymentMethod;
 use App\Models\SalePayment;
+use App\Http\Resources\CashRegisterSessionResource;
 use App\Services\BusinessContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,15 +18,13 @@ class CashRegisterController extends Controller
     {
         $session = CashRegisterSession::where('status', 'open')
             ->where('opened_by', Auth::id())
+            ->with('opener')
             ->latest()
             ->first();
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'is_open' => (bool) $session,
-                'session' => $session
-            ]
+            'data' => new CashRegisterSessionResource($session)
         ]);
     }
 
