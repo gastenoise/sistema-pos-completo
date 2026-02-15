@@ -196,28 +196,6 @@ class BusinessController extends Controller
         return response()->json(['success' => true, 'message' => 'SMTP test sent successfully']);
     }
 
-    public function updateCurrency(Request $request, UpdateBusinessCurrencyAction $updateBusinessCurrencyAction)
-    {
-        $businessId = app(BusinessContext::class)->getBusinessId();
-        if (!$businessId) {
-            return response()->json(['success' => false, 'message' => 'Business not selected'], 403);
-        }
-
-        $business = Business::find($businessId);
-        if (!$business) {
-            return response()->json(['success' => false, 'message' => 'Business not found'], 404);
-        }
-
-        $validated = $request->validate(['currency' => 'required|string|in:ARS,USD']);
-
-        $refreshedBusiness = $updateBusinessCurrencyAction->execute($business, $validated['currency']);
-        if ($this->canUseBusinessParameters()) {
-            $refreshedBusiness->load('parameters');
-        }
-
-        return response()->json(['success' => true, 'data' => $this->withBusinessParameters($refreshedBusiness)]);
-    }
-
     public function update(BusinessUpdateRequest $request, UpdateBusinessAction $updateBusinessAction)
     {
         $businessId = app(BusinessContext::class)->getBusinessId();

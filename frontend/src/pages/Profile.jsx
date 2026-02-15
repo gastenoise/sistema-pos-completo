@@ -106,8 +106,8 @@ export default function Profile() {
         </Link>
 
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900">My Profile</h1>
-          <p className="text-slate-500 mt-1">Manage your personal information</p>
+          <h1 className="text-3xl font-bold text-slate-900">Mi Perfil</h1>
+          <p className="text-slate-500 mt-1">Actualizá los datos de tu cuenta en el sistema</p>
         </div>
 
         <div className="space-y-6">
@@ -116,9 +116,9 @@ export default function Profile() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <UserIcon className="w-5 h-5" />
-                Personal Information
+                Información personal
               </CardTitle>
-              <CardDescription>Update your profile details</CardDescription>
+              {/* <CardDescription>Modificá los detalles de tu cuenta</CardDescription> */}
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -147,7 +147,7 @@ export default function Profile() {
               <div>
                 <Label htmlFor="phone" className="flex items-center gap-2">
                   <Phone className="w-4 h-4" />
-                  Phone
+                  Teléfono
                 </Label>
                 <Input
                   id="phone"
@@ -163,7 +163,7 @@ export default function Profile() {
                 ) : (
                   <Save className="w-4 h-4 mr-2" />
                 )}
-                Save Changes
+                Guardar cambios
               </Button>
             </CardContent>
           </Card>
@@ -173,41 +173,41 @@ export default function Profile() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lock className="w-5 h-5" />
-                Change Password
+                Cambio de contraseña
               </CardTitle>
-              <CardDescription>Update your account password</CardDescription>
+              {/* <CardDescription>Update your account password</CardDescription> */}
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="current_password">Current Password</Label>
+                <Label htmlFor="current_password">Contraseña actual</Label>
                 <Input
                   id="current_password"
                   type="password"
                   value={passwordData.current}
                   onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })}
-                  placeholder="Enter current password"
+                  placeholder="Ingresá tu contraseña actual"
                   className="mt-1.5"
                 />
               </div>
               <div>
-                <Label htmlFor="new_password">New Password</Label>
+                <Label htmlFor="new_password">Nueva contraseña</Label>
                 <Input
                   id="new_password"
                   type="password"
                   value={passwordData.new}
                   onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
-                  placeholder="Enter new password"
+                  placeholder="Ingresá tu nueva contraseña"
                   className="mt-1.5"
                 />
               </div>
               <div>
-                <Label htmlFor="confirm_password">Confirm New Password</Label>
+                <Label htmlFor="confirm_password">Confirmar nueva contraseña</Label>
                 <Input
                   id="confirm_password"
                   type="password"
                   value={passwordData.confirm}
                   onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
-                  placeholder="Confirm new password"
+                  placeholder="Confirmá la nueva contraseña"
                   className="mt-1.5"
                 />
               </div>
@@ -221,7 +221,7 @@ export default function Profile() {
                 ) : (
                   <Lock className="w-4 h-4 mr-2" />
                 )}
-                Change Password
+                Cambiar contraseña
               </Button>
             </CardContent>
           </Card>
@@ -229,12 +229,12 @@ export default function Profile() {
           {/* Account Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Account Information</CardTitle>
-              <CardDescription>View your account details</CardDescription>
+              <CardTitle>Información de la cuenta</CardTitle>
+              {/* <CardDescription>View your account details</CardDescription> */}
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between py-2 border-b border-slate-100">
-                <span className="text-sm text-slate-600">Account Created</span>
+                <span className="text-sm text-slate-600">Fecha de registro</span>
                 <span className="text-sm font-medium text-slate-900">
                   {user?.created_at ? formatDateTimeLocal(user.created_at, { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}
                 </span>

@@ -282,32 +282,14 @@ export default function Settings() {
     }
   };
 
-  const handleSaveCurrency = async (event) => {
-    event?.preventDefault();
-    if (!currentBusiness) return;
-    setSavingCurrency(true);
-    try {
-      const updated = await apiClient.put('/protected/business/currency', {
-        currency: businessData.currency
-      });
-      const updatedBusiness = normalizeEntityResponse(updated);
-      const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
-      syncBusinessState(mergedBusiness);
-      toast.success('Currency saved');
-    } catch (error) {
-      toast.error('Failed to save currency');
-    } finally {
-      setSavingCurrency(false);
-    }
-  };
-
   const handleSaveBusinessParameters = async (event) => {
     event?.preventDefault();
     if (!currentBusiness) return;
     setSavingBusinessParameters(true);
     try {
       const payload = {
-        business_parameters: businessData.business_parameters
+        business_parameters: businessData.business_parameters,
+        currency: businessData.currency
       };
       const updated = await apiClient.put('/protected/business', payload);
       const updatedBusiness = normalizeEntityResponse(updated);
@@ -608,7 +590,7 @@ export default function Settings() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Opciones del negocio</CardTitle>
+                <CardTitle>Variables del negocio</CardTitle>
                 <CardDescription>
                   Modifica algunas funcionalidades para este negocio
                 </CardDescription>
@@ -634,6 +616,28 @@ export default function Settings() {
                         />
                       </div>
                     ))}
+
+                    {/* Nueva sección: Moneda, estilo igual al bloque de parámetros de negocio */}
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">Moneda</p>
+                        <p className="text-xs text-slate-500">Seleccioná la moneda principal de tu negocio</p>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <Select
+                          value={businessData.currency}
+                          onValueChange={(v) => setBusinessData({ ...businessData, currency: v })}
+                        >
+                          <SelectTrigger id="currency-select" className="min-w-0 w-auto">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ARS">ARS - Pesos</SelectItem>
+                            <SelectItem value="USD">USD - Dólares</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
 
                   <Button type="submit" disabled={savingBusinessParameters}>
@@ -701,41 +705,6 @@ export default function Settings() {
 
           {/* Payment Methods Tab */}
           <TabsContent value="payments" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Currency</CardTitle>
-                <CardDescription>Set the currency used by your business</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-4" onSubmit={handleSaveCurrency}>
-                  <div className="max-w-sm">
-                    <Label>Currency</Label>
-                    <Select
-                      value={businessData.currency}
-                      onValueChange={(v) => setBusinessData({ ...businessData, currency: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ARS">ARS - Argentine Peso</SelectItem>
-                        <SelectItem value="USD">USD - US Dollar</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button type="submit" disabled={savingCurrency}>
-                    {savingCurrency ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4 mr-2" />
-                    )}
-                    Save Currency
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle>Métodos de pago</CardTitle>

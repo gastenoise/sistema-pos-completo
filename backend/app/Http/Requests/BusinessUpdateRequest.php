@@ -26,6 +26,7 @@ class BusinessUpdateRequest extends FormRequest
             'preferred_payment_method_id' => 'nullable|integer|exists:payment_methods,id',
             'business_parameters' => 'nullable|array',
             'business_parameters.*' => 'boolean',
+            'currency' => 'nullable|string|in:ARS,USD',
         ];
     }
 

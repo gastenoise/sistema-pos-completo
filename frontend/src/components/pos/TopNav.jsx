@@ -121,7 +121,7 @@ export default function TopNav({ user, onLogout, currentPage }) {
                 <DropdownMenuItem asChild>
                   <Link to={createPageUrl('Profile')}>
                     <User className="w-4 h-4 mr-2" />
-                    My Profile
+                    Mi Perfil
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>

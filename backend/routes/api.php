@@ -40,12 +40,13 @@ Route::prefix('protected')->group(function () {
     */
     Route::middleware(['web', 'auth:sanctum'])->group(function () {
         Route::middleware('ensure.token.fresh')->group(function () {
-            Route::get('auth/me', [AuthController::class, 'me']);
-            Route::put('auth/me', [AuthController::class, 'updateMe']);
-            Route::post('auth/logout', [AuthController::class, 'logout']);
-
-            Route::put('auth/change-email', [AuthController::class, 'changeEmail']);
-            Route::put('auth/change-password', [AuthController::class, 'changePassword']);
+            Route::prefix('auth')->group(function () {
+                Route::get('me', [AuthController::class, 'me']);
+                Route::put('me', [AuthController::class, 'updateMe']);
+                Route::post('logout', [AuthController::class, 'logout']);
+                // Route::put('change-email', [AuthController::class, 'changeEmail']);
+                Route::put('change-password', [AuthController::class, 'changePassword']);
+            });
 
             // Selección de Negocio (Para establecer el contexto multi-tenant)
             Route::get('businesses', [BusinessController::class, 'index']);
@@ -65,12 +66,13 @@ Route::prefix('protected')->group(function () {
             |----------------------------------------------------------------------
             */
             Route::middleware('resolve.business')->group(function () {
-                Route::get('business/smtp', [BusinessController::class, 'getSmtpSettings']);
-                Route::get('business/smtp/status', [BusinessController::class, 'smtpStatus']);
-                Route::put('business/smtp', [BusinessController::class, 'updateSmtpSettings']);
-                Route::post('business/smtp/test', [BusinessController::class, 'testSmtpSettings']);
-                Route::put('business/currency', [BusinessController::class, 'updateCurrency']);
-                Route::put('business', [BusinessController::class, 'update']);
+                Route::prefix('business')->group(function () {
+                    Route::get('smtp', [BusinessController::class, 'getSmtpSettings']);
+                    Route::get('smtp/status', [BusinessController::class, 'smtpStatus']);
+                    Route::put('smtp', [BusinessController::class, 'updateSmtpSettings']);
+                    Route::post('smtp/test', [BusinessController::class, 'testSmtpSettings']);
+                    Route::put('/', [BusinessController::class, 'update']);
+                });
 
                 Route::get('api-keys', [ApiKeyController::class, 'index'])
                     ->middleware('can:viewAny,App\Models\ApiKey');
@@ -133,10 +135,12 @@ Route::prefix('protected')->group(function () {
                 });
 
                 // Reportes
-                Route::get('reports/daily-summary', [ReportController::class, 'dailySummary']);
-                Route::get('reports/sales', [ReportController::class, 'salesList']);
-                Route::get('reports/summary', [ReportController::class, 'salesSummary']);
-                Route::get('reports/export', [ReportController::class, 'export']);
+                Route::prefix('reports')->group(function () {
+                    Route::get('daily-summary', [ReportController::class, 'dailySummary']);
+                    Route::get('sales', [ReportController::class, 'salesList']);
+                    Route::get('summary', [ReportController::class, 'salesSummary']);
+                    Route::get('export', [ReportController::class, 'export']);
+                });
             });
         });
     });
