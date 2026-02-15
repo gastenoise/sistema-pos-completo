@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Lock, Mail } from 'lucide-react';
+import { Loader2, Lock, Mail, Key } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,6 @@ const getRedirectTarget = (search) => {
   }
   return createPageUrl('Home');
 };
-
 
 const getSessionMessage = (search) => {
   const params = new URLSearchParams(search);
@@ -69,11 +68,14 @@ export default function Login() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white">
-            <Lock className="h-6 w-6" />
+          <div className="mx-auto mb-4 flex items-center justify-center gap-2">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white">
+              <Lock className="h-6 w-6" />
+            </div>
+              <img src="/favicon.svg" alt="OpenVenta logo" className="w-12 h-12" />
           </div>
           <CardTitle>Iniciar sesión</CardTitle>
-          <CardDescription>Accede a tu cuenta para continuar al POS.</CardDescription>
+          <CardDescription>Accedé al sistema POS desde tu cuenta personal</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
@@ -92,7 +94,10 @@ export default function Login() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password" className="flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                Contraseña
+              </Label>
               <Input
                 id="password"
                 type="password"
