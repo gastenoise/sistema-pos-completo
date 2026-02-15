@@ -18,8 +18,8 @@ class DatabaseSeeder extends Seeder
     {
         // 1. Crear Usuarios
         $user = User::create([
-            'name' => 'Admin POS',
-            'email' => 'admin@example.com',
+            'name' => 'Gastón Urgorri',
+            'email' => 'admin@openventa.com.ar',
             'phone' => '1167894321',
             'password' => Hash::make('password'),
         ]);
@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
         // 1b. Crear otro usuario para pruebas
         $testUser = User::create([
             'name' => 'Usuario de Prueba',
-            'email' => 'test@example.com',
+            'email' => 'test@openventa.com.ar',
             'phone' => '1198765432',
             'password' => Hash::make('password'),
         ]);
@@ -36,7 +36,7 @@ class DatabaseSeeder extends Seeder
         $businesses = [
             [
                 'name' => 'Mi Comercio MVP',
-                'address' => 'Calle Falsa 123',
+                'address' => 'Calle Almafuerte 123 B',
                 'email' => 'contacto@comercio.com',
             ],
             [
@@ -45,20 +45,15 @@ class DatabaseSeeder extends Seeder
                 'email' => 'laespiga@pan.com',
                 'phone' => '011 43210000',
             ],
-            [
-                'name' => 'Librería Libros+',
-                'address' => 'Calle Libros 789',
-                'email' => 'info@librosmas.com',
-                'phone' => '011 42114444',
-            ],
         ];
 
         // Métodos de pago por defecto a nivel global (ya no por negocio)
         DB::table('payment_methods')->insert([
             ['code' => 'cash', 'name' => 'Efectivo', 'icon' => 27, 'color' => '#1ABC9C'],
-            ['code' => 'debit', 'name' => 'Débito', 'icon' => 28, 'color' => '#2ECC71'],
-            ['code' => 'mercado_pago', 'name' => 'Mercado Pago', 'icon' => 29, 'color' => '#3498DB'],
+            ['code' => 'mercado_pago', 'name' => 'Mercado Pago', 'icon' => 29, 'color' => '#009fe2'],
             ['code' => 'bank_transfer', 'name' => 'Transferencia Bancaria', 'icon' => 30, 'color' => '#9B59B6'],
+            ['code' => 'debit', 'name' => 'Débito', 'icon' => 28, 'color' => '#ea5b0c'],
+            ['code' => 'credit', 'name' => 'Crédito', 'icon' => 28, 'color' => '#003caf'],
         ]);
 
         $defaultPreferredPaymentMethodId = PaymentMethod::where('code', 'cash')->value('id')
@@ -79,13 +74,6 @@ class DatabaseSeeder extends Seeder
                 'alias' => 'LAESPIGA.PAN',
                 'bank_name' => 'Banco Galicia',
                 'account_holder_name' => 'Panadería La Espiga S.A.',
-            ],
-            [
-                // Para Librería Libros+
-                'cbu' => '2850590940090418135603',
-                'alias' => 'LIBROS.MAS',
-                'bank_name' => 'Banco Santander',
-                'account_holder_name' => 'Libros Mas SRL',
             ],
         ];
 
@@ -154,11 +142,6 @@ class DatabaseSeeder extends Seeder
                 'plain' => 'test-api-key-1',
                 'business' => $createdBusinesses[0] ?? null,
             ],
-            [
-                'label' => 'seed-api-key-2',
-                'plain' => 'test-api-key-2',
-                'business' => $createdBusinesses[1] ?? ($createdBusinesses[0] ?? null),
-            ],
         ];
 
         foreach ($apiKeySeeds as $seed) {
@@ -178,9 +161,8 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        $this->command->info('Sistema inicializado: admin@example.com / password');
-        $this->command->info('Usuario de prueba: test@example.com / password');
+        $this->command->info('Sistema inicializado: admin@openventa.com.ar / password');
+        $this->command->info('Usuario de prueba: test@openventa.com.ar / password');
         $this->command->info('API key 1: test-api-key-1');
-        $this->command->info('API key 2: test-api-key-2');
     }
 }
