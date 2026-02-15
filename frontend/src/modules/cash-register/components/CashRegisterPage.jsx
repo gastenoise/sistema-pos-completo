@@ -304,9 +304,9 @@ export default function CashRegister() {
                     <Lock className="w-6 h-6 text-slate-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-slate-900">Register Closed</CardTitle>
+                    <CardTitle className="text-slate-900">Caja cerrada</CardTitle>
                     <CardDescription>
-                      Open the register to start processing sales
+                      Abrí la caja para empezar a registrar ventas en el día de hoy
                     </CardDescription>
                   </div>
                 </div>
@@ -318,7 +318,7 @@ export default function CashRegister() {
                   onClick={() => setShowOpenDialog(true)}
                 >
                   <Unlock className="w-5 h-5 mr-2" />
-                  Open Cash Register
+                  Abrir Caja Registradora
                 </Button>
               </CardContent>
             </Card>
@@ -383,7 +383,6 @@ export default function CashRegister() {
           handleOpenRegister(amount);
         }}
         loading={loading}
-        title="Open Cash Register"
         description="Enter the starting cash amount in the register"
       />
 

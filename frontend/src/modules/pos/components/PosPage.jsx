@@ -517,7 +517,7 @@ function POSContent() {
             ) : filteredItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                 <Package className="w-12 h-12 mb-3" />
-                <p className="text-lg font-medium">No items found</p>
+                <p className="text-lg font-medium">No se encontraron items</p>
                 <p className="text-sm">
                   {searchQuery ? 'Try a different search.' : 'Add items from the Items page'}
                 </p>
@@ -570,7 +570,7 @@ function POSContent() {
               </button>
             </div>
             {cashRegisterStatus?.status === 'closed' && (
-              <p className="text-xs text-amber-600 mt-1">Caja registradora cerrada</p>
+              <p className="text-xs text-amber-600 mt-1">La caja está cerrada</p>
             )}
           </div>
           <SaleCart onCharge={handleCharge} />

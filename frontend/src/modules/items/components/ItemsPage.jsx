@@ -377,7 +377,7 @@ export default function Items() {
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-slate-400">
               <Package className="w-12 h-12 mb-3" />
-              <p className="text-lg font-medium">No items found</p>
+              <p className="text-lg font-medium">No se encontraron items</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
