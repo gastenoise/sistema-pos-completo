@@ -72,7 +72,7 @@ export default function Login() {
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white">
               <Lock className="h-6 w-6" />
             </div>
-              <img src="/favicon.svg" alt="OpenVenta logo" className="w-12 h-12" />
+              <img src="/logo.svg" alt="OpenVenta logo" className="w-12 h-12" />
           </div>
           <CardTitle>Iniciar sesión</CardTitle>
           <CardDescription>Accedé al sistema POS desde tu cuenta personal</CardDescription>

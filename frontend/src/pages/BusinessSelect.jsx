@@ -68,8 +68,8 @@ export default function BusinessSelect() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            {/* Use favicon.svg instead of Store icon for system logo */}
-            <img src="/favicon.svg" alt="OpenVenta logo" className="w-16 h-16" />
+            {/* Use logo.svg instead of Store icon for system logo */}
+            <img src="/logo.svg" alt="OpenVenta logo" className="w-16 h-16" />
           </div>
           <CardTitle className="text-2xl">Selección de negocio</CardTitle>
           <CardDescription>
