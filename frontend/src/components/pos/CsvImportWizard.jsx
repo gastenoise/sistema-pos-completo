@@ -26,19 +26,21 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const REQUIRED_FIELDS = ['name'];
-const OPTIONAL_FIELDS = [
-  'price',
-  'barcode',
-  'sku',
-  'category',
-  'cost',
-  'stock_quantity',
-  'presentation_quantity',
-  'presentation_unit',
-  'brand',
-  'list_price'
+// Definir array de campos: label legible y nombre interno
+const FIELD_LABELS = [
+  { label: 'Nombre', field: 'name', required: true },
+  { label: 'Marca', field: 'brand', required: false },
+  { label: 'Precio', field: 'price', required: true },
+  { label: 'Precio de lista', field: 'list_price', required: false },
+  { label: 'Código de barras', field: 'barcode', required: false },
+  { label: 'SKU', field: 'sku', required: false },
+  { label: 'Cantidad por presentación', field: 'presentation_quantity', required: false },
+  { label: 'Unidad de presentación', field: 'presentation_unit', required: false },
 ];
+
+// Para lógica de validación
+const REQUIRED_FIELDS = FIELD_LABELS.filter(f => f.required).map(f => f.field);
+const OPTIONAL_FIELDS = FIELD_LABELS.filter(f => !f.required).map(f => f.field);
 const SKIP_OPTION_VALUE = '__skip__';
 
 export default function CsvImportWizard({ 
@@ -130,7 +132,7 @@ export default function CsvImportWizard({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="w-5 h-5" />
-            Import Items from CSV
+            Importar Items en formato CSV
           </DialogTitle>
         </DialogHeader>
 
@@ -142,7 +144,7 @@ export default function CsvImportWizard({
             }`}>
               1
             </div>
-            <span className="text-sm font-medium">Upload</span>
+            <span className="text-sm font-medium">Subir</span>
           </div>
           <ArrowRight className="w-4 h-4 text-slate-400" />
           <div className={`flex items-center gap-2 ${step >= 2 ? 'text-blue-600' : 'text-slate-400'}`}>
@@ -151,7 +153,7 @@ export default function CsvImportWizard({
             }`}>
               2
             </div>
-            <span className="text-sm font-medium">Map Columns</span>
+            <span className="text-sm font-medium">Asociar columnas</span>
           </div>
           <ArrowRight className="w-4 h-4 text-slate-400" />
           <div className={`flex items-center gap-2 ${step >= 3 ? 'text-blue-600' : 'text-slate-400'}`}>
@@ -160,7 +162,7 @@ export default function CsvImportWizard({
             }`}>
               3
             </div>
-            <span className="text-sm font-medium">Confirm</span>
+            <span className="text-sm font-medium">Confirmar</span>
           </div>
         </div>
 
@@ -178,10 +180,10 @@ export default function CsvImportWizard({
             >
               <Upload className="w-10 h-10 mx-auto text-slate-400 mb-3" />
               <p className="text-sm text-slate-600 mb-2">
-                Drag and drop your CSV file here, or
+                Arrastrá y soltá tu archivo CSV, ó
               </p>
               <Label htmlFor="csv-file" className="cursor-pointer">
-                <span className="text-blue-600 hover:text-blue-700 font-medium">browse</span>
+                <span className="text-blue-600 hover:text-blue-700 font-medium">buscar en mi ordenador</span>
                 <Input
                   id="csv-file"
                   type="file"
@@ -199,10 +201,10 @@ export default function CsvImportWizard({
             </div>
 
             <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={handleClose}>Cancel</Button>
+              <Button variant="outline" onClick={handleClose}>Cancelar</Button>
               <Button onClick={handleUploadPreview} disabled={!file || loading}>
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Preview
+                Siguiente
               </Button>
             </div>
           </div>
@@ -210,40 +212,63 @@ export default function CsvImportWizard({
 
         {/* Step 2: Map Columns */}
         {step === 2 && previewData && (
-          <div className="space-y-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-                <div>
-                  <p className="font-medium text-amber-900">Advertencia de sincronización por código de barras</p>
-                  <p className="text-sm text-amber-800">
-                    Si el barcode ya existe en este negocio, el item será actualizado/reemplazado.
-                  </p>
-                  <p className="text-xs text-amber-700 mt-1">
-                    Si el barcode viene vacío, se creará un nuevo item sin clave de sincronización.
-                  </p>
+          // CORRECCIÓN: Agregado min-w-0 para evitar que el contenido expanda el diálogo
+          <div className="space-y-4 min-w-0">
+            {parsingErrors.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-900">Alertas de la importación CSV</p>
+                    <p className="text-xs text-amber-700">{parsingErrors.length} filas fueron omitidas por estructura inválida</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+              <p className="text-md font-medium mb-2">Previsualización (primeras 5 filas)</p>
+              {/* CORRECCIÓN: w-full para ancho del diálogo, overflow-x-auto para scroll horizontal */}
+              <div className="border rounded-lg w-full overflow-x-auto">
+              {/* max-h-48 */}
+                {/* CORRECCIÓN: min-w-full y whitespace-nowrap para que la tabla no se comprima */}
+                <Table className="min-w-full whitespace-nowrap">
+                  <TableHeader>
+                    <TableRow>
+                      {csvColumns.map((col) => (
+                        <TableHead key={col} className="text-xs">{col}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {previewRows.map((row, i) => (
+                      <TableRow key={i}>
+                        {csvColumns.map((col) => (
+                          <TableCell key={col} className="text-xs">{row[col]}</TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
             <div className="bg-slate-50 rounded-lg p-4">
-              <p className="text-sm font-medium mb-3">Map CSV columns to item fields</p>
+              <p className="text-sm font-medium mb-3">Asociá las columnas con los campos de cada Item</p>
               <div className="grid grid-cols-2 gap-4">
-                {[...REQUIRED_FIELDS, ...OPTIONAL_FIELDS].map((field) => (
+                {FIELD_LABELS.map(({ label, field, required }) => (
                   <div key={field} className="flex items-center gap-2">
-                    <Label className="w-28 text-sm capitalize">
-                      {field.replace('_', ' ')}
-                      {REQUIRED_FIELDS.includes(field) && <span className="text-red-500">*</span>}
+                    <Label className="w-44 text-sm">
+                      {label}
+                      {required && <span className="text-red-500">*</span>}
                     </Label>
                     <Select 
                       value={mapping[field] || ''} 
                       onValueChange={(value) => updateMapping(field, value)}
                     >
                       <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select column" />
+                        <SelectValue placeholder="Seleccionar columna" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={SKIP_OPTION_VALUE}>-- Skip --</SelectItem>
+                        <SelectItem value={SKIP_OPTION_VALUE}>-- Ignorar --</SelectItem>
                         {csvColumns.map((col) => (
                           <SelectItem key={col} value={col}>{col}</SelectItem>
                         ))}
@@ -265,52 +290,27 @@ export default function CsvImportWizard({
               </Label>
             </div>
 
-
-            {parsingErrors.length > 0 && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-amber-900">CSV parsing warnings</p>
-                    <p className="text-xs text-amber-700">{parsingErrors.length} rows were skipped due to invalid structure.</p>
-                  </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-6 h-6 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="font-medium text-blue-900">Sincronización por código de barras</p>
+                  <p className="text-sm text-blue-800">
+                    Si el código de barras ya existe, el Item será actualizado o reemplazado.
+                  </p>
                 </div>
-              </div>
-            )}
-
-            <div>
-              <p className="text-sm font-medium mb-2">Preview (first 5 rows)</p>
-              <div className="border rounded-lg overflow-auto max-h-48">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {csvColumns.map((col) => (
-                        <TableHead key={col} className="text-xs">{col}</TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {previewRows.map((row, i) => (
-                      <TableRow key={i}>
-                        {csvColumns.map((col) => (
-                          <TableCell key={col} className="text-xs">{row[col]}</TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               </div>
             </div>
 
             <div className="flex justify-between gap-3">
-              <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+              <Button variant="outline" onClick={() => setStep(1)}>Volver</Button>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={handleClose}>Cancel</Button>
+                <Button variant="outline" onClick={handleClose}>Cancelar</Button>
                 <Button 
                   onClick={() => setStep(3)} 
                   disabled={!hasRequiredMapping}
                 >
-                  Continue
+                  Continuar
                 </Button>
               </div>
             </div>
@@ -324,9 +324,9 @@ export default function CsvImportWizard({
               <div className="flex items-start gap-3">
                 <Check className="w-5 h-5 text-green-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-green-900">Ready to import</p>
+                  <p className="font-medium text-green-900">Listo para importar</p>
                   <p className="text-sm text-green-700">
-                    {previewData?.total_rows || 0} ítems se importarán priorizando código de barras y usando SKU como auxiliar
+                    Se importarán {previewData?.total_rows || 0} Items, sincronizados con su código de barras
                   </p>
                   {previewData?.estimated_metrics && (
                     <p className="text-xs text-green-800 mt-1">
@@ -338,18 +338,21 @@ export default function CsvImportWizard({
             </div>
 
             <div className="bg-slate-50 rounded-lg p-4">
-              <p className="text-sm font-medium mb-2">Column Mapping</p>
+              <p className="text-sm font-medium mb-2">Asociación de columnas</p>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                {Object.entries(mapping).filter(([_, v]) => v).map(([field, column]) => (
-                  <div key={field} className="flex justify-between">
-                    <span className="text-slate-600 capitalize">{field.replace('_', ' ')}:</span>
-                    <span className="font-medium">{column}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between">
+                {Object.entries(mapping).filter(([_, v]) => v).map(([field, column]) => {
+                  const fieldDisplay = FIELD_LABELS.find(f => f.field === field)?.label || field;
+                  return (
+                    <div key={field} className="flex justify-between">
+                      <span className="text-slate-600">{fieldDisplay}:</span>
+                      <span className="font-medium">{column}</span>
+                    </div>
+                  );
+                })}
+                {/* <div className="flex justify-between">
                   <span className="text-slate-600">Usar precio de lista como precio:</span>
                   <span className="font-medium">{useListPriceAsPrice ? 'Sí' : 'No'}</span>
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -370,12 +373,12 @@ export default function CsvImportWizard({
             </div>
 
             <div className="flex justify-between gap-3">
-              <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+              <Button variant="outline" onClick={() => setStep(2)}>Volver</Button>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={handleClose}>Cancel</Button>
+                <Button variant="outline" onClick={handleClose}>Cancelar</Button>
                 <Button onClick={handleConfirmImport} disabled={loading}>
                   {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Import Items
+                  Importar Items
                 </Button>
               </div>
             </div>

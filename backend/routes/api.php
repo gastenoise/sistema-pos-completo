@@ -100,6 +100,7 @@ Route::prefix('protected')->group(function () {
                     Route::post('preview', [ItemController::class, 'importPreview']);
                     Route::post('preview/full', [ItemController::class, 'importPreviewFull']);
                     Route::post('confirm', [ItemController::class, 'importConfirm']);
+                    Route::get('status/{importId}', [ItemController::class, 'importStatus'])->name('items-import.status');
                 });
 
 

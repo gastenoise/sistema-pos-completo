@@ -14,12 +14,14 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Http\JsonResponse
 
 class ItemController extends Controller
 {
     private const IMPORT_PREVIEW_CACHE_PREFIX = 'items_import_preview:';
     private const IMPORT_PREVIEW_CACHE_TTL_SECONDS = 3600;
     private const DEFAULT_DELIMITERS = ['|', ',', ';', "\t"];
+    private const SYNC_PROCESSING_LIMIT = 500;
 
     private function importMaxUploadMb(): int
     {
@@ -135,7 +137,7 @@ class ItemController extends Controller
         $headerCount = count($normalizedHeader);
 
         foreach ($file as $index => $row) {
-            if (!is_array($row) || $row === [null]) {
+            if (!is_array($row) || $row === [null] || $index === 0) {
                 continue;
             }
 
@@ -192,8 +194,8 @@ class ItemController extends Controller
         $validRowIndex = 0;
         $headerCount = count($columns);
 
-        foreach ($file as $row) {
-            if (!is_array($row) || $row === [null] || count($row) !== $headerCount) {
+        foreach ($file as $index => $row) {
+            if (!is_array($row) || $row === [null] || count($row) !== $headerCount || $index === 0) {
                 continue;
             }
 
@@ -233,8 +235,8 @@ class ItemController extends Controller
         $file->fgetcsv();
         $headerCount = count($columns);
 
-        foreach ($file as $row) {
-            if (!is_array($row) || $row === [null] || count($row) !== $headerCount) {
+        foreach ($file as $index => $row) {
+            if (!is_array($row) || $row === [null] || count($row) !== $headerCount || $index === 0) {
                 continue;
             }
 
@@ -485,13 +487,14 @@ class ItemController extends Controller
         ]);
     }
 
-    public function importConfirm(Request $request, ImportItemsAction $importItemsAction)
+    public function importConfirm(Request $request, ImportItemsAction $importItemsAction): JsonResponse
     {
         $businessId = app(BusinessContext::class)->getBusinessId();
 
+        // Validación con límite de tamaño para prevenir memory exhaustion
         $validated = $request->validate([
-            'items' => 'required|array',
-            'items.*.name' => 'required|string',
+            'items' => 'required|array|max:20000', // Máximo 20k items por request
+            'items.*.name' => 'required|string|max:255',
             'items.*.price' => 'nullable|numeric|min:0|required_without:items.*.list_price',
             'items.*.list_price' => 'nullable|numeric|min:0|required_without:items.*.price',
             'items.*.barcode' => ['nullable', 'string', 'max:64', 'regex:/^[A-Za-z0-9\-_.]+$/'],
@@ -501,27 +504,113 @@ class ItemController extends Controller
             'category_id' => ['nullable', Rule::exists('categories', 'id')->where('business_id', $businessId)],
             'sync_by_sku' => 'boolean',
             'sync_by_barcode' => 'boolean',
+            'async' => 'boolean', // Forzar procesamiento asíncrono
         ]);
 
+        $itemCount = count($validated['items']);
+        $forceAsync = $request->boolean('async', false);
+        
+        // Decidir si procesar síncrono o asíncrono
+        if (!$forceAsync && $itemCount <= self::SYNC_PROCESSING_LIMIT) {
+            return $this->processSync($validated, $businessId, $importItemsAction);
+        }
+
+        return $this->processAsync($validated, $businessId, $request);
+    }
+
+    /**
+     * Procesamiento síncrono para pocos items (mantiene compatibilidad)
+     */
+    private function processSync(array $validated, int $businessId, ImportItemsAction $importItemsAction): JsonResponse
+    {
         try {
             $estimatedMetrics = $importItemsAction->estimateMetrics(
                 $validated['items'],
                 $businessId,
-                $request->boolean('sync_by_barcode', true),
-                $request->boolean('sync_by_sku')
+                $validated['sync_by_barcode'] ?? true,
+                $validated['sync_by_sku'] ?? false
             );
 
             $result = $importItemsAction->execute(
                 $validated['items'],
-                $request->boolean('sync_by_sku'),
+                $validated['sync_by_sku'] ?? false,
                 $businessId,
-                $request->boolean('sync_by_barcode', true),
+                $validated['sync_by_barcode'] ?? true,
                 $validated['category_id'] ?? null
             );
 
-            return response()->json(['success' => true, 'data' => $result + ['estimated_metrics' => $estimatedMetrics]]);
+            return response()->json([
+                'success' => true,
+                'data' => $result + [
+                    'estimated_metrics' => $estimatedMetrics,
+                    'processed_immediately' => true,
+                ]
+            ]);
+
         } catch (\Throwable $exception) {
-            return response()->json(['success' => false, 'message' => $exception->getMessage()], 500);
+            Log::error('Sync import failed', ['error' => $exception->getMessage()]);
+            return response()->json([
+                'success' => false, 
+                'message' => 'Error al procesar: ' . $exception->getMessage()
+            ], 500);
         }
+    }
+
+    /**
+     * Procesamiento asíncrono para muchos items
+     */
+    private function processAsync(array $validated, int $businessId, Request $request): JsonResponse
+    {
+        $importId = (string) Str::uuid();
+        
+        // Guardar estado inicial
+        Cache::put("items_import:{$importId}", [
+            'status' => 'queued',
+            'progress' => 0,
+            'total_items' => count($validated['items']),
+            'created_at' => now()->toIso8601String(),
+        ], now()->addHours(24));
+
+        // Despachar job a la cola
+        ProcessItemsImport::dispatch(
+            $validated['items'],
+            $businessId,
+            $request->user()?->id,
+            $importId,
+            $validated['sync_by_sku'] ?? false,
+            $validated['sync_by_barcode'] ?? true,
+            $validated['category_id'] ?? null
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'import_id' => $importId,
+                'status' => 'queued',
+                'message' => 'La importación está siendo procesada en segundo plano',
+                'check_status_url' => route('items-import.status', ['importId' => $importId]),
+                'total_items' => count($validated['items']),
+            ]
+        ], 202); // 202 Accepted
+    }
+
+    /**
+     * Endpoint para consultar estado de importación
+     */
+    public function importStatus(string $importId): JsonResponse
+    {
+        $status = Cache::get("items_import:{$importId}");
+
+        if (!$status) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Importación no encontrada o expirada'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $status
+        ]);
     }
 }

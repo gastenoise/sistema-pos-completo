@@ -77,6 +77,15 @@ export const previewItemsImport = async (file) => {
   return response?.data ?? response;
 };
 
+export const checkItemsImportStatus = async (importId, signal) => {
+  const response = await request(`/protected/items-import/status/${importId}`, {
+    signal // permite cancelar el request si se cierra el modal, por ejemplo
+  });
+  // Se espera que la respuesta tenga un formato { success: true, data: { ... } }
+  return response?.data ?? response;
+};
+
+
 export const previewItemsImportPage = async ({ file = null, previewId = null, page, perPage }) => {
   const formData = new FormData();
   if (file) {
