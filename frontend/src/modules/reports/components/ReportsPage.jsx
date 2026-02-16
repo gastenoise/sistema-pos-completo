@@ -385,7 +385,7 @@ export default function Reports() {
                   className="gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Clear filters
+                  Limpiar filtros
                 </Button>
               </div>
             </div>

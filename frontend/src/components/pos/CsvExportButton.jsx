@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
-export default function CsvExportButton({ onExport, label = "Export CSV", disabled = false }) {
+export default function CsvExportButton({ onExport, label = "Exportar CSV", disabled = false }) {
   const [loading, setLoading] = useState(false);
 
   const handleExport = async () => {

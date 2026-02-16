@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use App\Services\BusinessContext;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Carbon;
 
 class ReportController extends Controller
 {
@@ -239,7 +240,7 @@ class ReportController extends Controller
             })
             ->values();
 
-        $wantsJson = $request->wantsJson() || $request->boolean('format_json');
+        $wantsJson = $request->boolean('format_json');
         if ($wantsJson) {
             $sales = $query->get()->map(function (Sale $sale) {
                 $primaryPayment = $sale->payments->first();
@@ -300,7 +301,7 @@ class ReportController extends Controller
                 'Subtotal',
                 'Total',
                 'Estado',
-                'Usuario/Vendedor',
+                'Vendedor',
                 'Referencias',
             ]);
 
@@ -308,7 +309,7 @@ class ReportController extends Controller
 
             $query->chunk(100, function($sales) use ($handle, $paymentMethods) {
                 foreach ($sales as $sale) {
-                    $saleDate = $sale->closed_at ?? $sale->created_at;
+                    $saleDate = Carbon::parse($sale->closed_at ?? $sale->created_at)->setTimezone('America/Argentina/Buenos_Aires');
                     $itemsQty = (int) $sale->items->sum('quantity');
                     $subtotal = (float) $sale->items->sum('total');
                     $categories = $sale->items
