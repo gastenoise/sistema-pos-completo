@@ -38,12 +38,14 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Mi Comercio MVP',
                 'address' => 'Calle Almafuerte 123 B',
                 'email' => 'contacto@comercio.com',
+                'color' => '#EF4444', // rojo
             ],
             [
                 'name' => 'Panadería La Espiga',
                 'address' => 'Av. Pan 456',
                 'email' => 'laespiga@pan.com',
                 'phone' => '011 43210000',
+                'color' => '#F59E0B', // naranja
             ],
         ];
 
