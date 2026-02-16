@@ -190,6 +190,19 @@ export default function Items() {
     }
   };
 
+  const resolveImportErrorMessage = (error, fallbackMessage) => {
+    if (error?.status === 413) {
+      return 'El archivo es demasiado grande. Reducí el tamaño y reintentá la importación.';
+    }
+
+    const message = String(error?.message || '').toLowerCase();
+    if (message.includes('tamaño máximo') || message.includes('too large') || message.includes('excede')) {
+      return error.message;
+    }
+
+    return fallbackMessage;
+  };
+
   const handleImportPreview = async (file) => {
     setImportLoading(true);
     try {
@@ -201,7 +214,7 @@ export default function Items() {
       setImportFile(file);
       setImportPreviewData(previewPayload);
     } catch (error) {
-      toast.error('Failed to preview import');
+      toast.error(resolveImportErrorMessage(error, 'Failed to preview import'));
     } finally {
       setImportLoading(false);
     }
@@ -282,7 +295,7 @@ export default function Items() {
       setImportPreviewData(null);
       setImportFile(null);
     } catch (error) {
-      toast.error('Failed to import items');
+      toast.error(resolveImportErrorMessage(error, 'Failed to import items'));
     } finally {
       setImportLoading(false);
     }

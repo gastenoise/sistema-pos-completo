@@ -10,6 +10,7 @@ use App\Http\Middleware\EnsureTokenIsFresh;
 use App\Http\Middleware\SetSecurityHeaders;
 use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Exceptions\PostTooLargeException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -37,5 +38,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 'success' => false,
                 'message' => 'Forbidden',
             ], 403);
+        });
+
+        $exceptions->render(function (PostTooLargeException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => sprintf('El archivo excede el tamaño máximo permitido de %d MB.', max(1, (int) config('items_import.max_upload_mb', 120))),
+            ], 413);
         });
     })->create();

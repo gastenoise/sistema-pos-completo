@@ -21,6 +21,33 @@ class ItemController extends Controller
     private const IMPORT_PREVIEW_CACHE_TTL_SECONDS = 3600;
     private const DEFAULT_DELIMITERS = ['|', ',', ';', "\t"];
 
+    private function importMaxUploadMb(): int
+    {
+        return max(1, (int) config('items_import.max_upload_mb', 120));
+    }
+
+    private function importMaxUploadKb(): int
+    {
+        return $this->importMaxUploadMb() * 1024;
+    }
+
+    private function importFileRule(bool $required = true): string
+    {
+        $requiredRule = $required ? 'required' : 'nullable';
+        $allowedMimes = (string) config('items_import.allowed_file_mimes', 'csv,txt');
+
+        return sprintf('%s|file|mimes:%s|max:%d', $requiredRule, $allowedMimes, $this->importMaxUploadKb());
+    }
+
+    private function importValidationMessages(): array
+    {
+        return [
+            'file.max' => sprintf('El archivo excede el tamaño máximo permitido de %d MB.', $this->importMaxUploadMb()),
+            'file.mimes' => 'El archivo debe ser CSV o TXT.',
+            'file.file' => 'Debes subir un archivo válido para importar.',
+        ];
+    }
+
     private function resolveDelimiter(?string $requestedDelimiter, string $path): string
     {
         if (is_string($requestedDelimiter) && in_array($requestedDelimiter, self::DEFAULT_DELIMITERS, true)) {
@@ -320,10 +347,10 @@ class ItemController extends Controller
     public function importPreview(Request $request, ImportItemsAction $importItemsAction)
     {
         $validated = $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:20480',
+            'file' => $this->importFileRule(),
             'delimiter' => ['nullable', Rule::in(self::DEFAULT_DELIMITERS)],
             'lowercase_headers' => 'nullable|boolean',
-        ]);
+        ], $this->importValidationMessages());
 
         $storedPath = $this->persistImportPreviewFile($request);
         $absolutePath = Storage::disk('local')->path($storedPath);
@@ -369,13 +396,13 @@ class ItemController extends Controller
     public function importPreviewFull(Request $request, ImportItemsAction $importItemsAction)
     {
         $request->validate([
-            'file' => 'nullable|file|mimes:csv,txt|max:20480',
+            'file' => $this->importFileRule(false),
             'preview_id' => 'nullable|string',
             'delimiter' => ['nullable', Rule::in(self::DEFAULT_DELIMITERS)],
             'lowercase_headers' => 'nullable|boolean',
             'page' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:500',
-        ]);
+        ], $this->importValidationMessages());
 
         $cachePayload = null;
         $storedPath = null;
