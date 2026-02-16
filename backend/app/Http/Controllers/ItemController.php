@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Http\JsonResponse
+use Illuminate\Http\JsonResponse;
 
 class ItemController extends Controller
 {

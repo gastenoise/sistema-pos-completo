@@ -252,8 +252,8 @@ export default function CsvImportWizard({
               </div>
 
             <div className="bg-slate-50 rounded-lg p-4">
-              <p className="text-sm font-medium mb-3">Asociá las columnas con los campos de cada Item</p>
-              <div className="grid grid-cols-2 gap-4">
+              <p className="text-sm font-medium mb-3">Asociá tus columnas con los campos de cada Item</p>
+              <div className="grid grid-cols-1 gap-4">
                 {FIELD_LABELS.map(({ label, field, required }) => (
                   <div key={field} className="flex items-center gap-2">
                     <Label className="w-44 text-sm">
@@ -339,7 +339,7 @@ export default function CsvImportWizard({
 
             <div className="bg-slate-50 rounded-lg p-4">
               <p className="text-sm font-medium mb-2">Asociación de columnas</p>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 gap-2 text-sm">
                 {Object.entries(mapping).filter(([_, v]) => v).map(([field, column]) => {
                   const fieldDisplay = FIELD_LABELS.find(f => f.field === field)?.label || field;
                   return (
