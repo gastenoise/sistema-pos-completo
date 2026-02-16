@@ -84,7 +84,6 @@ class DatabaseSeeder extends Seeder
         foreach ($businesses as $bizData) {
             $business = Business::create(array_merge($bizData, [
                 'preferred_payment_method_id' => $defaultPreferredPaymentMethodId,
-                'color' => null,
             ]));
             $createdBusinesses[] = $business;
 
