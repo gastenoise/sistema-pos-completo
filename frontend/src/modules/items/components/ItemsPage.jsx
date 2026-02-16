@@ -306,11 +306,11 @@ export default function Items() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setShowImportWizard(true)}>
               <Upload className="w-4 h-4 mr-2" />
-              Import
+              Importar
             </Button>
             <Button onClick={() => { setEditingItem(null); setShowEditorModal(true); }}>
               <Plus className="w-4 h-4 mr-2" />
-              Add Item
+              Agregar Item
             </Button>
           </div>
         </div>
