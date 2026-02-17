@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BusinessParameter extends Model
 {
     public const SHOW_CLOSED_SALE_AUTOMATICALLY = 'show_closed_sale_automatically';
+    public const ENABLE_SEPA_ITEMS = 'enable_sepa_items';
 
     protected $fillable = [
         'business_id',

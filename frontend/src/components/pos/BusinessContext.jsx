@@ -47,6 +47,20 @@ export const BusinessProvider = ({ children }) => {
     writeStorage(STORAGE_BUSINESSES, nextBusinesses);
   };
 
+  const refreshCurrentBusiness = (nextBusiness) => {
+    if (!nextBusiness) return;
+
+    setCurrentBusiness((previous) => {
+      const merged = {
+        ...(previous || {}),
+        ...nextBusiness,
+        business_id: nextBusiness.business_id ?? previous?.business_id ?? nextBusiness.id ?? previous?.id,
+      };
+      writeStorage(STORAGE_CURRENT, merged);
+      return merged;
+    });
+  };
+
   const businessId = currentBusiness?.business_id ?? currentBusiness?.id ?? null;
 
   const { data: smtpStatus, isFetching: isCheckingSmtpStatus } = useQuery({
@@ -65,6 +79,7 @@ export const BusinessProvider = ({ children }) => {
     businessId,
     selectBusiness,
     setBusinesses,
+    refreshCurrentBusiness,
     smtpStatus,
     isCheckingSmtpStatus,
   }), [businesses, currentBusiness, businessId, smtpStatus, isCheckingSmtpStatus]);
