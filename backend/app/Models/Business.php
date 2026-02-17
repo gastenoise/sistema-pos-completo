@@ -36,6 +36,11 @@ class Business extends Model
         return $this->hasMany(Item::class);
     }
 
+    public function sepaItemBusinessPrices(): HasMany
+    {
+        return $this->hasMany(SepaItemBusinessPrice::class);
+    }
+
     public function categories(): HasMany
     {
         return $this->hasMany(Category::class);
