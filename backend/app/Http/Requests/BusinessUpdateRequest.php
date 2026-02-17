@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\AuthorizesBusinessContext;
+use App\Models\BusinessParameter;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BusinessUpdateRequest extends FormRequest
@@ -25,6 +26,8 @@ class BusinessUpdateRequest extends FormRequest
             'tax_id' => 'nullable|string|max:20',
             'preferred_payment_method_id' => 'nullable|integer|exists:payment_methods,id',
             'business_parameters' => 'nullable|array',
+            'business_parameters.' . BusinessParameter::SHOW_CLOSED_SALE_AUTOMATICALLY => 'sometimes|boolean',
+            'business_parameters.' . BusinessParameter::ENABLE_SEPA_ITEMS => 'sometimes|boolean',
             'business_parameters.*' => 'boolean',
             'currency' => 'nullable|string|in:ARS,USD',
         ];

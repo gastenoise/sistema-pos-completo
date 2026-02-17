@@ -49,7 +49,7 @@ import { DEFAULT_COLOR_HEX, normalizeHexColor } from '@/lib/colors';
 import { DEFAULT_ICON_NAME, getIconComponent, resolveIconId, resolveIconName } from '@/lib/iconCatalog';
 
 export default function Settings() {
-  const { businessId, currentBusiness, selectBusiness } = useBusiness();
+  const { businessId, currentBusiness, refreshCurrentBusiness } = useBusiness();
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
   
@@ -240,7 +240,7 @@ export default function Settings() {
   }, [bankAccount]);
 
   const syncBusinessState = (nextBusiness) => {
-    selectBusiness(nextBusiness);
+    refreshCurrentBusiness(nextBusiness);
     setBusinessData({
       name: nextBusiness.name || '',
       business_email: nextBusiness.email || nextBusiness.business_email || '',
