@@ -8,11 +8,32 @@ use App\Models\SepaItem;
 use App\Services\BusinessContext;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 
 class CatalogQueryService
 {
+    private const CATALOG_SELECT_COLUMNS = [
+        'id',
+        'business_id',
+        'category_id',
+        'name',
+        'sku',
+        'barcode',
+        'price',
+        'presentation_quantity',
+        'presentation_unit',
+        'brand',
+        'list_price',
+        'is_active',
+        'created_at',
+        'updated_at',
+        'source',
+        'sepa_item_id',
+        'is_price_overridden',
+    ];
+
     public function __construct(private readonly BusinessContext $businessContext)
     {
     }
@@ -35,7 +56,7 @@ class CatalogQueryService
         return $query->paginate($perPage);
     }
 
-    private function buildCatalogQuery(int $businessId, bool $sepaEnabled, string $source, array $filters): Builder
+    private function buildCatalogQuery(int $businessId, bool $sepaEnabled, string $source, array $filters): EloquentBuilder|QueryBuilder
     {
         $normalizedSource = in_array($source, ['local', 'sepa', 'all'], true) ? $source : 'all';
         $onlySepaPriceOverridden = filter_var($filters['only_sepa_price_overridden'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -68,12 +89,13 @@ class CatalogQueryService
 
         return DB::query()
             ->fromSub($localQuery->unionAll($sepaQuery), 'catalog_items')
+            ->select(self::CATALOG_SELECT_COLUMNS)
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->orderBy('id');
     }
 
-    private function buildLocalQuery(array $filters): Builder
+    private function buildLocalQuery(array $filters): EloquentBuilder
     {
         $query = Item::query()->select([
             'items.id',
@@ -98,7 +120,7 @@ class CatalogQueryService
         return $this->applyCommonFilters($query, $filters, 'items');
     }
 
-    private function buildSepaQuery(int $businessId, array $filters): Builder
+    private function buildSepaQuery(int $businessId, array $filters): EloquentBuilder
     {
         $query = SepaItem::query()
             ->leftJoin('sepa_item_business_prices as sibp', function ($join) use ($businessId) {
@@ -128,7 +150,7 @@ class CatalogQueryService
         return $this->applyCommonFilters($query, $filters, 'sepa_items');
     }
 
-    private function applyCommonFilters(Builder $query, array $filters, string $table): Builder
+    private function applyCommonFilters(EloquentBuilder $query, array $filters, string $table): EloquentBuilder
     {
         if (array_key_exists('active', $filters) && $filters['active'] !== null && $filters['active'] !== '') {
             $query->where("{$table}.active", filter_var($filters['active'], FILTER_VALIDATE_BOOLEAN));
@@ -153,14 +175,37 @@ class CatalogQueryService
 
         if (!empty($filters['search'])) {
             $term = trim((string) $filters['search']);
-            $query->where(function (Builder $inner) use ($table, $term) {
-                $inner->where("{$table}.name", 'like', "%{$term}%")
-                    ->orWhere("{$table}.sku", 'like', "%{$term}%")
-                    ->orWhere("{$table}.barcode", 'like', "{$term}%");
-            });
+            $this->applySearchFilter($query, $table, $term);
         }
 
         return $query;
+    }
+
+    private function applySearchFilter(EloquentBuilder $query, string $table, string $term): void
+    {
+        if ($term === '') {
+            return;
+        }
+
+        if ($this->looksLikeBarcode($term)) {
+            $query->where(function (EloquentBuilder $inner) use ($table, $term) {
+                $inner->where("{$table}.barcode", '=', $term)
+                    ->orWhere("{$table}.barcode", 'like', "{$term}%");
+            });
+
+            return;
+        }
+
+        $query->where(function (EloquentBuilder $inner) use ($table, $term) {
+            $inner->where("{$table}.name", 'like', "%{$term}%")
+                ->orWhere("{$table}.sku", 'like', "%{$term}%")
+                ->orWhere("{$table}.barcode", 'like', "{$term}%");
+        });
+    }
+
+    private function looksLikeBarcode(string $term): bool
+    {
+        return preg_match('/^\d{4,}$/', $term) === 1;
     }
 
     private function resolvePerPage(array $filters): int
