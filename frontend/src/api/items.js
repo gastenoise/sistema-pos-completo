@@ -60,6 +60,17 @@ export const saveItem = async (itemData) => {
   return normalizeItem(normalizeEntityResponse(response));
 };
 
+
+export const saveSepaItemPrice = async (itemData) => {
+  const sepaItemId = itemData?.sepa_item_id ?? itemData?.id;
+  const response = await request(`/protected/sepa-items/${sepaItemId}/price`, {
+    method: 'PUT',
+    body: { price: itemData.price }
+  });
+
+  return normalizeItem(normalizeEntityResponse(response));
+};
+
 export const toggleItemStatus = async (item) => {
   const response = await request(`/protected/items/${item.id}`, {
     method: 'PUT',

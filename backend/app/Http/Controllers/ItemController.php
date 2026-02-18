@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Actions\Items\BulkUpdateItemsAction;
 use App\Actions\Items\ImportItemsAction;
+use App\Actions\Items\UpsertSepaItemBusinessPriceAction;
 use App\Http\Requests\ItemStoreRequest;
 use App\Http\Requests\ItemUpdateRequest;
+use App\Http\Requests\UpdateSepaItemPriceRequest;
 use App\Http\Resources\ItemResource;
 use App\Models\Item;
+use App\Models\SepaItem;
 use App\Services\BusinessContext;
 use App\Services\Items\CatalogQueryService;
 use Illuminate\Http\Request;
@@ -271,6 +274,45 @@ class ItemController extends Controller
 
         $item->update($validated);
         return response()->json(['success' => true, 'data' => new ItemResource($item)]);
+    }
+
+    public function updateSepaPrice(
+        UpdateSepaItemPriceRequest $request,
+        SepaItem $sepaItem,
+        UpsertSepaItemBusinessPriceAction $upsertSepaItemBusinessPriceAction,
+        BusinessContext $businessContext
+    ) {
+        $validated = $request->validated();
+        $businessId = $businessContext->getBusinessId();
+
+        $upsertSepaItemBusinessPriceAction->execute(
+            $businessId,
+            (int) $sepaItem->id,
+            (float) $validated['price']
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => (int) $sepaItem->id,
+                'business_id' => $businessId,
+                'category_id' => null,
+                'name' => $sepaItem->name,
+                'sku' => $sepaItem->sku,
+                'barcode' => $sepaItem->barcode,
+                'price' => round((float) $validated['price'], 2),
+                'presentation_quantity' => $sepaItem->presentation_quantity,
+                'presentation_unit' => $sepaItem->presentation_unit,
+                'brand' => $sepaItem->brand,
+                'list_price' => $sepaItem->list_price,
+                'is_active' => (bool) $sepaItem->active,
+                'source' => 'sepa',
+                'sepa_item_id' => (int) $sepaItem->id,
+                'is_price_overridden' => true,
+                'created_at' => $sepaItem->created_at,
+                'updated_at' => now(),
+            ],
+        ]);
     }
 
     public function bulkUpdate(Request $request, BulkUpdateItemsAction $bulkUpdateItemsAction)

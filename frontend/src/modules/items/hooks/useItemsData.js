@@ -7,6 +7,7 @@ import {
   previewItemsImport,
   previewItemsImportPage,
   saveItem,
+  saveSepaItemPrice,
   toggleItemStatus
 } from '@/api/items';
 
@@ -46,6 +47,7 @@ export const useItemCategoriesQuery = (businessId) => useQuery({
 });
 
 export const useSaveItemMutation = () => useMutation({ mutationFn: saveItem });
+export const useSaveSepaPriceMutation = () => useMutation({ mutationFn: saveSepaItemPrice });
 export const useToggleItemStatusMutation = () => useMutation({ mutationFn: toggleItemStatus });
 export const useBulkItemsMutation = () => useMutation({ mutationFn: bulkUpdateItems });
 export const usePreviewItemsImportMutation = () => useMutation({ mutationFn: previewItemsImport });
