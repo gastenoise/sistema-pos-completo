@@ -240,14 +240,14 @@ class ItemController extends Controller
     public function index(Request $request, CatalogQueryService $catalogQueryService)
     {
         $validated = $request->validate([
-            'active' => ['nullable', 'boolean'],
+            'active' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'category' => ['nullable'],
             'search' => ['nullable', 'string'],
             'barcode' => ['nullable', 'string', 'max:255'],
             'source' => ['nullable', Rule::in(['local', 'sepa', 'all'])],
-            'only_sepa_price_overridden' => ['nullable', 'boolean'],
+            'only_sepa_price_overridden' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'cursor_paginate' => ['nullable', 'boolean'],
+            'cursor_paginate' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
         ]);
 
         $items = $catalogQueryService->list($validated);
@@ -326,7 +326,7 @@ class ItemController extends Controller
             'category_id' => ['nullable', Rule::exists('categories', 'id')->where('business_id', $businessId)],
             'price' => ['nullable', 'numeric', 'min:0'],
             'price_delta' => ['nullable', 'numeric'],
-            'active' => ['nullable', 'boolean'],
+            'active' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
         ]);
 
         $operation = $validated['operation'];

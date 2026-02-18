@@ -35,6 +35,10 @@ export const normalizeItemsPage = (response) => {
 export const getItems = async (params) => {
   const query = new URLSearchParams();
   Object.entries(params || {}).forEach(([key, value]) => {
+    if (key === 'only_sepa_price_overridden' && value !== true) {
+      return;
+    }
+
     if (value !== undefined && value !== null && value !== '' && value !== 'all') {
       query.set(key, String(value));
     }
