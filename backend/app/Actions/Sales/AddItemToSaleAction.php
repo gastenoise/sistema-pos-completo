@@ -2,29 +2,35 @@
 
 namespace App\Actions\Sales;
 
-use App\Models\Item;
+use App\Actions\Sales\Support\ResolveCatalogSaleItem;
 use App\Models\Sale;
 
 class AddItemToSaleAction
 {
+    public function __construct(private readonly ResolveCatalogSaleItem $resolveCatalogSaleItem)
+    {
+    }
+
     public function execute(Sale $sale, array $validated): Sale
     {
-        $item = Item::findOrFail($validated['item_id']);
-
-        $price = $validated['unit_price_override'] ?? $item->price;
-        $total = $price * $validated['quantity'];
+        $quantity = (int) $validated['quantity'];
+        $resolvedItem = $this->resolveCatalogSaleItem->execute($sale, $validated);
+        $total = $resolvedItem['unit_price_snapshot'] * $quantity;
 
         $sale->items()->create([
-            'item_id' => $item->id,
-            'item_name_snapshot' => $item->name,
-            'unit_price_snapshot' => $price,
-            'category_id_snapshot' => $item->category_id,
-            'quantity' => $validated['quantity'],
+            'item_source' => $resolvedItem['item_source'],
+            'item_id' => $resolvedItem['item_id'],
+            'sepa_item_id' => $resolvedItem['sepa_item_id'],
+            'item_name_snapshot' => $resolvedItem['item_name_snapshot'],
+            'barcode_snapshot' => $resolvedItem['barcode_snapshot'],
+            'unit_price_snapshot' => $resolvedItem['unit_price_snapshot'],
+            'category_id_snapshot' => $resolvedItem['category_id_snapshot'],
+            'quantity' => $quantity,
             'total' => $total,
         ]);
 
         $sale->calculateTotal();
 
-        return $sale->load('items');
+        return $sale->load(['items.item.category', 'items.sepaItem', 'items.categorySnapshot']);
     }
 }

@@ -27,7 +27,7 @@ export default function SaleCart({ onCharge }) {
       <div className="flex-1 overflow-auto p-4 space-y-2">
         {cartItems.map((item) => (
           <div 
-            key={item.item_id} 
+            key={item.cart_key} 
             className="bg-white border border-slate-200 rounded-lg p-3"
           >
             <div className="flex justify-between items-start mb-2">
@@ -39,7 +39,7 @@ export default function SaleCart({ onCharge }) {
                 variant="ghost" 
                 size="icon" 
                 className="h-7 w-7 text-red-500 hover:text-red-700"
-                onClick={() => removeFromCart(item.item_id)}
+                onClick={() => removeFromCart(item.cart_key)}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -50,7 +50,7 @@ export default function SaleCart({ onCharge }) {
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => updateQuantity(item.item_id, item.quantity - 1)}
+                  onClick={() => updateQuantity(item.cart_key, item.quantity - 1)}
                 >
                   <Minus className="w-4 h-4" />
                 </Button>
@@ -59,7 +59,7 @@ export default function SaleCart({ onCharge }) {
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => updateQuantity(item.item_id, item.quantity + 1)}
+                  onClick={() => updateQuantity(item.cart_key, item.quantity + 1)}
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
