@@ -26,7 +26,10 @@ class ItemResource extends JsonResource
             'presentation_unit' => $this->presentation_unit,
             'brand' => $this->brand,
             'list_price' => $this->list_price !== null ? (float) $this->list_price : null,
-            'is_active' => (bool) $this->active,
+            'is_active' => (bool) ($this->is_active ?? $this->active),
+            'source' => $this->source ?? 'local',
+            'sepa_item_id' => $this->sepa_item_id !== null ? (int) $this->sepa_item_id : null,
+            'is_price_overridden' => (bool) ($this->is_price_overridden ?? false),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

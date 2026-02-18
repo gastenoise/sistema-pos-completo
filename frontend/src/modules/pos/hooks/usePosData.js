@@ -4,10 +4,10 @@ import { getCashRegisterStatus } from '@/api/cash-register';
 import { getLatestClosedSale, getPaymentMethods, getPosItems } from '@/api/sales';
 import { request } from '@/api/client';
 
-export const usePosItemsQuery = (businessId) => useQuery({
-  queryKey: ['pos-items', businessId],
-  queryFn: getPosItems,
-  enabled: Boolean(businessId)
+export const usePosItemsQuery = (businessId, { search = '', barcode = '', limit = 20 } = {}) => useQuery({
+  queryKey: ['pos-items', businessId, search, barcode, limit],
+  queryFn: () => getPosItems({ search, barcode, limit }),
+  enabled: Boolean(businessId) && (search.trim().length > 0 || barcode.trim().length > 0)
 });
 
 export const usePosCategoriesQuery = (businessId) => useQuery({
@@ -44,5 +44,5 @@ export const usePosCashStatusQuery = (businessId) => useQuery({
 });
 
 export function usePosData() {
-  return { pageSizeTarget: 300 };
+  return { pageSizeTarget: 20 };
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, Upload, Package, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, Upload, Package, Loader2 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,8 +27,7 @@ import {
   usePreviewItemsImportMutation,
   usePreviewItemsImportPageMutation,
   useSaveItemMutation,
-  useToggleItemStatusMutation,
-  ITEMS_PER_PAGE,
+  useToggleItemStatusMutation
 } from '@/modules/items/hooks/useItemsData';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
@@ -46,7 +45,9 @@ export default function Items() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [page, setPage] = useState(1);
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [barcodeFilter, setBarcodeFilter] = useState('');
+  const [onlySepaPriceOverridden, setOnlySepaPriceOverridden] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
   const [showEditorModal, setShowEditorModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -60,35 +61,51 @@ export default function Items() {
   const updateItemsCache = (entity) => {
     if (!entity?.id) return false;
     queryClient.setQueriesData({ queryKey: ['items', businessId] }, (prev) => {
-      if (!prev || !Array.isArray(prev.items)) {
+      if (!prev || !Array.isArray(prev.pages)) {
         return prev;
       }
-      const exists = prev.items.find((item) => item.id === entity.id);
-      const updatedItems = exists
-        ? prev.items.map((item) => (item.id === entity.id ? { ...item, ...entity } : item))
-        : [entity, ...prev.items];
-      return {
-        ...prev,
-        items: updatedItems
-      };
+
+      let updated = false;
+      const pages = prev.pages.map((pageData) => {
+        if (!Array.isArray(pageData?.items)) return pageData;
+        const found = pageData.items.some((item) => item.id === entity.id && item.source === (entity.source || 'local'));
+        if (!found) return pageData;
+        updated = true;
+        return {
+          ...pageData,
+          items: pageData.items.map((item) => (item.id === entity.id && item.source === (entity.source || 'local') ? { ...item, ...entity } : item))
+        };
+      });
+
+      return updated ? { ...prev, pages } : prev;
     });
     return true;
   };
 
   // Fetch items
-  const { data: itemsResponse = { items: [], pagination: null }, isLoading: loadingItems } = useItemsQuery({
+  const {
+    data: itemsResponse,
+    isLoading: loadingItems,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useItemsQuery({
     businessId,
     searchQuery,
+    barcode: barcodeFilter,
     categoryFilter,
-    page
+    source: sourceFilter,
+    onlySepaPriceOverridden,
   });
 
   // Fetch categories
   const { data: categories = [] } = useItemCategoriesQuery(businessId);
 
-  const items = itemsResponse?.items ?? [];
-  const pagination = itemsResponse?.pagination;
-  const totalPages = pagination?.last_page ?? Math.ceil(items.length / ITEMS_PER_PAGE);
+  const pages = itemsResponse?.pages || [];
+  const items = pages.flatMap((pageData) => pageData?.items || []);
+  const pagination = pages[pages.length - 1]?.pagination;
+  const totalLoaded = items.length;
+  const totalAvailable = pagination?.total ?? totalLoaded;
 
   // Create/Update mutation
   const itemMutation = useSaveItemMutation();
@@ -120,6 +137,10 @@ export default function Items() {
   };
 
   const handleEditItem = (item) => {
+    if (item.source === 'sepa') {
+      toast.info('Los ítems SEPA se editan desde sus precios por negocio.');
+      return;
+    }
     setEditingItem(item);
     setShowEditorModal(true);
   };
@@ -146,7 +167,7 @@ export default function Items() {
 
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedItems(items.map(item => item.id));
+      setSelectedItems(items.filter((item) => item.source !== 'sepa').map(item => item.id));
     } else {
       setSelectedItems([]);
     }
@@ -323,10 +344,16 @@ export default function Items() {
               <Input
                 placeholder="Buscar por nombre, código de barras o SKU..."
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
+            <Input
+              placeholder="Barcode"
+              value={barcodeFilter}
+              onChange={(e) => setBarcodeFilter(e.target.value)}
+              className="sm:w-44"
+            />
             <Select
               value={String(categoryFilter)}
               onValueChange={(v) => {
@@ -337,7 +364,6 @@ export default function Items() {
                 } else {
                   setCategoryFilter(Number(v));
                 }
-                setPage(1);
               }}
             >
               <SelectTrigger className="w-full sm:w-40">
@@ -351,6 +377,23 @@ export default function Items() {
                 <SelectItem value="uncategorized">Sin Categoría</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Origen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="local">Locales</SelectItem>
+                <SelectItem value="sepa">SEPA</SelectItem>
+              </SelectContent>
+            </Select>
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <Checkbox
+                checked={onlySepaPriceOverridden}
+                onCheckedChange={(checked) => setOnlySepaPriceOverridden(Boolean(checked))}
+              />
+              Solo SEPA con precio override
+            </label>
           </div>
         </div>
 
@@ -401,13 +444,14 @@ export default function Items() {
                 <TableBody>
                   {items.map((item) => (
                     <ItemRow
-                      key={item.id}
+                      key={`${item.source}-${item.id}`}
                       item={item}
                       categories={categories}
                       selected={selectedItems.includes(item.id)}
                       onSelect={(checked) => handleSelectItem(item.id, checked)}
                       onEdit={handleEditItem}
                       onDeactivate={handleDeactivateItem}
+                      showCheckbox={item.source !== 'sepa'}
                     />
                   ))}
                 </TableBody>
@@ -415,35 +459,16 @@ export default function Items() {
             </div>
           )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200">
-              <p className="text-sm text-slate-500">
-                Showing {pagination?.from ?? (items.length ? (page - 1) * ITEMS_PER_PAGE + 1 : 0)} - {pagination?.to ?? Math.min(page * ITEMS_PER_PAGE, items.length)} of {pagination?.total ?? items.length}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => p - 1)}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <span className="text-sm text-slate-600">
-                  Page {page} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => p + 1)}
-                  disabled={page === totalPages}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200">
+            <p className="text-sm text-slate-500">
+              Mostrando {totalLoaded} de {totalAvailable} ítems
+            </p>
+            {hasNextPage && (
+              <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                {isFetchingNextPage ? 'Cargando...' : 'Cargar más'}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
