@@ -3,7 +3,6 @@ import { Package, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +26,7 @@ export default function ItemEditorModal({
   loading = false
 }) {
   const NO_CATEGORY_VALUE = 'none';
+  const isSepaItem = item?.source === 'sepa';
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -81,6 +81,14 @@ export default function ItemEditorModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (isSepaItem) {
+      onSave({
+        price: parseFloat(formData.price) || 0,
+      });
+      return;
+    }
+
     onSave({
       ...formData,
       category_id: formData.category_id !== NO_CATEGORY_VALUE
@@ -102,12 +110,34 @@ export default function ItemEditorModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="w-5 h-5" />
-            {item ? 'Edit Item' : 'Add New Item'}
+            {item ? (isSepaItem ? 'Editar precio SEPA' : 'Edit Item') : 'Add New Item'}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
+            {isSepaItem ? (
+              <>
+                <div className="col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                  Solo podés modificar el precio final para ítems con origen SEPA.
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="price">Precio final *</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    placeholder="0.00"
+                    required
+                    autoFocus
+                  />
+                </div>
+              </>
+            ) : (
+              <>
             <div className="col-span-2">
               <Label htmlFor="name">Name *</Label>
               <Input
@@ -252,10 +282,12 @@ export default function ItemEditorModal({
                 />
               </div>
             )}
+            </>
+            )}
           </div>
 
           <div className="flex justify-between gap-3 pt-4 border-t">
-            {item && (
+            {item && !isSepaItem && (
               <Button 
                 type="button"
                 variant={formData.is_active ? "destructive" : "default"}
@@ -270,7 +302,7 @@ export default function ItemEditorModal({
               </Button>
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {item ? 'Update' : 'Create'}
+                {item ? (isSepaItem ? 'Guardar precio' : 'Update') : 'Create'}
               </Button>
             </div>
           </div>

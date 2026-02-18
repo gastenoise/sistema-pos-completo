@@ -27,6 +27,7 @@ import {
   usePreviewItemsImportMutation,
   usePreviewItemsImportPageMutation,
   useSaveItemMutation,
+  useSaveSepaPriceMutation,
   useToggleItemStatusMutation
 } from '@/modules/items/hooks/useItemsData';
 
@@ -109,6 +110,7 @@ export default function Items() {
 
   // Create/Update mutation
   const itemMutation = useSaveItemMutation();
+  const sepaPriceMutation = useSaveSepaPriceMutation();
   const toggleStatusMutation = useToggleItemStatusMutation();
   const bulkMutation = useBulkItemsMutation();
   const importPreviewMutation = usePreviewItemsImportMutation();
@@ -118,7 +120,14 @@ export default function Items() {
   const handleSaveItem = async (itemData) => {
     setSavingItem(true);
     try {
-      if (editingItem) {
+      if (editingItem?.source === 'sepa') {
+        const saved = await sepaPriceMutation.mutateAsync({
+          sepa_item_id: editingItem.sepa_item_id || editingItem.id,
+          price: itemData.price,
+        });
+        updateItemsCache(saved);
+        toast.success('Precio SEPA actualizado');
+      } else if (editingItem) {
         const saved = await itemMutation.mutateAsync({ ...itemData, id: editingItem.id });
         updateItemsCache(saved);
         toast.success('Item updated');
@@ -137,10 +146,6 @@ export default function Items() {
   };
 
   const handleEditItem = (item) => {
-    if (item.source === 'sepa') {
-      toast.info('Los ítems SEPA se editan desde sus precios por negocio.');
-      return;
-    }
     setEditingItem(item);
     setShowEditorModal(true);
   };

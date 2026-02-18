@@ -99,7 +99,7 @@ export default function ItemRow({
         </div>
       </td>
       <td className="px-4 py-3 text-right">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(item)} disabled={item.source === 'sepa'}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(item)}>
           <Pencil className="w-4 h-4" />
         </Button>
       </td>

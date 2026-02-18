@@ -95,6 +95,7 @@ Route::prefix('protected')->group(function () {
 
                 // Ítems (Productos/Servicios)
                 Route::patch('items/bulk', [ItemController::class, 'bulkUpdate']);
+                Route::put('sepa-items/{sepaItem}/price', [ItemController::class, 'updateSepaPrice']);
                 Route::apiResource('items', ItemController::class);
                 Route::prefix('items-import')->group(function () {
                     Route::post('preview', [ItemController::class, 'importPreview']);
