@@ -2,8 +2,8 @@
 
 namespace App\Actions\Sales;
 
+use App\Actions\Sales\Support\ResolveCatalogSaleItem;
 use App\Models\CashRegisterSession;
-use App\Models\Item;
 use App\Models\Sale;
 use App\Services\BusinessContext;
 use Illuminate\Support\Facades\Auth;
@@ -12,6 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class StartSaleAction
 {
+    public function __construct(private readonly ResolveCatalogSaleItem $resolveCatalogSaleItem)
+    {
+    }
+
     public function execute(array $validated): ?Sale
     {
         $businessId = app(BusinessContext::class)->getBusinessId();
@@ -40,18 +44,19 @@ class StartSaleAction
             foreach ($validated['items'] as $rawItem) {
                 $quantity = (int) $rawItem['quantity'];
 
-                if (!empty($rawItem['item_id'])) {
-                    $item = Item::findOrFail($rawItem['item_id']);
-                    $price = (float) ($rawItem['unit_price_override'] ?? $item->price);
-
-                    $lineTotal = $price * $quantity;
+                if (!empty($rawItem['item_id']) || !empty($rawItem['sepa_item_id'])) {
+                    $resolvedItem = $this->resolveCatalogSaleItem->execute($sale, $rawItem);
+                    $lineTotal = $resolvedItem['unit_price_snapshot'] * $quantity;
                     $itemsTotal += $lineTotal;
 
                     $sale->items()->create([
-                        'item_id' => $item->id,
-                        'item_name_snapshot' => $item->name,
-                        'unit_price_snapshot' => $price,
-                        'category_id_snapshot' => $item->category_id,
+                        'item_source' => $resolvedItem['item_source'],
+                        'item_id' => $resolvedItem['item_id'],
+                        'sepa_item_id' => $resolvedItem['sepa_item_id'],
+                        'item_name_snapshot' => $resolvedItem['item_name_snapshot'],
+                        'barcode_snapshot' => $resolvedItem['barcode_snapshot'],
+                        'unit_price_snapshot' => $resolvedItem['unit_price_snapshot'],
+                        'category_id_snapshot' => $resolvedItem['category_id_snapshot'],
                         'quantity' => $quantity,
                         'total' => $lineTotal,
                     ]);
@@ -65,8 +70,11 @@ class StartSaleAction
                 $itemsTotal += $lineTotal;
 
                 $sale->items()->create([
+                    'item_source' => 'quick',
                     'item_id' => null,
+                    'sepa_item_id' => null,
                     'item_name_snapshot' => (string) $rawItem['quick_item_name'],
+                    'barcode_snapshot' => null,
                     'unit_price_snapshot' => $price,
                     'category_id_snapshot' => $rawItem['quick_item_category_id'] ?? null,
                     'quantity' => $quantity,
@@ -95,7 +103,7 @@ class StartSaleAction
 
             $sale->calculateTotal();
 
-            return $sale->fresh()->load(['items.item.category', 'items.categorySnapshot', 'payments.paymentMethod']);
+            return $sale->fresh()->load(['items.item.category', 'items.sepaItem', 'items.categorySnapshot', 'payments.paymentMethod']);
         });
     }
 }

@@ -14,6 +14,7 @@ class SaleItem extends Model
         'total' => 'decimal:2',
         'quantity' => 'integer',
         'category_id_snapshot' => 'integer',
+        'sepa_item_id' => 'integer',
     ];
 
     public function sale(): BelongsTo
@@ -24,6 +25,11 @@ class SaleItem extends Model
     public function item(): BelongsTo
     {
         return $this->belongsTo(Item::class);
+    }
+
+    public function sepaItem(): BelongsTo
+    {
+        return $this->belongsTo(SepaItem::class);
     }
 
     public function categorySnapshot(): BelongsTo

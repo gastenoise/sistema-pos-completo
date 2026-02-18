@@ -35,14 +35,15 @@ export function CartProvider({ children }) {
 
   const addToCart = (item, quantity = 1) => {
     setCartItems(prev => {
+      const itemSource = item.source || 'local';
       const incomingKey = item.is_quick_item
         ? `quick-${item.name}-${item.price}-${item.category_id ?? 'none'}`
-        : String(item.id);
+        : `${itemSource}-${item.id}`;
 
       const existing = prev.find((i) => {
         const rowKey = i.is_quick_item
           ? `quick-${i.name}-${i.unit_price}-${i.category_id ?? 'none'}`
-          : String(i.item_id);
+          : i.cart_key;
         return rowKey === incomingKey;
       });
 
@@ -50,7 +51,7 @@ export function CartProvider({ children }) {
         return prev.map((i) => {
           const rowKey = i.is_quick_item
             ? `quick-${i.name}-${i.unit_price}-${i.category_id ?? 'none'}`
-            : String(i.item_id);
+            : i.cart_key;
 
           return rowKey === incomingKey
             ? { ...i, quantity: i.quantity + quantity, subtotal: (i.quantity + quantity) * i.unit_price }
@@ -59,7 +60,11 @@ export function CartProvider({ children }) {
       }
 
       return [...prev, {
+        cart_key: incomingKey,
         item_id: item.id,
+        item_source: itemSource,
+        sepa_item_id: itemSource === 'sepa' ? item.sepa_item_id ?? item.id : null,
+        catalog_item_id: `${itemSource}:${item.id}`,
         name: item.name,
         unit_price: item.price,
         category_id: item.category_id ?? null,
@@ -70,22 +75,22 @@ export function CartProvider({ children }) {
     });
   };
 
-  const updateQuantity = (itemId, quantity) => {
+  const updateQuantity = (cartKey, quantity) => {
     if (quantity <= 0) {
-      removeFromCart(itemId);
+      removeFromCart(cartKey);
       return;
     }
     setCartItems(prev => 
       prev.map(i => 
-        i.item_id === itemId 
+        i.cart_key === cartKey
           ? { ...i, quantity, subtotal: quantity * i.unit_price }
           : i
       )
     );
   };
 
-  const removeFromCart = (itemId) => {
-    setCartItems(prev => prev.filter(i => i.item_id !== itemId));
+  const removeFromCart = (cartKey) => {
+    setCartItems(prev => prev.filter(i => i.cart_key !== cartKey));
   };
 
   const clearCart = () => {

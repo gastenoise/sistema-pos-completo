@@ -210,7 +210,12 @@ function POSContent() {
               quick_item_price: item.unit_price,
               quick_item_category_id: item.category_id ?? null,
             }
-          : { item_id: item.item_id }),
+          : {
+              item_source: item.item_source || 'local',
+              item_id: item.item_source === 'local' ? item.item_id : undefined,
+              sepa_item_id: item.item_source === 'sepa' ? item.sepa_item_id : undefined,
+              catalog_item_id: item.catalog_item_id,
+            }),
         quantity: item.quantity,
         unit_price_override: item.unit_price
       })),
