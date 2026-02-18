@@ -72,6 +72,50 @@ class SepaItemPriceOverrideTest extends TestCase
         ]);
     }
 
+
+    public function test_it_can_filter_catalog_to_only_sepa_items_with_overridden_price(): void
+    {
+        [$user, $business] = $this->createAuthenticatedOwner();
+
+        BusinessParameter::query()->create([
+            'business_id' => $business->id,
+            'parameter_id' => BusinessParameter::ENABLE_SEPA_ITEMS,
+        ]);
+
+        SepaItem::query()->create([
+            'name' => 'Fideos Base',
+            'barcode' => '7791000000001',
+            'price' => 900,
+            'active' => true,
+        ]);
+
+        $overriddenSepaItem = SepaItem::query()->create([
+            'name' => 'Arroz Override',
+            'barcode' => '7791000000002',
+            'price' => 1200,
+            'active' => true,
+        ]);
+
+        Sanctum::actingAs($user, ['front']);
+
+        $this->withHeader('X-Business-Id', (string) $business->id)
+            ->putJson("/protected/sepa-items/{$overriddenSepaItem->id}/price", [
+                'price' => 1500,
+            ])
+            ->assertOk();
+
+        $response = $this->withHeader('X-Business-Id', (string) $business->id)
+            ->getJson('/protected/items?only_sepa_price_overridden=true')
+            ->assertOk();
+
+        $items = $response->json('data.data');
+
+        $this->assertCount(1, $items);
+        $this->assertSame('sepa', $items[0]['source']);
+        $this->assertSame($overriddenSepaItem->id, $items[0]['sepa_item_id']);
+        $this->assertTrue($items[0]['is_price_overridden']);
+    }
+
     public function test_it_forbids_override_when_business_sepa_flag_is_disabled(): void
     {
         [$user, $business] = $this->createAuthenticatedOwner();

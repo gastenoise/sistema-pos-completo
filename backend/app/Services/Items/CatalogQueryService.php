@@ -38,6 +38,18 @@ class CatalogQueryService
     private function buildCatalogQuery(int $businessId, bool $sepaEnabled, string $source, array $filters): Builder
     {
         $normalizedSource = in_array($source, ['local', 'sepa', 'all'], true) ? $source : 'all';
+        $onlySepaPriceOverridden = filter_var($filters['only_sepa_price_overridden'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        if ($onlySepaPriceOverridden) {
+            if (!$sepaEnabled) {
+                return $this->buildLocalQuery($filters)->whereRaw('1 = 0');
+            }
+
+            return $this->buildSepaQuery($businessId, $filters)
+                ->orderByDesc('is_active')
+                ->orderBy('name')
+                ->orderBy('id');
+        }
 
         if (!$sepaEnabled) {
             return $this->buildLocalQuery($filters);
