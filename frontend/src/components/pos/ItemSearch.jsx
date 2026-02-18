@@ -1,31 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Package, Loader2 } from 'lucide-react';
-import { Input } from "@/components/ui/input";
+import { Input } from '@/components/ui/input';
 import { useBusiness } from './BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
+import { usePosItemsQuery } from '@/modules/pos/hooks/usePosData';
 
-export default function ItemSearch({ 
-  items = [], 
-  onSelect, 
-  loading = false,
-  placeholder = "Buscar por nombre, código de barras o SKU..."
+export default function ItemSearch({
+  onSelect,
+  placeholder = 'Buscar por nombre, código de barras o SKU...',
+  limit = 10,
 }) {
   const [query, setQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef(null);
   const resultsRef = useRef(null);
-  const { currentBusiness } = useBusiness();
+  const { currentBusiness, businessId } = useBusiness();
 
-  const filteredItems = items.filter(item => {
-    if (!query) return false;
-    const q = query.toLowerCase();
-    return (
-      item.name.toLowerCase().includes(q) ||
-      item.sku?.toLowerCase().includes(q) ||
-      item.barcode?.includes(q)
-    );
-  }).slice(0, 10);
+  const { data: items = [], isFetching: loading } = usePosItemsQuery(businessId, {
+    search: query,
+    barcode: query,
+    limit,
+  });
+
+  const filteredItems = Array.isArray(items) ? items.slice(0, limit) : [];
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -37,13 +35,11 @@ export default function ItemSearch({
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < filteredItems.length - 1 ? prev + 1 : prev
-        );
+        setSelectedIndex((prev) => (prev < filteredItems.length - 1 ? prev + 1 : prev));
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setSelectedIndex(prev => prev > 0 ? prev - 1 : 0);
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : 0));
         break;
       case 'Enter':
         e.preventDefault();
@@ -53,6 +49,8 @@ export default function ItemSearch({
         break;
       case 'Escape':
         setShowResults(false);
+        break;
+      default:
         break;
     }
   };
@@ -88,13 +86,13 @@ export default function ItemSearch({
       </div>
 
       {showResults && filteredItems.length > 0 && (
-        <div 
+        <div
           ref={resultsRef}
           className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden"
         >
           {filteredItems.map((item, index) => (
             <button
-              key={item.id}
+              key={`${item.source || 'local'}-${item.id}`}
               type="button"
               onClick={() => handleSelect(item)}
               className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${

@@ -91,12 +91,15 @@ export default function ItemRow({
         )}
       </td>
       <td className="px-4 py-3">
-        <Badge variant={item.is_active ? 'default' : 'secondary'} className={item.is_active ? 'bg-green-100 text-green-800' : ''}>
-          {item.is_active ? 'Active' : 'Inactive'}
-        </Badge>
+        <div className="flex flex-col gap-1">
+          <Badge variant={item.is_active ? 'default' : 'secondary'} className={item.is_active ? 'bg-green-100 text-green-800' : ''}>
+            {item.is_active ? 'Active' : 'Inactive'}
+          </Badge>
+          <Badge variant="outline">{item.source === 'sepa' ? 'SEPA' : 'Local'}</Badge>
+        </div>
       </td>
       <td className="px-4 py-3 text-right">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(item)}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(item)} disabled={item.source === 'sepa'}>
           <Pencil className="w-4 h-4" />
         </Button>
       </td>

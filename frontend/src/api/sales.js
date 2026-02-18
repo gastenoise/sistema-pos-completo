@@ -2,8 +2,19 @@ import { request } from './client';
 import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
 import { mapCatalogIsActive } from '@/lib/catalogNaming';
 
-export const getPosItems = async () => {
-  const response = await request('/protected/items');
+export const getPosItems = async ({ search = '', barcode = '', limit = 20 } = {}) => {
+  const query = new URLSearchParams();
+  query.set('active', 'true');
+  query.set('source', 'all');
+  query.set('per_page', String(limit));
+  if (search) {
+    query.set('search', search);
+  }
+  if (barcode) {
+    query.set('barcode', barcode);
+  }
+
+  const response = await request(`/protected/items?${query.toString()}`);
   return mapCatalogIsActive(normalizeListResponse(response, 'items'));
 };
 

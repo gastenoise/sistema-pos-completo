@@ -8,7 +8,10 @@ const normalizeItem = (item) => ({
   ...withCatalogIsActive(item),
   category_id: toNumberOrNull(item?.category_id),
   presentation_quantity: toNumberOrNull(item?.presentation_quantity),
-  list_price: toNumberOrNull(item?.list_price)
+  list_price: toNumberOrNull(item?.list_price),
+  source: item?.source || 'local',
+  sepa_item_id: toNumberOrNull(item?.sepa_item_id),
+  is_price_overridden: Boolean(item?.is_price_overridden)
 });
 
 export const normalizeItemsPage = (response) => {
@@ -21,7 +24,8 @@ export const normalizeItemsPage = (response) => {
         per_page: paginationSource.per_page,
         total: paginationSource.total,
         from: paginationSource.from,
-        to: paginationSource.to
+        to: paginationSource.to,
+        next_cursor: paginationSource.next_cursor || null
       }
     : null;
 

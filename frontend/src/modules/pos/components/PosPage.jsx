@@ -49,12 +49,20 @@ function POSContent() {
   
   const searchInputRef = useRef(null);
 
-  // Fetch items
+  // Fetch items (server-side top-N search)
   const { data: items = [], isLoading: loadingItems } = useQuery({
-    queryKey: ['items', businessId],
+    queryKey: ['items', businessId, searchQuery],
     queryFn: async () => {
-      if (!businessId) return [];
-      const response = await apiClient.get('/protected/items');
+      if (!businessId || !searchQuery.trim()) return [];
+      const response = await apiClient.get('/protected/items', {
+        params: {
+          active: true,
+          source: 'all',
+          search: searchQuery,
+          barcode: searchQuery,
+          per_page: 24,
+        }
+      });
       return mapCatalogIsActive(normalizeListResponse(response, 'items'))
         .map((item) => ({
           ...item,
@@ -476,14 +484,7 @@ function POSContent() {
     return { Icon: IconComponent, color: category?.color || '#94a3b8' };
   };
 
-  const filteredItems = searchQuery
-    ? items.filter((item) => {
-        const q = searchQuery.toLowerCase();
-        return item.name.toLowerCase().includes(q)
-          || item.barcode?.includes(q)
-          || item.sku?.toLowerCase().includes(q);
-      })
-    : items;
+  const filteredItems = items;
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
@@ -519,7 +520,7 @@ function POSContent() {
                 <Package className="w-12 h-12 mb-3" />
                 <p className="text-lg font-medium">No se encontraron items</p>
                 <p className="text-sm">
-                  {searchQuery ? 'Probá con un filtro diferente' : 'Creá tus productos y servicios desde la sección "Items"'}
+                  {searchQuery ? 'Probá con un filtro diferente' : 'Empezá escribiendo para buscar ítems'}
                 </p>
               </div>
             ) : (
@@ -528,7 +529,7 @@ function POSContent() {
                   const { Icon, color } = getItemIcon(item);
                   return (
                     <button
-                      key={item.id}
+                      key={`${item.source || 'local'}-${item.id}`}
                       onClick={() => handleItemClick(item)}
                       className="bg-white rounded-xl p-3 text-left hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     >

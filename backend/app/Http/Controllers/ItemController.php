@@ -9,6 +9,7 @@ use App\Http\Requests\ItemUpdateRequest;
 use App\Http\Resources\ItemResource;
 use App\Models\Item;
 use App\Services\BusinessContext;
+use App\Services\Items\CatalogQueryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -233,33 +234,22 @@ class ItemController extends Controller
         return $storedPath;
     }
 
-    public function index(Request $request)
+    public function index(Request $request, CatalogQueryService $catalogQueryService)
     {
-        $query = Item::query();
+        $validated = $request->validate([
+            'active' => ['nullable', 'boolean'],
+            'category' => ['nullable'],
+            'search' => ['nullable', 'string'],
+            'barcode' => ['nullable', 'string', 'max:255'],
+            'source' => ['nullable', Rule::in(['local', 'sepa', 'all'])],
+            'only_sepa_price_overridden' => ['nullable', 'boolean'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'cursor_paginate' => ['nullable', 'boolean'],
+        ]);
 
-        if ($request->has('active')) {
-            $query->where('active', filter_var($request->active, FILTER_VALIDATE_BOOLEAN));
-        }
-        if ($request->filled('category')) {
-            if ($request->category === 'uncategorized') {
-                $query->whereNull('category_id');
-            } else {
-                $query->where('category_id', $request->category);
-            }
-        }
-        if ($request->filled('search')) {
-            $term = $request->search;
-            $query->where(function ($q) use ($term) {
-                $q->where('name', 'like', "%{$term}%")
-                    ->orWhere('sku', 'like', "%{$term}%")
-                    ->orWhere('barcode', 'like', "%{$term}%");
-            });
-        }
+        $items = $catalogQueryService->list($validated);
 
-        $perPage = (int) $request->input('per_page', 20);
-        $perPage = $perPage > 0 ? min($perPage, 100) : 20;
-
-        return response()->json(['success' => true, 'data' => ItemResource::collection($query->paginate($perPage))]);
+        return response()->json(['success' => true, 'data' => ItemResource::collection($items)]);
     }
 
     public function store(ItemStoreRequest $request)
