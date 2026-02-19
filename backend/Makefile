@@ -1,4 +1,4 @@
-.PHONY: up down up-nocache composer-install migrate seed dbreset test bash keygen artisan-cache all
+.PHONY: up down up-nocache composer-install migrate seed dbreset test bash keygen artisan-cache all sepa-sync
 
 up:
 	docker compose up -d
@@ -40,3 +40,6 @@ artisan-cache:
 	docker compose exec app php artisan view:clear
 
 setup: up-nocache composer-install refresh-db keygen artisan-cache
+
+sepa-sync:
+	docker compose exec app php artisan sepa:sync --sync
