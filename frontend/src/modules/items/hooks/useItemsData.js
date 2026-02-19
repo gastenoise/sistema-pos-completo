@@ -19,16 +19,16 @@ export const useItemsQuery = ({
   barcode,
   categoryFilter,
   source,
-  onlySepaPriceOverridden,
+  onlyPriceUpdated,
   page,
 }) => useQuery({
-  queryKey: ['items', businessId, searchQuery, barcode, categoryFilter, source, onlySepaPriceOverridden, page],
+  queryKey: ['items', businessId, searchQuery, barcode, categoryFilter, source, onlyPriceUpdated, page],
   queryFn: () => getItems({
     search: searchQuery,
     barcode,
     category: categoryFilter,
     source,
-    only_sepa_price_overridden: onlySepaPriceOverridden,
+    only_price_updated: onlyPriceUpdated,
     page,
     per_page: ITEMS_PER_PAGE
   }),
