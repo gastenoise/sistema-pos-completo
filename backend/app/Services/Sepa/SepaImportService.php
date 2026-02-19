@@ -197,6 +197,7 @@ class SepaImportService
         $headers = null;
         $batch = [];
         $chunkSize = max((int) config('sepa.chunk_size', 1000), 1);
+        $sampleRows = [];
 
         foreach ($file as $lineNumber => $row) {
             if (!is_array($row) || $row === [null] || $row === false) {
@@ -208,6 +209,10 @@ class SepaImportService
             if ($headers === null) {
                 $headers = $this->normalizeHeaders($row);
                 continue;
+            }
+
+            if (count($sampleRows) < 2) {
+                $sampleRows[] = $row;
             }
 
             if (count($row) < self::EXPECTED_MIN_COLUMNS) {
@@ -238,6 +243,15 @@ class SepaImportService
             }
         }
 
+        if ($headers !== null) {
+            Log::info('SEPA productos.csv sample rows', [
+                'csv' => $csvPath,
+                'header' => $headers,
+                'row_1' => $sampleRows[0] ?? null,
+                'row_2' => $sampleRows[1] ?? null,
+            ]);
+        }
+
         if ($batch !== []) {
             $this->persistChunk($batch, $metrics);
         }
@@ -254,22 +268,44 @@ class SepaImportService
             $item[$header] = $row[$index] ?? null;
         }
 
-        $barcode = $this->normalizeBarcode($item['productos_ean'] ?? null);
+        $barcode = $this->resolveBarcode($item);
         if ($barcode === null) {
             return null;
+        }
+
+        $isBultoFormat = array_key_exists('precio_unitario_bulto_por_unidad_venta_con_iva', $item);
+
+        $price = $isBultoFormat
+            ? $this->normalizeDecimal($item['precio_unitario_bulto_por_unidad_venta_con_iva'] ?? null)
+            : $this->normalizeDecimal($item['productos_precio_lista'] ?? $item['productos_precio_vta1'] ?? null);
+
+        $listPrice = $isBultoFormat
+            ? $this->normalizeDecimal($item['precio_unitario_bulto_por_unidad_venta_con_iva'] ?? null)
+            : $this->normalizeDecimal($item['productos_precio_lista'] ?? null);
+
+        $presentationQuantity = null;
+        $presentationUnit = null;
+
+        if (!$isBultoFormat) {
+            $presentationQuantity = $this->normalizeDecimal(
+                $item['productos_cantidad_presentacion']
+                    ?? $item['productos_contenido_neto']
+                    ?? null
+            );
+            $presentationUnit = $this->normalizeString($item['productos_unidad_medida_presentacion'] ?? null, 20);
         }
 
         $now = Carbon::now();
 
         return [
             'name' => $this->normalizeString($item['productos_descripcion'] ?? null, 255) ?? 'SIN NOMBRE',
-            'sku' => $this->normalizeString($item['productos_id'] ?? null, 255),
+            'sku' => null,
             'barcode' => $barcode,
-            'price' => $this->normalizeDecimal($item['productos_precio_lista'] ?? $item['productos_precio_vta1'] ?? null) ?? 0,
-            'presentation_quantity' => $this->normalizeDecimal($item['productos_contenido_neto'] ?? null),
-            'presentation_unit' => $this->normalizeString($item['productos_unidad_medida_presentacion'] ?? null, 20),
+            'price' => $price ?? 0,
+            'presentation_quantity' => $presentationQuantity,
+            'presentation_unit' => $presentationUnit,
             'brand' => $this->normalizeString($item['productos_marca'] ?? null, 120),
-            'list_price' => $this->normalizeDecimal($item['productos_precio_lista'] ?? null),
+            'list_price' => $listPrice,
             'active' => true,
             'created_at' => $now,
             'updated_at' => $now,
@@ -283,18 +319,27 @@ class SepaImportService
     private function persistChunk(array $batch, array &$metrics): void
     {
         $barcodes = array_column($batch, 'barcode');
-        $existing = SepaItem::query()->whereIn('barcode', $barcodes)->pluck('barcode')->all();
-        $existingSet = array_flip($existing);
+        $existingRows = SepaItem::query()
+            ->whereIn('barcode', $barcodes)
+            ->get(['barcode', 'presentation_quantity', 'presentation_unit'])
+            ->keyBy('barcode');
 
         $inserted = 0;
         $updated = 0;
-        foreach ($barcodes as $barcode) {
-            if (isset($existingSet[$barcode])) {
+        foreach ($batch as &$record) {
+            $existing = $existingRows->get($record['barcode']);
+            if ($existing) {
                 $updated++;
+                $hasCompletePresentation = $record['presentation_quantity'] !== null && $record['presentation_unit'] !== null;
+                if (!$hasCompletePresentation) {
+                    $record['presentation_quantity'] = $existing->presentation_quantity;
+                    $record['presentation_unit'] = $existing->presentation_unit;
+                }
             } else {
                 $inserted++;
             }
         }
+        unset($record);
 
         DB::transaction(static function () use ($batch): void {
             DB::table('sepa_items')->upsert(
@@ -317,6 +362,29 @@ class SepaImportService
         return array_map(static function ($header): string {
             return mb_strtolower(trim((string) $header));
         }, $row);
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     */
+    private function resolveBarcode(array $item): ?string
+    {
+        $primary = $this->normalizeBarcode($item['id_producto'] ?? null);
+        if ($primary !== null && !in_array($primary, ['0', '1'], true)) {
+            return $primary;
+        }
+
+        $fallback = $this->normalizeBarcode($item['productos_ean'] ?? null);
+        if ($fallback === null) {
+            return null;
+        }
+
+        $idProducto = $this->normalizeBarcode($item['id_producto'] ?? null);
+        if ($fallback !== null && in_array($fallback, ['0', '1'], true) && $idProducto !== null) {
+            return $idProducto;
+        }
+
+        return $fallback;
     }
 
     private function normalizeString(mixed $value, int $maxLength): ?string
@@ -356,8 +424,29 @@ class SepaImportService
             return round((float) $value, 2);
         }
 
-        $normalized = str_replace(['.', ','], ['', '.'], (string) $value);
-        if (!is_numeric($normalized)) {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return null;
+        }
+
+        $hasDot = str_contains($raw, '.');
+        $hasComma = str_contains($raw, ',');
+
+        if ($hasDot && $hasComma) {
+            $lastDot = strrpos($raw, '.');
+            $lastComma = strrpos($raw, ',');
+            if ($lastDot !== false && $lastComma !== false && $lastDot > $lastComma) {
+                $raw = str_replace(',', '', $raw);
+            } else {
+                $raw = str_replace('.', '', $raw);
+                $raw = str_replace(',', '.', $raw);
+            }
+        } elseif ($hasComma) {
+            $raw = str_replace(',', '.', $raw);
+        }
+
+        $normalized = preg_replace('/[^0-9\.-]/', '', $raw) ?? '';
+        if ($normalized === '' || !is_numeric($normalized)) {
             return null;
         }
 

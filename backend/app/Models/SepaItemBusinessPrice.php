@@ -14,6 +14,7 @@ class SepaItemBusinessPrice extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'category_id' => 'integer',
     ];
 
     public function business(): BelongsTo
@@ -24,5 +25,10 @@ class SepaItemBusinessPrice extends Model
     public function sepaItem(): BelongsTo
     {
         return $this->belongsTo(SepaItem::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 }

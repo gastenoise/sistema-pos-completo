@@ -67,9 +67,9 @@ export default function BulkActionsBar({
                   <SelectValue placeholder="Choose..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={null}>No category</SelectItem>
+                  <SelectItem value="none">No category</SelectItem>
                   {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

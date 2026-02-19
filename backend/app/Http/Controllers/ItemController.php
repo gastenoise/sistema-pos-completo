@@ -240,14 +240,14 @@ class ItemController extends Controller
     public function index(Request $request, CatalogQueryService $catalogQueryService)
     {
         $validated = $request->validate([
-            'active' => ['nullable', 'boolean'],
+            'active' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'category' => ['nullable'],
             'search' => ['nullable', 'string'],
             'barcode' => ['nullable', 'string', 'max:255'],
             'source' => ['nullable', Rule::in(['local', 'sepa', 'all'])],
-            'only_sepa_price_overridden' => ['nullable', 'boolean'],
+            'only_sepa_price_overridden' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'cursor_paginate' => ['nullable', 'boolean'],
+            'cursor_paginate' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
         ]);
 
         $items = $catalogQueryService->list($validated);
@@ -285,22 +285,30 @@ class ItemController extends Controller
         $validated = $request->validated();
         $businessId = $businessContext->getBusinessId();
 
-        $upsertSepaItemBusinessPriceAction->execute(
+        $price = array_key_exists('price', $validated) ? $validated['price'] : null;
+        $categoryId = array_key_exists('category_id', $validated) ? $validated['category_id'] : null;
+
+        $override = $upsertSepaItemBusinessPriceAction->execute(
             $businessId,
             (int) $sepaItem->id,
-            (float) $validated['price']
+            $price !== null && $price !== '' ? (float) $price : null,
+            $categoryId !== null && $categoryId !== '' ? (int) $categoryId : null,
         );
+
+        $effectivePrice = $override?->price !== null
+            ? round((float) $override->price, 2)
+            : round((float) $sepaItem->price, 2);
 
         return response()->json([
             'success' => true,
             'data' => [
                 'id' => (int) $sepaItem->id,
                 'business_id' => $businessId,
-                'category_id' => null,
+                'category_id' => $override?->category_id,
                 'name' => $sepaItem->name,
-                'sku' => $sepaItem->sku,
+                'sku' => null,
                 'barcode' => $sepaItem->barcode,
-                'price' => round((float) $validated['price'], 2),
+                'price' => $effectivePrice,
                 'presentation_quantity' => $sepaItem->presentation_quantity,
                 'presentation_unit' => $sepaItem->presentation_unit,
                 'brand' => $sepaItem->brand,
@@ -308,7 +316,7 @@ class ItemController extends Controller
                 'is_active' => (bool) $sepaItem->active,
                 'source' => 'sepa',
                 'sepa_item_id' => (int) $sepaItem->id,
-                'is_price_overridden' => true,
+                'is_price_overridden' => $override?->price !== null,
                 'created_at' => $sepaItem->created_at,
                 'updated_at' => now(),
             ],
@@ -320,15 +328,23 @@ class ItemController extends Controller
         $businessId = app(BusinessContext::class)->getBusinessId();
 
         $validated = $request->validate([
-            'ids' => ['required', 'array', 'min:1', 'max:200'],
+            'ids' => ['nullable', 'array', 'min:1', 'max:500'],
             'ids.*' => ['integer', 'distinct'],
+            'targets' => ['nullable', 'array', 'min:1', 'max:500'],
+            'targets.*.id' => ['required_with:targets', 'integer', 'min:1'],
+            'targets.*.source' => ['required_with:targets', Rule::in(['local', 'sepa'])],
             'operation' => ['required', Rule::in(['set_category', 'set_price', 'adjust_price', 'set_active'])],
             'category_id' => ['nullable', Rule::exists('categories', 'id')->where('business_id', $businessId)],
             'price' => ['nullable', 'numeric', 'min:0'],
             'price_delta' => ['nullable', 'numeric'],
-            'active' => ['nullable', 'boolean'],
+            'active' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
         ]);
 
+        if (empty($validated['ids']) && empty($validated['targets'])) {
+            return response()->json(['success' => false, 'message' => 'ids or targets is required.'], 422);
+        }
+
+        $validated['business_id'] = $businessId;
         $operation = $validated['operation'];
 
         if ($operation === 'set_category' && !array_key_exists('category_id', $validated)) {
