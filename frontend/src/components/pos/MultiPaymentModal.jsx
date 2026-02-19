@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Plus, Trash2, ArrowRight } from 'lucide-react';
+import { Plus, Trash2, ArrowRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,7 @@ export default function MultiPaymentModal({
   paymentMethods = [],
   onConfirm
 }) {
-  const { getTotal, cartItems } = useCart();
+  const { getTotal } = useCart();
   const { currentBusiness } = useBusiness();
   const total = getTotal();
   

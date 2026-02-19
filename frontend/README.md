@@ -35,3 +35,7 @@ the frontend can reach it.
 - Do not use `toLocaleDateString`, `toLocaleString`, or
   `Intl.DateTimeFormat` directly in UI components/pages; use `lib/dateTime`
   helpers instead.
+
+## npm audit (devDependencies)
+
+`npm audit` may report vulnerabilities in **ajv** and **minimatch** coming from ESLint and its plugins. These are **devDependencies only** (they are not included in the production build). There is currently no safe fix: `npm audit fix --force` breaks peer dependencies and lint; upgrading to ESLint 10 requires plugin support that is not yet available. Until the ecosystem ships updated versions, these findings are accepted as low-risk for local/CI development.

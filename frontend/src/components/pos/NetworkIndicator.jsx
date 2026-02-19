@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, WifiOff, CloudOff, RefreshCw, Loader2 } from 'lucide-react';
+import { Wifi, WifiOff, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useCart } from './CartContext';
 

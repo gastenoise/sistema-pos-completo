@@ -1,16 +1,20 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void
     {
-        DB::statement('ALTER TABLE sepa_item_business_prices ALTER COLUMN price DROP NOT NULL');
+        Schema::table('sepa_item_business_prices', function ($table) {
+            $table->decimal('price', 12, 2)->nullable()->change();
+        });
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE sepa_item_business_prices ALTER COLUMN price SET NOT NULL');
+        Schema::table('sepa_item_business_prices', function ($table) {
+            $table->decimal('price', 12, 2)->nullable(false)->change();
+        });
     }
 };

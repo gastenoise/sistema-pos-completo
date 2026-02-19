@@ -14,7 +14,7 @@ export function CartProvider({ children }) {
     if (savedQueue) {
       try {
         setOfflineQueue(JSON.parse(savedQueue));
-      } catch (e) {
+      } catch (_e) {
         console.error('Failed to parse offline queue');
       }
     }

@@ -13,7 +13,7 @@ export default function ItemRow({
   selected, 
   onSelect, 
   onEdit, 
-  onDeactivate,
+  onDeactivate: _onDeactivate,
   showCheckbox = true 
 }) {
   const { currentBusiness } = useBusiness();

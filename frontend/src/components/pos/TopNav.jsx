@@ -5,7 +5,7 @@ import { useBusiness } from './BusinessContext';
 import { useCart } from './CartContext';
 import { 
   Menu, X, ChevronDown, Store, LogOut, Settings, 
-  BarChart3, Package, ShoppingCart, Wifi, WifiOff,
+  BarChart3, Package, ShoppingCart,
   CreditCard, User
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import {
 export default function TopNav({ user, onLogout, currentPage }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentBusiness, businesses, selectBusiness } = useBusiness();
-  const { isOnline, offlineQueue } = useCart();
+  const { isOnline: _isOnline, offlineQueue: _offlineQueue } = useCart();
 
   const navItems = [
     { name: 'POS', href: createPageUrl('POS'), icon: ShoppingCart },

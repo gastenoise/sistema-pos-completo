@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  QrCode, Send, Loader2, CheckCircle2, 
+  QrCode, Loader2, CheckCircle2, 
   CreditCard, Mail, MessageCircle, Building
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ export default function PaymentProcessModal({
   if (!payment) return null;
 
   const isMultiPayment = totalPayments > 1;
-  const isLastPayment = currentIndex === totalPayments - 1;
+  const _isLastPayment = currentIndex === totalPayments - 1;
 
   const handleConfirm = async () => {
     setLoading(true);

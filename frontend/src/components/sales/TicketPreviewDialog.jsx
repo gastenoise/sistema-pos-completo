@@ -71,6 +71,7 @@ const buildWhatsappTicketText = (ticket, saleId) => {
   return lines.join('\n');
 };
 
+// eslint-disable-next-line unused-imports/no-unused-vars -- componente reservado para uso futuro
 function TicketEmailDialog({
   open,
   onOpenChange,
@@ -163,6 +164,7 @@ function TicketEmailDialog({
   );
 }
 
+// eslint-disable-next-line unused-imports/no-unused-vars -- componente reservado para uso futuro
 function TicketWhatsappDialog({ open, onOpenChange, isSharing, onConfirm }) {
   const [phoneForm, setPhoneForm] = useState({
     countryDialCode: DEFAULT_COUNTRY_DIAL_CODE,

@@ -1,6 +1,4 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from "@/components/ui/button";
 import PaymentCard from './PaymentCard';
 
 export default function ProcessStep({
@@ -8,9 +6,9 @@ export default function ProcessStep({
   businessData,
   bankAccountData,
   onUpdateStatus,
-  onBackToDivision
+  onBackToDivision: _onBackToDivision
 }) {
-  const hasAnyProcessing = payments.some(p => p.status === 'processing' || p.status === 'confirmed');
+  const _hasAnyProcessing = payments.some(p => p.status === 'processing' || p.status === 'confirmed');
 
   return (
     <div className="space-y-4">

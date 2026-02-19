@@ -57,7 +57,7 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
       toast.success('Item agregado');
       setFormData({ price: '', category_id: '', save_to_catalog: false, name: '' });
       setOpen(false);
-    } catch (error) {
+    } catch (_error) {
       toast.error('No se pudo agregar el item');
     } finally {
       setIsLoading(false);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { QrCode, Copy, MessageCircle, Mail, CheckCircle2 } from 'lucide-react';
+import { QrCode, Copy, MessageCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,7 +23,7 @@ export default function QrModal({ open, onClose, amount, onConfirm }) {
     window.open(`https://wa.me/?text=Pay ${formatPrice(amount, currentBusiness)} via MercadoPago`, '_blank');
   };
 
-  const handleEmail = () => {
+  const _handleEmail = () => {
     window.open(`mailto:?subject=Payment Request&body=Pay ${formatPrice(amount, currentBusiness)}`, '_blank');
   };
 
