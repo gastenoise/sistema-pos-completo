@@ -72,7 +72,6 @@ class CatalogQueryService
             }
 
             return $this->buildSepaQuery($businessId, $filters)
-                ->orderByDesc('is_active')
                 ->orderBy('name')
                 ->orderBy('id');
         }
@@ -95,7 +94,6 @@ class CatalogQueryService
         return DB::query()
             ->fromSub($localQuery->unionAll($sepaQuery), 'catalog_items')
             ->select(self::CATALOG_SELECT_COLUMNS)
-            ->orderByDesc('is_active')
             ->orderBy('name')
             ->orderBy('id');
     }
@@ -114,7 +112,7 @@ class CatalogQueryService
             'items.presentation_unit',
             'items.brand',
             'items.list_price',
-            'items.active as is_active',
+            DB::raw('true as is_active'),
             'items.created_at',
             'items.updated_at',
             DB::raw("'local' as source"),
@@ -144,7 +142,7 @@ class CatalogQueryService
                 'sepa_items.presentation_unit',
                 'sepa_items.brand',
                 'sepa_items.list_price',
-                'sepa_items.active as is_active',
+                DB::raw('true as is_active'),
                 'sepa_items.created_at',
                 'sepa_items.updated_at',
                 DB::raw("'sepa' as source"),
@@ -157,10 +155,6 @@ class CatalogQueryService
 
     private function applyCommonFilters(EloquentBuilder $query, array $filters, string $table): EloquentBuilder
     {
-        if (array_key_exists('active', $filters) && $filters['active'] !== null && $filters['active'] !== '') {
-            $query->where("{$table}.active", filter_var($filters['active'], FILTER_VALIDATE_BOOLEAN));
-        }
-
         if (array_key_exists('category', $filters) && $filters['category'] !== null && $filters['category'] !== '') {
             $categoryColumn = $table === 'items' ? 'items.category_id' : 'sibp.category_id';
             if ($filters['category'] === 'uncategorized') {
@@ -262,7 +256,6 @@ class CatalogQueryService
         $sql = 'CASE ' . implode(' ', $cases) . ' ELSE 999999 END';
         $query->reorder();
         $query->orderByRaw($sql . ' ASC', $bindings)
-            ->orderByDesc('is_active')
             ->orderBy('name')
             ->orderBy('id');
     }

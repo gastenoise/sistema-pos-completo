@@ -15,6 +15,7 @@ class SaleItem extends Model
         'quantity' => 'integer',
         'category_id_snapshot' => 'integer',
         'sepa_item_id' => 'integer',
+        'category_name_snapshot' => 'string',
     ];
 
     public function sale(): BelongsTo

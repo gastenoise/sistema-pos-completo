@@ -29,7 +29,6 @@ trait HasItemRules
             'presentation_unit' => $prefix.'nullable|string|max:20',
             'brand' => $prefix.'nullable|string|max:120',
             'list_price' => $prefix.'nullable|numeric|min:0',
-            'active' => $partial ? 'sometimes|boolean' : 'sometimes|boolean',
         ];
     }
 }

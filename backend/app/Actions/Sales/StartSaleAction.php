@@ -4,6 +4,7 @@ namespace App\Actions\Sales;
 
 use App\Actions\Sales\Support\ResolveCatalogSaleItem;
 use App\Models\CashRegisterSession;
+use App\Models\Category;
 use App\Models\Sale;
 use App\Services\BusinessContext;
 use Illuminate\Support\Facades\Auth;
@@ -57,6 +58,7 @@ class StartSaleAction
                         'barcode_snapshot' => $resolvedItem['barcode_snapshot'],
                         'unit_price_snapshot' => $resolvedItem['unit_price_snapshot'],
                         'category_id_snapshot' => $resolvedItem['category_id_snapshot'],
+                        'category_name_snapshot' => $resolvedItem['category_name_snapshot'] ?? null,
                         'quantity' => $quantity,
                         'total' => $lineTotal,
                     ]);
@@ -69,6 +71,11 @@ class StartSaleAction
                 $lineTotal = $price * $quantity;
                 $itemsTotal += $lineTotal;
 
+                $quickCategoryId = !empty($rawItem['quick_item_category_id']) ? (int) $rawItem['quick_item_category_id'] : null;
+                $quickCategoryName = $quickCategoryId !== null
+                    ? Category::query()->find($quickCategoryId)?->name
+                    : null;
+
                 $sale->items()->create([
                     'item_source' => 'quick',
                     'item_id' => null,
@@ -76,7 +83,8 @@ class StartSaleAction
                     'item_name_snapshot' => (string) $rawItem['quick_item_name'],
                     'barcode_snapshot' => null,
                     'unit_price_snapshot' => $price,
-                    'category_id_snapshot' => $rawItem['quick_item_category_id'] ?? null,
+                    'category_id_snapshot' => $quickCategoryId,
+                    'category_name_snapshot' => $quickCategoryName,
                     'quantity' => $quantity,
                     'total' => $lineTotal,
                 ]);

@@ -31,7 +31,6 @@ class CatalogQueryServiceSearchTest extends TestCase
             'name' => 'Aceite 7791 especial',
             'barcode' => '1234567890123',
             'price' => 1000,
-            'active' => true,
         ]);
 
         $barcodeMatch = Item::query()->create([
@@ -39,7 +38,6 @@ class CatalogQueryServiceSearchTest extends TestCase
             'name' => 'Aceite Premium',
             'barcode' => '7791000000001',
             'price' => 1500,
-            'active' => true,
         ]);
 
         Sanctum::actingAs($user, ['front']);
@@ -64,7 +62,6 @@ class CatalogQueryServiceSearchTest extends TestCase
             'name' => 'Galletitas de Avena',
             'barcode' => '1111111111111',
             'price' => 700,
-            'active' => true,
         ]);
 
         $skuMatch = Item::query()->create([
@@ -73,7 +70,6 @@ class CatalogQueryServiceSearchTest extends TestCase
             'sku' => 'AVENA-123',
             'barcode' => '2222222222222',
             'price' => 850,
-            'active' => true,
         ]);
 
         Sanctum::actingAs($user, ['front']);
@@ -105,7 +101,6 @@ class CatalogQueryServiceSearchTest extends TestCase
             'name' => 'Producto índice',
             'barcode' => '7791888888888',
             'price' => 999,
-            'active' => true,
         ]);
 
         $plan = DB::select(

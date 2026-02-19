@@ -28,7 +28,7 @@ import {
   usePreviewItemsImportPageMutation,
   useSaveItemMutation,
   useSaveSepaPriceMutation,
-  useToggleItemStatusMutation
+  useDeleteItemMutation
 } from '@/modules/items/hooks/useItemsData';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
@@ -135,8 +135,8 @@ export default function Items() {
   // Create/Update mutation
   const itemMutation = useSaveItemMutation();
   const sepaPriceMutation = useSaveSepaPriceMutation();
-  const toggleStatusMutation = useToggleItemStatusMutation();
   const bulkMutation = useBulkItemsMutation();
+  const deleteItemMutation = useDeleteItemMutation();
   const importPreviewMutation = usePreviewItemsImportMutation();
   const importPreviewPageMutation = usePreviewItemsImportPageMutation();
   const importConfirmMutation = useConfirmItemsImportMutation();
@@ -175,15 +175,27 @@ export default function Items() {
     setShowEditorModal(true);
   };
 
-  const handleDeactivateItem = async (item) => {
+
+
+  const handleDeleteItem = async (item) => {
+    if (!item?.id || item?.source === 'sepa') {
+      return;
+    }
+
+    const confirmed = window.confirm(`¿Eliminar "${item.name}"? Esta acción no se puede deshacer.`);
+    if (!confirmed) {
+      return;
+    }
+
     try {
-      const updated = await toggleStatusMutation.mutateAsync(item);
-      if (!updateItemsCache(updated)) {
-        queryClient.invalidateQueries({ queryKey: ['items', businessId] });
-      }
-      toast.success(`Item ${item.is_active ? 'deactivated' : 'activated'}`);
+      await deleteItemMutation.mutateAsync(item.id);
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+      toast.success('Item eliminado');
+      setShowEditorModal(false);
+      setEditingItem(null);
+      setSelectedItems((prev) => prev.filter((key) => key !== getItemSelectionKey(item)));
     } catch (error) {
-      toast.error('Failed to update item');
+      toast.error(error?.message || 'No se pudo eliminar el item');
     }
   };
 
@@ -490,7 +502,7 @@ export default function Items() {
                     <TableHead>Presentación</TableHead>
                     <TableHead className="text-right">Price</TableHead>
                     <TableHead className="text-center">Stock</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Origen</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -503,7 +515,6 @@ export default function Items() {
                       selected={selectedItems.includes(getItemSelectionKey(item))}
                       onSelect={(checked) => handleSelectItem(item, checked)}
                       onEdit={handleEditItem}
-                      onDeactivate={handleDeactivateItem}
                       showCheckbox
                     />
                   ))}
@@ -533,6 +544,7 @@ export default function Items() {
         categories={categories}
         onSave={handleSaveItem}
         loading={savingItem}
+        onDelete={handleDeleteItem}
       />
 
       <CsvImportWizard

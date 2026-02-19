@@ -16,14 +16,10 @@ class Item extends Model
         'price' => 'decimal:2',
         'presentation_quantity' => 'decimal:2',
         'list_price' => 'decimal:2',
-        'active' => 'boolean',
     ];
     
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
-
-    // Scopes locales para filtros
-    public function scopeActive($query) { return $query->where('active', true); }
 }

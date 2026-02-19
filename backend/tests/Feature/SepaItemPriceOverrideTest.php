@@ -35,7 +35,6 @@ class SepaItemPriceOverrideTest extends TestCase
             'name' => 'Yerba Test',
             'barcode' => '7791234567890',
             'price' => 1000,
-            'active' => true,
         ]);
 
         Sanctum::actingAs($user, ['front']);
@@ -86,14 +85,12 @@ class SepaItemPriceOverrideTest extends TestCase
             'name' => 'Fideos Base',
             'barcode' => '7791000000001',
             'price' => 900,
-            'active' => true,
         ]);
 
         $overriddenSepaItem = SepaItem::query()->create([
             'name' => 'Arroz Override',
             'barcode' => '7791000000002',
             'price' => 1200,
-            'active' => true,
         ]);
 
         Sanctum::actingAs($user, ['front']);
@@ -124,7 +121,6 @@ class SepaItemPriceOverrideTest extends TestCase
             'name' => 'Azúcar Test',
             'barcode' => '7790987654321',
             'price' => 800,
-            'active' => true,
         ]);
 
         Sanctum::actingAs($user, ['front']);

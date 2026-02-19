@@ -96,7 +96,7 @@ Route::prefix('protected')->group(function () {
                 // Ítems (Productos/Servicios)
                 Route::patch('items/bulk', [ItemController::class, 'bulkUpdate']);
                 Route::put('sepa-items/{sepaItem}/price', [ItemController::class, 'updateSepaPrice']);
-                Route::apiResource('items', ItemController::class);
+                Route::apiResource('items', ItemController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
                 Route::prefix('items-import')->group(function () {
                     Route::post('preview', [ItemController::class, 'importPreview']);
                     Route::post('preview/full', [ItemController::class, 'importPreviewFull']);
@@ -165,7 +165,7 @@ Route::prefix('public')->middleware(['auth.apikey', 'throttle:public-api'])->gro
     Route::post('payment-methods', [PaymentMethodController::class, 'bulkToggleHideForBusiness']);
     Route::put('payment-methods/{paymentMethod}', [PaymentMethodController::class, 'toggleHideForBusiness']);
 
-    Route::apiResource('items', ItemController::class);
+    Route::apiResource('items', ItemController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
     Route::prefix('items-import')->group(function() {
         Route::post('preview', [ItemController::class, 'importPreview']);
         Route::post('preview/full', [ItemController::class, 'importPreviewFull']);
