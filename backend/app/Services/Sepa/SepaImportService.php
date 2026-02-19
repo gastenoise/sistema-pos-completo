@@ -304,7 +304,6 @@ class SepaImportService
 
         return [
             'name' => $this->normalizeString($item['productos_descripcion'] ?? null, 255) ?? 'SIN NOMBRE',
-            'sku' => null,
             'barcode' => $barcode,
             'price' => $price ?? 0,
             'presentation_quantity' => $presentationQuantity,
@@ -350,7 +349,7 @@ class SepaImportService
             DB::table('sepa_items')->upsert(
                 $batch,
                 ['barcode'],
-                ['name', 'sku', 'price', 'presentation_quantity', 'presentation_unit', 'brand', 'list_price', 'active', 'updated_at']
+                ['name', 'price', 'presentation_quantity', 'presentation_unit', 'brand', 'list_price', 'active', 'updated_at']
             );
         });
 

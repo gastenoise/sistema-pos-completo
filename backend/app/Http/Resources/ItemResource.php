@@ -19,7 +19,7 @@ class ItemResource extends JsonResource
             'business_id' => (int) $this->business_id,
             'category_id' => $this->category_id !== null ? (int) $this->category_id : null,
             'name' => $this->name,
-            'sku' => $this->sku,
+            'sku' => ($this->source ?? 'local') === 'sepa' ? null : $this->sku,
             'barcode' => $this->barcode,
             'price' => (float) $this->price,
             'presentation_quantity' => $this->presentation_quantity !== null ? (float) $this->presentation_quantity : null,
