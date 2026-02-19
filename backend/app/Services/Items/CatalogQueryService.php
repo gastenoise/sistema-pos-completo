@@ -130,9 +130,9 @@ class CatalogQueryService
             ->select([
                 'sepa_items.id',
                 DB::raw("{$businessId} as business_id"),
-                DB::raw('null as category_id'),
+                DB::raw('sibp.category_id as category_id'),
                 'sepa_items.name',
-                'sepa_items.sku',
+                DB::raw('null as sku'),
                 'sepa_items.barcode',
                 DB::raw('COALESCE(sibp.price, sepa_items.price) as price'),
                 'sepa_items.presentation_quantity',
@@ -144,7 +144,7 @@ class CatalogQueryService
                 'sepa_items.updated_at',
                 DB::raw("'sepa' as source"),
                 DB::raw('sepa_items.id as sepa_item_id'),
-                DB::raw('CASE WHEN sibp.id IS NULL THEN false ELSE true END as is_price_overridden'),
+                DB::raw('CASE WHEN sibp.price IS NULL THEN false ELSE true END as is_price_overridden'),
             ]);
 
         return $this->applyCommonFilters($query, $filters, 'sepa_items');
@@ -156,16 +156,17 @@ class CatalogQueryService
             $query->where("{$table}.active", filter_var($filters['active'], FILTER_VALIDATE_BOOLEAN));
         }
 
-        if ($table === 'items' && array_key_exists('category', $filters) && $filters['category'] !== null && $filters['category'] !== '') {
+        if (array_key_exists('category', $filters) && $filters['category'] !== null && $filters['category'] !== '') {
+            $categoryColumn = $table === 'items' ? 'items.category_id' : 'sibp.category_id';
             if ($filters['category'] === 'uncategorized') {
-                $query->whereNull('items.category_id');
+                $query->whereNull($categoryColumn);
             } else {
-                $query->where('items.category_id', $filters['category']);
+                $query->where($categoryColumn, $filters['category']);
             }
         }
 
         if ($table === 'sepa_items' && filter_var($filters['only_sepa_price_overridden'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-            $query->whereNotNull('sibp.id');
+            $query->whereNotNull('sibp.price');
         }
 
         if (!empty($filters['barcode'])) {
@@ -196,10 +197,23 @@ class CatalogQueryService
             return;
         }
 
-        $query->where(function (EloquentBuilder $inner) use ($table, $term) {
+        $tokens = preg_split('/\s+/', trim($term)) ?: [];
+        $tokens = array_values(array_filter($tokens, static fn (string $token): bool => $token !== ''));
+
+        $query->where(function (EloquentBuilder $inner) use ($table, $term, $tokens) {
             $inner->where("{$table}.name", 'like', "%{$term}%")
-                ->orWhere("{$table}.sku", 'like', "%{$term}%")
                 ->orWhere("{$table}.barcode", 'like', "{$term}%");
+
+            if ($table === 'items') {
+                $inner->orWhere("{$table}.sku", 'like', "%{$term}%");
+            }
+
+            foreach ($tokens as $token) {
+                $inner->orWhere("{$table}.name", 'like', "%{$token}%");
+                if ($table === 'items') {
+                    $inner->orWhere("{$table}.sku", 'like', "%{$token}%");
+                }
+            }
         });
     }
 
