@@ -30,14 +30,14 @@ export default function ItemRow({
 
   return (
     <tr className="hover:bg-slate-50 transition-colors">
-      {showCheckbox && (
-        <td className="px-4 py-3 w-12">
+      <td className="px-4 py-3 w-12">
+        {showCheckbox ? (
           <Checkbox 
             checked={selected}
             onCheckedChange={onSelect}
           />
-        </td>
-      )}
+        ) : null}
+      </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div 
@@ -54,14 +54,6 @@ export default function ItemRow({
             {item.sku && (
               <p className="text-xs text-slate-500">SKU (auxiliar): {item.sku}</p>
             )}
-            {item.brand && (
-              <p className="text-xs text-slate-500">Marca: {item.brand}</p>
-            )}
-            {item.presentation_quantity && item.presentation_unit && (
-              <p className="text-xs text-slate-500">
-                Presentación: {Number(item.presentation_quantity).toFixed(2)} {item.presentation_unit}
-              </p>
-            )}
           </div>
         </div>
       </td>
@@ -74,6 +66,14 @@ export default function ItemRow({
         ) : (
           <span className="text-slate-400 text-sm">—</span>
         )}
+      </td>
+      <td className="px-4 py-3">
+        <span className="text-sm text-slate-700">{item.brand || '—'}</span>
+      </td>
+      <td className="px-4 py-3">
+        {item.presentation_quantity && item.presentation_unit
+          ? <span className="text-sm text-slate-700">{Number(item.presentation_quantity).toFixed(2)} {item.presentation_unit}</span>
+          : <span className="text-slate-400 text-sm">—</span>}
       </td>
       <td className="px-4 py-3 text-right font-medium text-slate-900">
         <div>{formatPrice(item.price, currentBusiness)}</div>

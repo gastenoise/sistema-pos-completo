@@ -9,6 +9,13 @@ import {
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -40,6 +47,8 @@ function POSContent() {
   const { user, logout } = useAuth();
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [showWizard, setShowWizard] = useState(false);
   const [showCashOpenModal, setShowCashOpenModal] = useState(false);
   const [isOpeningCashRegister, setIsOpeningCashRegister] = useState(false);
@@ -51,18 +60,28 @@ function POSContent() {
 
   // Fetch items (server-side top-N search)
   const { data: items = [], isLoading: loadingItems } = useQuery({
-    queryKey: ['items', businessId, searchQuery],
+    queryKey: ['items', businessId, searchQuery, sourceFilter, categoryFilter],
     queryFn: async () => {
-      if (!businessId || !searchQuery.trim()) return [];
-      const response = await apiClient.get('/protected/items', {
-        params: {
-          active: true,
-          source: 'all',
-          search: searchQuery,
-          barcode: searchQuery,
-          per_page: 24,
+      if (!businessId) return [];
+      const query = new URLSearchParams();
+      query.set('active', 'true');
+      query.set('source', sourceFilter);
+      query.set('per_page', '24');
+      const trimmedSearch = searchQuery.trim();
+      if (trimmedSearch) {
+        query.set('search', trimmedSearch);
+        if (/^\d{4,}$/.test(trimmedSearch)) {
+          query.set('barcode', trimmedSearch);
         }
-      });
+      }
+      if (categoryFilter !== 'all') {
+        query.set('category', categoryFilter);
+      }
+      if (!trimmedSearch && sourceFilter === 'all' && categoryFilter === 'all') {
+        query.set('recent_first', 'true');
+      }
+
+      const response = await apiClient.get(`/protected/items?${query.toString()}`);
       return mapCatalogIsActive(normalizeListResponse(response, 'items'))
         .map((item) => ({
           ...item,
@@ -511,6 +530,28 @@ function POSContent() {
                 className="pl-10 h-12 text-lg"
               />
             </div>
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="w-[170px] h-12">
+                <SelectValue placeholder="Origen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="local">Locales</SelectItem>
+                <SelectItem value="sepa">SEPA</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[180px] h-12">
+                <SelectValue placeholder="Categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas categorías</SelectItem>
+                <SelectItem value="uncategorized">Sin categoría</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <QuickAddForm onAdd={handleQuickAdd} categories={categories} />
           </div>
 

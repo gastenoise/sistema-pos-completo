@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Upload, Package, Loader2 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
@@ -49,6 +49,7 @@ export default function Items() {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [barcodeFilter, setBarcodeFilter] = useState('');
   const [onlySepaPriceOverridden, setOnlySepaPriceOverridden] = useState(false);
+  const [page, setPage] = useState(1);
   const [selectedItems, setSelectedItems] = useState([]);
   const [showEditorModal, setShowEditorModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -59,37 +60,59 @@ export default function Items() {
   const [savingItem, setSavingItem] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, barcodeFilter, categoryFilter, sourceFilter, onlySepaPriceOverridden]);
+
+  const getItemSelectionKey = (item) => `${item.source || 'local'}:${item.source === 'sepa' ? (item.sepa_item_id || item.id) : item.id}`;
+
+  const buildBulkTargets = () => {
+    const selectedSet = new Set(selectedItems);
+    return items
+      .map((item) => {
+        const key = getItemSelectionKey(item);
+        if (!selectedSet.has(key)) return null;
+        return {
+          id: item.source === 'sepa' ? (item.sepa_item_id || item.id) : item.id,
+          source: item.source === 'sepa' ? 'sepa' : 'local'
+        };
+      })
+      .filter(Boolean);
+  };
+
+
   const updateItemsCache = (entity) => {
     if (!entity?.id) return false;
+    let updated = false;
+
     queryClient.setQueriesData({ queryKey: ['items', businessId] }, (prev) => {
-      if (!prev || !Array.isArray(prev.pages)) {
+      if (!prev || !Array.isArray(prev.items)) {
         return prev;
       }
 
-      let updated = false;
-      const pages = prev.pages.map((pageData) => {
-        if (!Array.isArray(pageData?.items)) return pageData;
-        const found = pageData.items.some((item) => item.id === entity.id && item.source === (entity.source || 'local'));
-        if (!found) return pageData;
-        updated = true;
-        return {
-          ...pageData,
-          items: pageData.items.map((item) => (item.id === entity.id && item.source === (entity.source || 'local') ? { ...item, ...entity } : item))
-        };
-      });
+      const found = prev.items.some((item) => item.id === entity.id && item.source === (entity.source || 'local'));
+      if (!found) {
+        return prev;
+      }
 
-      return updated ? { ...prev, pages } : prev;
+      updated = true;
+      return {
+        ...prev,
+        items: prev.items.map((item) => (
+          item.id === entity.id && item.source === (entity.source || 'local')
+            ? { ...item, ...entity }
+            : item
+        )),
+      };
     });
-    return true;
+
+    return updated;
   };
 
   // Fetch items
   const {
     data: itemsResponse,
     isLoading: loadingItems,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
   } = useItemsQuery({
     businessId,
     searchQuery,
@@ -97,16 +120,17 @@ export default function Items() {
     categoryFilter,
     source: sourceFilter,
     onlySepaPriceOverridden,
+    page,
   });
 
   // Fetch categories
   const { data: categories = [] } = useItemCategoriesQuery(businessId);
 
-  const pages = itemsResponse?.pages || [];
-  const items = pages.flatMap((pageData) => pageData?.items || []);
-  const pagination = pages[pages.length - 1]?.pagination;
+  const items = itemsResponse?.items || [];
+  const pagination = itemsResponse?.pagination || null;
   const totalLoaded = items.length;
   const totalAvailable = pagination?.total ?? totalLoaded;
+  const totalPages = Number(pagination?.last_page || 1);
 
   // Create/Update mutation
   const itemMutation = useSaveItemMutation();
@@ -124,6 +148,7 @@ export default function Items() {
         const saved = await sepaPriceMutation.mutateAsync({
           sepa_item_id: editingItem.sepa_item_id || editingItem.id,
           price: itemData.price,
+          category_id: itemData.category_id,
         });
         updateItemsCache(saved);
         toast.success('Precio SEPA actualizado');
@@ -162,17 +187,18 @@ export default function Items() {
     }
   };
 
-  const handleSelectItem = (itemId, checked) => {
+  const handleSelectItem = (item, checked) => {
+    const key = getItemSelectionKey(item);
     if (checked) {
-      setSelectedItems(prev => [...prev, itemId]);
+      setSelectedItems(prev => prev.includes(key) ? prev : [...prev, key]);
     } else {
-      setSelectedItems(prev => prev.filter(id => id !== itemId));
+      setSelectedItems(prev => prev.filter(id => id !== key));
     }
   };
 
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedItems(items.filter((item) => item.source !== 'sepa').map(item => item.id));
+      setSelectedItems(items.map((item) => getItemSelectionKey(item)));
     } else {
       setSelectedItems([]);
     }
@@ -182,9 +208,9 @@ export default function Items() {
     setBulkLoading(true);
     try {
       const response = await bulkMutation.mutateAsync({
-        ids: selectedItems,
+        targets: buildBulkTargets(),
         operation: 'set_category',
-        category_id: categoryId || null
+        category_id: categoryId && categoryId !== 'none' ? Number(categoryId) : null
       });
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
@@ -197,11 +223,31 @@ export default function Items() {
     }
   };
 
+
+  const handleSetFixedPrice = async (value) => {
+    setBulkLoading(true);
+    try {
+      const response = await bulkMutation.mutateAsync({
+        targets: buildBulkTargets(),
+        operation: 'set_price',
+        price: value
+      });
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+      setSelectedItems([]);
+      const updatedCount = response?.data?.updated_count || selectedItems.length;
+      toast.success(`Precio actualizado en ${updatedCount} ítems`);
+    } catch (error) {
+      toast.error(error?.message || 'Failed to set price');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   const handleApplyPriceIncrease = async (percent) => {
     setBulkLoading(true);
     try {
       const response = await bulkMutation.mutateAsync({
-        ids: selectedItems,
+        targets: buildBulkTargets(),
         operation: 'adjust_price',
         price_delta: percent
       });
@@ -280,7 +326,6 @@ export default function Items() {
           sku: mapping.sku ? row[mapping.sku] : undefined,
           barcode: mapping.barcode ? row[mapping.barcode] : undefined,
           category: mapping.category ? row[mapping.category] : undefined,
-          cost: mapping.cost ? parseFloat(row[mapping.cost]) : undefined,
           stock_quantity: mapping.stock_quantity ? parseFloat(row[mapping.stock_quantity]) : undefined,
           presentation_quantity: mapping.presentation_quantity ? parseFloat(row[mapping.presentation_quantity]) : undefined,
           presentation_unit: mapping.presentation_unit ? row[mapping.presentation_unit] : undefined,
@@ -411,6 +456,7 @@ export default function Items() {
               categories={categories}
               onAssignCategory={handleAssignCategory}
               onApplyPriceIncrease={handleApplyPriceIncrease}
+              onSetFixedPrice={handleSetFixedPrice}
               loading={bulkLoading}
             />
           </div>
@@ -440,6 +486,8 @@ export default function Items() {
                     </TableHead>
                     <TableHead>Item</TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Marca</TableHead>
+                    <TableHead>Presentación</TableHead>
                     <TableHead className="text-right">Price</TableHead>
                     <TableHead className="text-center">Stock</TableHead>
                     <TableHead>Status</TableHead>
@@ -452,11 +500,11 @@ export default function Items() {
                       key={`${item.source}-${item.id}`}
                       item={item}
                       categories={categories}
-                      selected={selectedItems.includes(item.id)}
-                      onSelect={(checked) => handleSelectItem(item.id, checked)}
+                      selected={selectedItems.includes(getItemSelectionKey(item))}
+                      onSelect={(checked) => handleSelectItem(item, checked)}
                       onEdit={handleEditItem}
                       onDeactivate={handleDeactivateItem}
-                      showCheckbox={item.source !== 'sepa'}
+                      showCheckbox
                     />
                   ))}
                 </TableBody>
@@ -468,11 +516,11 @@ export default function Items() {
             <p className="text-sm text-slate-500">
               Mostrando {totalLoaded} de {totalAvailable} ítems
             </p>
-            {hasNextPage && (
-              <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
-                {isFetchingNextPage ? 'Cargando...' : 'Cargar más'}
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Anterior</Button>
+              <span className="text-sm text-slate-600">Página {page} de {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Siguiente</Button>
+            </div>
           </div>
         </div>
       </div>
