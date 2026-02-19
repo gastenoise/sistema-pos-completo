@@ -3,9 +3,14 @@
 namespace App\Actions\Sales;
 
 use App\Models\Sale;
+use App\Services\Items\RecentItemUsageService;
 
 class CloseSaleAction
 {
+    public function __construct(private readonly RecentItemUsageService $recentItemUsageService)
+    {
+    }
+
     public function execute(Sale $sale): array
     {
         if ($sale->items()->count() === 0) {
@@ -31,6 +36,16 @@ class CloseSaleAction
             'status' => 'closed',
             'closed_at' => now(),
         ]);
+
+
+        $sale->loadMissing('items');
+        foreach ($sale->items as $saleItem) {
+            $source = $saleItem->sepa_item_id ? 'sepa' : 'local';
+            $itemId = $saleItem->sepa_item_id ? (int) $saleItem->sepa_item_id : (int) $saleItem->item_id;
+            if ($itemId > 0) {
+                $this->recentItemUsageService->record((int) $sale->business_id, $source, $itemId, (int) ($saleItem->quantity ?? 1));
+            }
+        }
 
         return ['success' => true, 'message' => 'Sale finalized', 'status' => 200];
     }

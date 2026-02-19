@@ -49,20 +49,25 @@ class SepaImportService
                 'updated_rows' => $metrics['updated_rows'],
                 'error_samples' => $metrics['error_samples'],
                 'finished_at' => now(),
-                'duration_seconds' => now()->diffInSeconds($startedAt),
+                'duration_seconds' => $this->safeDurationSeconds($startedAt),
             ]);
         } catch (\Throwable $exception) {
             $run->update([
                 'status' => 'failed',
                 'error_message' => $exception->getMessage(),
                 'finished_at' => now(),
-                'duration_seconds' => now()->diffInSeconds($startedAt),
+                'duration_seconds' => $this->safeDurationSeconds($startedAt),
             ]);
 
             throw $exception;
         }
 
         return $run->fresh();
+    }
+
+    private function safeDurationSeconds(Carbon $startedAt): int
+    {
+        return max(0, (int) $startedAt->diffInSeconds(now(), true));
     }
 
     /**

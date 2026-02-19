@@ -248,6 +248,7 @@ class ItemController extends Controller
             'only_sepa_price_overridden' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'cursor_paginate' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
+            'recent_first' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
         ]);
 
         $items = $catalogQueryService->list($validated);
@@ -297,7 +298,7 @@ class ItemController extends Controller
 
         $effectivePrice = $override?->price !== null
             ? round((float) $override->price, 2)
-            : round((float) $sepaItem->price, 2);
+            : round((float) ($sepaItem->list_price ?? $sepaItem->price), 2);
 
         return response()->json([
             'success' => true,

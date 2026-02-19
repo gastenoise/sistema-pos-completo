@@ -77,6 +77,9 @@ function POSContent() {
       if (categoryFilter !== 'all') {
         query.set('category', categoryFilter);
       }
+      if (!trimmedSearch && sourceFilter === 'all' && categoryFilter === 'all') {
+        query.set('recent_first', 'true');
+      }
 
       const response = await apiClient.get(`/protected/items?${query.toString()}`);
       return mapCatalogIsActive(normalizeListResponse(response, 'items'))

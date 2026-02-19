@@ -6,6 +6,7 @@ use App\Models\BusinessParameter;
 use App\Models\Item;
 use App\Models\SepaItem;
 use App\Services\BusinessContext;
+use App\Services\Items\RecentItemUsageService;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -34,7 +35,10 @@ class CatalogQueryService
         'is_price_overridden',
     ];
 
-    public function __construct(private readonly BusinessContext $businessContext)
+    public function __construct(
+        private readonly BusinessContext $businessContext,
+        private readonly RecentItemUsageService $recentItemUsageService,
+    )
     {
     }
 
@@ -45,6 +49,7 @@ class CatalogQueryService
         $source = $filters['source'] ?? 'all';
 
         $query = $this->buildCatalogQuery($businessId, $sepaEnabled, $source, $filters);
+        $this->applyRecentOrdering($query, $businessId, $filters);
 
         $perPage = $this->resolvePerPage($filters);
         $useCursor = filter_var($filters['cursor_paginate'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -134,7 +139,7 @@ class CatalogQueryService
                 'sepa_items.name',
                 DB::raw('null as sku'),
                 'sepa_items.barcode',
-                DB::raw('COALESCE(sibp.price, sepa_items.price) as price'),
+                DB::raw('COALESCE(sibp.price, sepa_items.list_price, sepa_items.price) as price'),
                 'sepa_items.presentation_quantity',
                 'sepa_items.presentation_unit',
                 'sepa_items.brand',
@@ -220,6 +225,46 @@ class CatalogQueryService
     private function looksLikeBarcode(string $term): bool
     {
         return preg_match('/^\d{4,}$/', $term) === 1;
+    }
+
+
+    private function applyRecentOrdering(EloquentBuilder|QueryBuilder $query, int $businessId, array $filters): void
+    {
+        $recentFirst = filter_var($filters['recent_first'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        if (!$recentFirst || !empty($filters['search']) || !empty($filters['barcode']) || !empty($filters['category'])) {
+            return;
+        }
+
+        $topKeys = $this->recentItemUsageService->topKeys($businessId, 60);
+        if ($topKeys === []) {
+            return;
+        }
+
+        $cases = [];
+        $bindings = [];
+
+        foreach ($topKeys as $idx => $key) {
+            [$source, $id] = array_pad(explode(':', $key, 2), 2, null);
+            if (!in_array($source, ['local', 'sepa'], true) || !is_numeric($id)) {
+                continue;
+            }
+
+            $cases[] = 'WHEN source = ? AND id = ? THEN ?';
+            $bindings[] = $source;
+            $bindings[] = (int) $id;
+            $bindings[] = $idx;
+        }
+
+        if ($cases === []) {
+            return;
+        }
+
+        $sql = 'CASE ' . implode(' ', $cases) . ' ELSE 999999 END';
+        $query->reorder();
+        $query->orderByRaw($sql . ' ASC', $bindings)
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->orderBy('id');
     }
 
     private function resolvePerPage(array $filters): int

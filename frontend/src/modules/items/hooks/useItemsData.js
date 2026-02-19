@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   bulkUpdateItems,
   confirmItemsImport,
@@ -20,23 +20,18 @@ export const useItemsQuery = ({
   categoryFilter,
   source,
   onlySepaPriceOverridden,
-}) => useInfiniteQuery({
-  queryKey: ['items', businessId, searchQuery, barcode, categoryFilter, source, onlySepaPriceOverridden],
-  queryFn: ({ pageParam = 1 }) => getItems({
+  page,
+}) => useQuery({
+  queryKey: ['items', businessId, searchQuery, barcode, categoryFilter, source, onlySepaPriceOverridden, page],
+  queryFn: () => getItems({
     search: searchQuery,
     barcode,
     category: categoryFilter,
     source,
     only_sepa_price_overridden: onlySepaPriceOverridden,
-    page: pageParam,
+    page,
     per_page: ITEMS_PER_PAGE
   }),
-  initialPageParam: 1,
-  getNextPageParam: (lastPage) => {
-    const current = Number(lastPage?.pagination?.current_page || 1);
-    const last = Number(lastPage?.pagination?.last_page || 1);
-    return current < last ? current + 1 : undefined;
-  },
   enabled: Boolean(businessId)
 });
 

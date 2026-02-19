@@ -88,10 +88,11 @@ class BulkUpdateItemsAction
                 }
 
                 if ($operation === 'set_price') {
+                    $targetPrice = round((float) $validated['price'], 2);
                     foreach ($sepaItems as $sepaItem) {
                         SepaItemBusinessPrice::query()->updateOrCreate(
                             ['business_id' => $businessId, 'sepa_item_id' => (int) $sepaItem->id],
-                            ['price' => round((float) $validated['price'], 2)]
+                            ['price' => $targetPrice > 0 ? $targetPrice : null]
                         );
                     }
                     $updatedSepa = count($sepaIds);

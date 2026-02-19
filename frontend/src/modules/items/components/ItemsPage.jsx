@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Upload, Package, Loader2 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
@@ -49,6 +49,7 @@ export default function Items() {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [barcodeFilter, setBarcodeFilter] = useState('');
   const [onlySepaPriceOverridden, setOnlySepaPriceOverridden] = useState(false);
+  const [page, setPage] = useState(1);
   const [selectedItems, setSelectedItems] = useState([]);
   const [showEditorModal, setShowEditorModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -58,6 +59,10 @@ export default function Items() {
   const [importLoading, setImportLoading] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, barcodeFilter, categoryFilter, sourceFilter, onlySepaPriceOverridden]);
 
   const getItemSelectionKey = (item) => `${item.source || 'local'}:${item.source === 'sepa' ? (item.sepa_item_id || item.id) : item.id}`;
 
@@ -78,35 +83,36 @@ export default function Items() {
 
   const updateItemsCache = (entity) => {
     if (!entity?.id) return false;
+    let updated = false;
+
     queryClient.setQueriesData({ queryKey: ['items', businessId] }, (prev) => {
-      if (!prev || !Array.isArray(prev.pages)) {
+      if (!prev || !Array.isArray(prev.items)) {
         return prev;
       }
 
-      let updated = false;
-      const pages = prev.pages.map((pageData) => {
-        if (!Array.isArray(pageData?.items)) return pageData;
-        const found = pageData.items.some((item) => item.id === entity.id && item.source === (entity.source || 'local'));
-        if (!found) return pageData;
-        updated = true;
-        return {
-          ...pageData,
-          items: pageData.items.map((item) => (item.id === entity.id && item.source === (entity.source || 'local') ? { ...item, ...entity } : item))
-        };
-      });
+      const found = prev.items.some((item) => item.id === entity.id && item.source === (entity.source || 'local'));
+      if (!found) {
+        return prev;
+      }
 
-      return updated ? { ...prev, pages } : prev;
+      updated = true;
+      return {
+        ...prev,
+        items: prev.items.map((item) => (
+          item.id === entity.id && item.source === (entity.source || 'local')
+            ? { ...item, ...entity }
+            : item
+        )),
+      };
     });
-    return true;
+
+    return updated;
   };
 
   // Fetch items
   const {
     data: itemsResponse,
     isLoading: loadingItems,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
   } = useItemsQuery({
     businessId,
     searchQuery,
@@ -114,16 +120,17 @@ export default function Items() {
     categoryFilter,
     source: sourceFilter,
     onlySepaPriceOverridden,
+    page,
   });
 
   // Fetch categories
   const { data: categories = [] } = useItemCategoriesQuery(businessId);
 
-  const pages = itemsResponse?.pages || [];
-  const items = pages.flatMap((pageData) => pageData?.items || []);
-  const pagination = pages[pages.length - 1]?.pagination;
+  const items = itemsResponse?.items || [];
+  const pagination = itemsResponse?.pagination || null;
   const totalLoaded = items.length;
   const totalAvailable = pagination?.total ?? totalLoaded;
+  const totalPages = Number(pagination?.last_page || 1);
 
   // Create/Update mutation
   const itemMutation = useSaveItemMutation();
@@ -211,6 +218,26 @@ export default function Items() {
       toast.success(`Category assigned to ${updatedCount} items`);
     } catch (error) {
       toast.error(error?.message || 'Failed to assign category');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+
+  const handleSetFixedPrice = async (value) => {
+    setBulkLoading(true);
+    try {
+      const response = await bulkMutation.mutateAsync({
+        targets: buildBulkTargets(),
+        operation: 'set_price',
+        price: value
+      });
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+      setSelectedItems([]);
+      const updatedCount = response?.data?.updated_count || selectedItems.length;
+      toast.success(`Precio actualizado en ${updatedCount} ítems`);
+    } catch (error) {
+      toast.error(error?.message || 'Failed to set price');
     } finally {
       setBulkLoading(false);
     }
@@ -429,6 +456,7 @@ export default function Items() {
               categories={categories}
               onAssignCategory={handleAssignCategory}
               onApplyPriceIncrease={handleApplyPriceIncrease}
+              onSetFixedPrice={handleSetFixedPrice}
               loading={bulkLoading}
             />
           </div>
@@ -488,11 +516,11 @@ export default function Items() {
             <p className="text-sm text-slate-500">
               Mostrando {totalLoaded} de {totalAvailable} ítems
             </p>
-            {hasNextPage && (
-              <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
-                {isFetchingNextPage ? 'Cargando...' : 'Cargar más'}
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Anterior</Button>
+              <span className="text-sm text-slate-600">Página {page} de {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Siguiente</Button>
+            </div>
           </div>
         </div>
       </div>

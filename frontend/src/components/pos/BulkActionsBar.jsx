@@ -21,9 +21,20 @@ export default function BulkActionsBar({
   categories = [],
   onAssignCategory,
   onApplyPriceIncrease,
+  onSetFixedPrice,
   loading = false
 }) {
   const [priceIncrease, setPriceIncrease] = useState('');
+  const [fixedPrice, setFixedPrice] = useState('');
+
+
+  const handleSetFixedPrice = () => {
+    const value = parseFloat(fixedPrice);
+    if (!Number.isNaN(value) && value >= 0) {
+      onSetFixedPrice(value);
+      setFixedPrice('');
+    }
+  };
 
   const handlePriceIncrease = () => {
     const percent = parseFloat(priceIncrease);
@@ -73,6 +84,43 @@ export default function BulkActionsBar({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+
+        {/* Set fixed price */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" disabled={loading}>
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Set Price
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64">
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Aplicar mismo precio a seleccionados</p>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="e.g., 1200"
+                  value={fixedPrice}
+                  onChange={(e) => setFixedPrice(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+              <Button
+                onClick={handleSetFixedPrice}
+                size="sm"
+                className="w-full"
+                disabled={fixedPrice === '' || loading}
+              >
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Apply
+              </Button>
+              <p className="text-xs text-slate-500">SEPA: si el valor es 0 se restaura al precio base.</p>
             </div>
           </PopoverContent>
         </Popover>
