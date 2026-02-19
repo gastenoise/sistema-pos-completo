@@ -49,10 +49,78 @@ El docker-compose.yml levanta un contenedor queue y scheduler.
 
 Para deshabilitar cron, comentar el servicio scheduler en docker-compose.yml.
 
-### Operación SEPA (hora de negocio AR)
-- La tarea `sepa:sync` se agenda a las **15:30** con timezone explícita `America/Argentina/Buenos_Aires`.
-- El comando resuelve el día con `now()->locale('es')->isoFormat('dddd')`, por lo que al correr en timezone AR toma el día argentino correcto.
-- Evitá configurar un scheduler paralelo (crontab del host, supervisor externo, otro contenedor) que también ejecute `sepa:sync`, para prevenir doble ejecución.
+### Operación SEPA
+
+#### 1) Local con Docker Compose (este repo)
+
+1. **Confirmar `scheduler` activo** (ejecuta `php artisan schedule:run` cada 60s):
+   ```bash
+   docker compose ps scheduler
+   docker compose logs -f scheduler
+   ```
+2. **Confirmar `queue` activo** (`php artisan queue:work --tries=3`):
+   ```bash
+   docker compose ps queue
+   docker compose logs -f queue
+   ```
+   > `sepa:sync` encola `ProcessSepaSyncJob` salvo que se ejecute con `--sync`.
+3. **Verificar variables obligatorias en `.env`**:
+   - `SEPA_URL_LUNES`
+   - `SEPA_URL_MARTES`
+   - `SEPA_URL_MIERCOLES`
+   - `SEPA_URL_JUEVES`
+   - `SEPA_URL_VIERNES`
+   - `SEPA_URL_SABADO`
+   - `SEPA_URL_DOMINGO`
+
+   Ejemplo de chequeo rápido:
+   ```bash
+   rg '^SEPA_URL_(LUNES|MARTES|MIERCOLES|JUEVES|VIERNES|SABADO|DOMINGO)=' .env
+   ```
+4. **Observar ejecución cerca de 15:30 AR** revisando logs de `scheduler` y `queue`.
+
+#### 2) Local sin Docker
+
+- Configurar cron del SO:
+  ```cron
+  * * * * * cd /ruta/backend && php artisan schedule:run >> storage/logs/scheduler.log 2>&1
+  ```
+- Correr worker en paralelo:
+  ```bash
+  php artisan queue:work --tries=3
+  ```
+
+#### 3) Producción recomendada
+
+- Cron del sistema ejecutando `php artisan schedule:run` **cada minuto**.
+- `queue:work` siempre vivo con **Supervisor/Systemd** (o **Laravel Horizon** si aplica).
+- Timezone:
+  - Recomendado: definir timezone explícita en el Scheduler:
+    ```php
+    Schedule::command('sepa:sync')->dailyAt('15:30')->timezone('America/Argentina/Buenos_Aires');
+    ```
+  - Además, alinear timezone de host/contenedor/PHP para evitar desfasajes.
+
+#### 4) Checklist de verificación
+
+- A las **15:30 AR** aparece ejecución en logs.
+- Se crea registro en `sepa_import_runs`.
+- No hay duplicados (una sola ejecución diaria).
+- El día resuelto (`lunes..domingo`) coincide con la fecha argentina.
+
+Comandos útiles de diagnóstico:
+```bash
+# Revisar próximas ejecuciones del scheduler
+php artisan schedule:list
+
+# Ejecutar importación de forma síncrona para diagnóstico inmediato
+php artisan sepa:sync --sync
+
+# Revisar últimas corridas registradas
+php artisan tinker --execute="App\\Models\\SepaImportRun::query()->latest()->limit(5)->get(['id','day','date','status','started_at','finished_at'])->toArray();"
+```
+
+> Evitá configurar **más de un scheduler** para el mismo entorno (por ejemplo, cron + contenedor scheduler al mismo tiempo), para prevenir ejecuciones duplicadas.
 
 Tests
 Ejecutar make test para correr Pest/PHPUnit.
