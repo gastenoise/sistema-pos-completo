@@ -35,6 +35,10 @@ export const normalizeItemsPage = (response) => {
 export const getItems = async (params) => {
   const query = new URLSearchParams();
   Object.entries(params || {}).forEach(([key, value]) => {
+    if (key === 'only_sepa_price_overridden' && value !== true) {
+      return;
+    }
+
     if (value !== undefined && value !== null && value !== '' && value !== 'all') {
       query.set(key, String(value));
     }
@@ -65,7 +69,10 @@ export const saveSepaItemPrice = async (itemData) => {
   const sepaItemId = itemData?.sepa_item_id ?? itemData?.id;
   const response = await request(`/protected/sepa-items/${sepaItemId}/price`, {
     method: 'PUT',
-    body: { price: itemData.price }
+    body: {
+      price: itemData.price ?? null,
+      category_id: itemData.category_id ?? null
+    }
   });
 
   return normalizeItem(normalizeEntityResponse(response));

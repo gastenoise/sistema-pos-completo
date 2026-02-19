@@ -32,7 +32,6 @@ const OPTIONAL_FIELDS = [
   'barcode',
   'sku',
   'category',
-  'cost',
   'stock_quantity',
   'presentation_quantity',
   'presentation_unit',
