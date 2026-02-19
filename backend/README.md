@@ -49,6 +49,11 @@ El docker-compose.yml levanta un contenedor queue y scheduler.
 
 Para deshabilitar cron, comentar el servicio scheduler en docker-compose.yml.
 
+### Operación SEPA (hora de negocio AR)
+- La tarea `sepa:sync` se agenda a las **15:30** con timezone explícita `America/Argentina/Buenos_Aires`.
+- El comando resuelve el día con `now()->locale('es')->isoFormat('dddd')`, por lo que al correr en timezone AR toma el día argentino correcto.
+- Evitá configurar un scheduler paralelo (crontab del host, supervisor externo, otro contenedor) que también ejecute `sepa:sync`, para prevenir doble ejecución.
+
 Tests
 Ejecutar make test para correr Pest/PHPUnit.
 
