@@ -58,13 +58,6 @@ class BulkUpdateItemsAction
                     }
                     $updatedLocal = count($localIds);
                 }
-
-                if ($operation === 'set_active') {
-                    Item::whereIn('id', $localIds)->update([
-                        'active' => filter_var($validated['active'], FILTER_VALIDATE_BOOLEAN),
-                    ]);
-                    $updatedLocal = count($localIds);
-                }
             }
 
             if ($sepaIds !== []) {

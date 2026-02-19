@@ -2,13 +2,13 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   bulkUpdateItems,
   confirmItemsImport,
+  deleteItem,
   getCategories,
   getItems,
   previewItemsImport,
   previewItemsImportPage,
   saveItem,
-  saveSepaItemPrice,
-  toggleItemStatus
+  saveSepaItemPrice
 } from '@/api/items';
 
 export const ITEMS_PER_PAGE = 20;
@@ -43,7 +43,7 @@ export const useItemCategoriesQuery = (businessId) => useQuery({
 
 export const useSaveItemMutation = () => useMutation({ mutationFn: saveItem });
 export const useSaveSepaPriceMutation = () => useMutation({ mutationFn: saveSepaItemPrice });
-export const useToggleItemStatusMutation = () => useMutation({ mutationFn: toggleItemStatus });
+export const useDeleteItemMutation = () => useMutation({ mutationFn: deleteItem });
 export const useBulkItemsMutation = () => useMutation({ mutationFn: bulkUpdateItems });
 export const usePreviewItemsImportMutation = () => useMutation({ mutationFn: previewItemsImport });
 export const usePreviewItemsImportPageMutation = () => useMutation({

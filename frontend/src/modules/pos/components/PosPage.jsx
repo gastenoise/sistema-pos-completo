@@ -64,7 +64,6 @@ function POSContent() {
     queryFn: async () => {
       if (!businessId) return [];
       const query = new URLSearchParams();
-      query.set('active', 'true');
       query.set('source', sourceFilter);
       query.set('per_page', '24');
       const trimmedSearch = searchQuery.trim();
@@ -88,8 +87,7 @@ function POSContent() {
           category_id: item.category_id !== null && item.category_id !== undefined
             ? Number(item.category_id)
             : null
-        }))
-        .filter((item) => item.is_active !== false);
+        }));
     },
     enabled: !!businessId
   });

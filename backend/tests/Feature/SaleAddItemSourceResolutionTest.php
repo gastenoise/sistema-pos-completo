@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Actions\Sales\AddItemToSaleAction;
 use App\Models\Business;
 use App\Models\CashRegisterSession;
+use App\Models\Category;
 use App\Models\Sale;
 use App\Models\SepaItem;
 use App\Models\User;
@@ -48,13 +49,19 @@ class SaleAddItemSourceResolutionTest extends TestCase
             'presentation_unit' => 'kg',
             'brand' => 'Marca',
             'list_price' => 1200,
-            'active' => true,
+        ]);
+
+        $category = Category::create([
+            'business_id' => $business->id,
+            'name' => 'Yerbas',
+            'color' => 1,
         ]);
 
         DB::table('sepa_item_business_prices')->insert([
             'business_id' => $business->id,
             'sepa_item_id' => $sepaItem->id,
             'price' => 850,
+            'category_id' => $category->id,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -75,6 +82,8 @@ class SaleAddItemSourceResolutionTest extends TestCase
             'item_name_snapshot' => 'Yerba SEPA',
             'barcode_snapshot' => '7791111111111',
             'unit_price_snapshot' => 850,
+            'category_id_snapshot' => $category->id,
+            'category_name_snapshot' => 'Yerbas',
             'quantity' => 2,
             'total' => 1700,
         ]);

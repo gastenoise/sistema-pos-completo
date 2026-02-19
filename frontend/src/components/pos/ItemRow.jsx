@@ -13,7 +13,6 @@ export default function ItemRow({
   selected, 
   onSelect, 
   onEdit, 
-  onDeactivate: _onDeactivate,
   showCheckbox = true 
 }) {
   const { currentBusiness } = useBusiness();
@@ -92,9 +91,6 @@ export default function ItemRow({
       </td>
       <td className="px-4 py-3">
         <div className="flex flex-col gap-1">
-          <Badge variant={item.is_active ? 'default' : 'secondary'} className={item.is_active ? 'bg-green-100 text-green-800' : ''}>
-            {item.is_active ? 'Active' : 'Inactive'}
-          </Badge>
           <Badge variant="outline">{item.source === 'sepa' ? 'SEPA' : 'Local'}</Badge>
         </div>
       </td>

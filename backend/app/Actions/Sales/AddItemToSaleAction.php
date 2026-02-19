@@ -25,6 +25,7 @@ class AddItemToSaleAction
             'barcode_snapshot' => $resolvedItem['barcode_snapshot'],
             'unit_price_snapshot' => $resolvedItem['unit_price_snapshot'],
             'category_id_snapshot' => $resolvedItem['category_id_snapshot'],
+            'category_name_snapshot' => $resolvedItem['category_name_snapshot'] ?? null,
             'quantity' => $quantity,
             'total' => $total,
         ]);

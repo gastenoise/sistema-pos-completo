@@ -13,7 +13,6 @@ class SepaItem extends Model
         'price' => 'decimal:2',
         'presentation_quantity' => 'decimal:2',
         'list_price' => 'decimal:2',
-        'active' => 'boolean',
     ];
 
     public function businessPrices(): HasMany

@@ -49,6 +49,7 @@ const getSalePaymentBreakdown = (sale, paymentMethodLookup = {}) => {
 
 const getSaleItemCategoryName = (item) => {
   return item?.category_name
+    ?? item?.category_name_snapshot
     ?? item?.category_snapshot?.name
     ?? item?.categorySnapshot?.name
     ?? item?.item?.category?.name

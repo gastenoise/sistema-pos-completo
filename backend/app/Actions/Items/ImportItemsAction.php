@@ -123,7 +123,7 @@ class ImportItemsAction
                         'business_id' => $businessId,
                         'barcode' => $barcode,
                     ]);
-                    $item->fill($payload + ['active' => true]);
+                    $item->fill($payload);
                     $item->save();
 
                     if ($item->wasRecentlyCreated) {
@@ -136,7 +136,7 @@ class ImportItemsAction
                         'business_id' => $businessId,
                         'sku' => $sku,
                     ]);
-                    $item->fill($payload + ['active' => true]);
+                    $item->fill($payload);
                     $item->save();
 
                     if ($item->wasRecentlyCreated) {

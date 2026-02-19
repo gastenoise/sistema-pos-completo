@@ -108,7 +108,6 @@ class ReportSummaryAggregationTest extends TestCase
             'category_id' => $categoryId,
             'name' => 'Agua',
             'price' => 10,
-            'active' => 1,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -118,7 +117,6 @@ class ReportSummaryAggregationTest extends TestCase
             'category_id' => null,
             'name' => 'Snack',
             'price' => 5,
-            'active' => 1,
             'created_at' => now(),
             'updated_at' => now(),
         ]);

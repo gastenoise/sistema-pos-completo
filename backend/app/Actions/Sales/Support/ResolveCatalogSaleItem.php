@@ -2,6 +2,7 @@
 
 namespace App\Actions\Sales\Support;
 
+use App\Models\Category;
 use App\Models\Item;
 use App\Models\SepaItem;
 use App\Models\SepaItemBusinessPrice;
@@ -47,7 +48,10 @@ class ResolveCatalogSaleItem
             ]);
         }
 
-        $effectivePrice = (float) ($rawItem['unit_price_override'] ?? $item->price);
+        $basePrice = (float) $item->price;
+        $effectivePrice = array_key_exists('unit_price_override', $rawItem)
+            ? (float) $rawItem['unit_price_override']
+            : $basePrice;
 
         return [
             'item_source' => 'local',
@@ -57,6 +61,7 @@ class ResolveCatalogSaleItem
             'barcode_snapshot' => $item->barcode,
             'category_id_snapshot' => $item->category_id,
             'unit_price_snapshot' => $effectivePrice,
+            'category_name_snapshot' => $item->category?->name,
         ];
     }
 
@@ -71,13 +76,21 @@ class ResolveCatalogSaleItem
             ]);
         }
 
-        $businessPrice = SepaItemBusinessPrice::query()
+        $businessOverride = SepaItemBusinessPrice::query()
             ->where('business_id', $sale->business_id)
             ->where('sepa_item_id', $sepaItem->id)
-            ->value('price');
+            ->first(['price', 'category_id']);
+
+        $businessPrice = $businessOverride?->price;
+        $categorySnapshotId = $businessOverride?->category_id !== null ? (int) $businessOverride->category_id : null;
+        $categorySnapshotName = $categorySnapshotId !== null
+            ? Category::query()->find($categorySnapshotId)?->name
+            : null;
 
         $basePrice = $businessPrice !== null ? (float) $businessPrice : (float) $sepaItem->price;
-        $effectivePrice = (float) ($rawItem['unit_price_override'] ?? $basePrice);
+        $effectivePrice = array_key_exists('unit_price_override', $rawItem)
+            ? (float) $rawItem['unit_price_override']
+            : $basePrice;
 
         return [
             'item_source' => 'sepa',
@@ -85,8 +98,9 @@ class ResolveCatalogSaleItem
             'sepa_item_id' => $sepaItem->id,
             'item_name_snapshot' => $sepaItem->name,
             'barcode_snapshot' => $sepaItem->barcode,
-            'category_id_snapshot' => null,
+            'category_id_snapshot' => $categorySnapshotId,
             'unit_price_snapshot' => $effectivePrice,
+            'category_name_snapshot' => $categorySnapshotName,
         ];
     }
 }

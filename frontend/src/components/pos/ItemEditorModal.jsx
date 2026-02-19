@@ -23,6 +23,7 @@ export default function ItemEditorModal({
   item, 
   categories = [],
   onSave,
+  onDelete,
   loading = false
 }) {
   const NO_CATEGORY_VALUE = 'none';
@@ -38,8 +39,7 @@ export default function ItemEditorModal({
     brand: '',
     list_price: '',
     stock_quantity: 0,
-    track_stock: false,
-    is_active: true
+    track_stock: false
   });
 
   useEffect(() => {
@@ -55,8 +55,7 @@ export default function ItemEditorModal({
         brand: item.brand || '',
         list_price: item.list_price?.toString() || '',
         stock_quantity: item.stock_quantity || 0,
-        track_stock: item.track_stock || false,
-        is_active: item.is_active !== false
+        track_stock: item.track_stock || false
       });
     } else {
       setFormData({
@@ -70,8 +69,7 @@ export default function ItemEditorModal({
         brand: '',
         list_price: '',
             stock_quantity: 0,
-        track_stock: false,
-        is_active: true
+        track_stock: false
       });
     }
   }, [item, open]);
@@ -291,12 +289,8 @@ export default function ItemEditorModal({
 
           <div className="flex justify-between gap-3 pt-4 border-t">
             {item && !isSepaItem && (
-              <Button 
-                type="button"
-                variant={formData.is_active ? "destructive" : "default"}
-                onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
-              >
-                {formData.is_active ? 'Deactivate' : 'Activate'}
+              <Button type="button" variant="destructive" onClick={() => onDelete?.(item)} disabled={loading}>
+                Eliminar item
               </Button>
             )}
             <div className="flex gap-3 ml-auto">
