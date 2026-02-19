@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Http\Middleware\EnsureTokenIsFresh;
 use App\Models\Business;
 use App\Models\BusinessParameter;
+use App\Models\Item;
 use App\Models\SepaItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -111,6 +112,94 @@ class SepaItemPriceOverrideTest extends TestCase
         $this->assertSame('sepa', $items[0]['source']);
         $this->assertSame($overriddenSepaItem->id, $items[0]['sepa_item_id']);
         $this->assertTrue($items[0]['is_price_overridden']);
+    }
+
+
+
+    public function test_it_can_filter_catalog_to_only_items_with_updated_price_from_any_source(): void
+    {
+        [$user, $business] = $this->createAuthenticatedOwner();
+
+        BusinessParameter::query()->create([
+            'business_id' => $business->id,
+            'parameter_id' => BusinessParameter::ENABLE_SEPA_ITEMS,
+        ]);
+
+        Item::query()->create([
+            'business_id' => $business->id,
+            'name' => 'Local Base',
+            'price' => 100,
+            'list_price' => 100,
+        ]);
+
+        $localUpdated = Item::query()->create([
+            'business_id' => $business->id,
+            'name' => 'Local Actualizado',
+            'price' => 140,
+            'list_price' => 100,
+        ]);
+
+        $sepaBase = SepaItem::query()->create([
+            'name' => 'SEPA Base',
+            'barcode' => '7791000000010',
+            'price' => 100,
+            'list_price' => 120,
+        ]);
+
+        $sepaUpdated = SepaItem::query()->create([
+            'name' => 'SEPA Actualizado',
+            'barcode' => '7791000000011',
+            'price' => 100,
+            'list_price' => 120,
+        ]);
+
+        Sanctum::actingAs($user, ['front']);
+
+        $this->withHeader('X-Business-Id', (string) $business->id)
+            ->putJson("/protected/sepa-items/{$sepaUpdated->id}/price", [
+                'price' => 150,
+            ])
+            ->assertOk();
+
+        $response = $this->withHeader('X-Business-Id', (string) $business->id)
+            ->getJson('/protected/items?only_price_updated=true')
+            ->assertOk();
+
+        $items = collect($response->json('data.data'));
+
+        $this->assertCount(2, $items);
+        $this->assertTrue($items->contains(fn (array $item): bool => $item['source'] === 'local' && $item['id'] === $localUpdated->id));
+        $this->assertTrue($items->contains(fn (array $item): bool => $item['source'] === 'sepa' && $item['sepa_item_id'] === $sepaUpdated->id));
+        $this->assertFalse($items->contains(fn (array $item): bool => $item['source'] === 'sepa' && $item['sepa_item_id'] === $sepaBase->id));
+    }
+
+    public function test_it_can_filter_by_barcode_or_sku(): void
+    {
+        [$user, $business] = $this->createAuthenticatedOwner();
+
+        Item::query()->create([
+            'business_id' => $business->id,
+            'name' => 'Producto Uno',
+            'sku' => 'ABC-123',
+            'barcode' => '111222333',
+            'price' => 100,
+        ]);
+
+        Item::query()->create([
+            'business_id' => $business->id,
+            'name' => 'Producto Dos',
+            'sku' => 'XYZ-987',
+            'barcode' => '999000111',
+            'price' => 120,
+        ]);
+
+        Sanctum::actingAs($user, ['front']);
+
+        $this->withHeader('X-Business-Id', (string) $business->id)
+            ->getJson('/protected/items?barcode_or_sku=ABC')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.data')
+            ->assertJsonPath('data.data.0.sku', 'ABC-123');
     }
 
     public function test_it_forbids_override_when_business_sepa_flag_is_disabled(): void

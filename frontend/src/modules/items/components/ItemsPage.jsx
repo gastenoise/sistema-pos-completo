@@ -48,7 +48,7 @@ export default function Items() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [barcodeFilter, setBarcodeFilter] = useState('');
-  const [onlySepaPriceOverridden, setOnlySepaPriceOverridden] = useState(false);
+  const [onlyPriceUpdated, setOnlyPriceUpdated] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedItems, setSelectedItems] = useState([]);
   const [showEditorModal, setShowEditorModal] = useState(false);
@@ -62,7 +62,7 @@ export default function Items() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, barcodeFilter, categoryFilter, sourceFilter, onlySepaPriceOverridden]);
+  }, [searchQuery, barcodeFilter, categoryFilter, sourceFilter, onlyPriceUpdated]);
 
   const getItemSelectionKey = (item) => `${item.source || 'local'}:${item.source === 'sepa' ? (item.sepa_item_id || item.id) : item.id}`;
 
@@ -119,7 +119,7 @@ export default function Items() {
     barcode: barcodeFilter,
     categoryFilter,
     source: sourceFilter,
-    onlySepaPriceOverridden,
+    onlyPriceUpdated,
     page,
   });
 
@@ -451,10 +451,10 @@ export default function Items() {
             </Select>
             <label className="flex items-center gap-2 text-sm text-slate-600">
               <Checkbox
-                checked={onlySepaPriceOverridden}
-                onCheckedChange={(checked) => setOnlySepaPriceOverridden(Boolean(checked))}
+                checked={onlyPriceUpdated}
+                onCheckedChange={(checked) => setOnlyPriceUpdated(Boolean(checked))}
               />
-              Solo SEPA con precio override
+              Precio actualizado
             </label>
           </div>
         </div>

@@ -168,9 +168,32 @@ class CatalogQueryService
             $query->whereNotNull('sibp.price');
         }
 
+        if (filter_var($filters['only_price_updated'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            if ($table === 'sepa_items') {
+                $query->where(function (EloquentBuilder $inner): void {
+                    $inner->whereNotNull('sepa_items.list_price')
+                        ->whereRaw('COALESCE(sibp.price, sepa_items.list_price, sepa_items.price) > sepa_items.list_price');
+                });
+            } else {
+                $query->whereNotNull('items.list_price')
+                    ->whereColumn('items.price', '>', 'items.list_price');
+            }
+        }
+
         if (!empty($filters['barcode'])) {
             $barcode = trim((string) $filters['barcode']);
             $query->where("{$table}.barcode", 'like', "{$barcode}%");
+        }
+
+        if (!empty($filters['barcode_or_sku'])) {
+            $barcodeOrSku = trim((string) $filters['barcode_or_sku']);
+            $query->where(function (EloquentBuilder $inner) use ($table, $barcodeOrSku): void {
+                $inner->where("{$table}.barcode", 'like', "{$barcodeOrSku}%");
+
+                if ($table === 'items') {
+                    $inner->orWhere("{$table}.sku", 'like', "%{$barcodeOrSku}%");
+                }
+            });
         }
 
         if (!empty($filters['search'])) {
@@ -201,6 +224,7 @@ class CatalogQueryService
 
         $query->where(function (EloquentBuilder $inner) use ($table, $term, $tokens) {
             $inner->where("{$table}.name", 'like', "%{$term}%")
+                ->orWhere("{$table}.brand", 'like', "%{$term}%")
                 ->orWhere("{$table}.barcode", 'like', "{$term}%");
 
             if ($table === 'items') {
@@ -208,7 +232,8 @@ class CatalogQueryService
             }
 
             foreach ($tokens as $token) {
-                $inner->orWhere("{$table}.name", 'like', "%{$token}%");
+                $inner->orWhere("{$table}.name", 'like', "%{$token}%")
+                    ->orWhere("{$table}.brand", 'like', "%{$token}%");
                 if ($table === 'items') {
                     $inner->orWhere("{$table}.sku", 'like', "%{$token}%");
                 }
