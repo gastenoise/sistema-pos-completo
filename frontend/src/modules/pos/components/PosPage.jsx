@@ -9,6 +9,13 @@ import {
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -40,6 +47,7 @@ function POSContent() {
   const { user, logout } = useAuth();
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [showWizard, setShowWizard] = useState(false);
   const [showCashOpenModal, setShowCashOpenModal] = useState(false);
   const [isOpeningCashRegister, setIsOpeningCashRegister] = useState(false);
@@ -51,18 +59,19 @@ function POSContent() {
 
   // Fetch items (server-side top-N search)
   const { data: items = [], isLoading: loadingItems } = useQuery({
-    queryKey: ['items', businessId, searchQuery],
+    queryKey: ['items', businessId, searchQuery, sourceFilter],
     queryFn: async () => {
-      if (!businessId || !searchQuery.trim()) return [];
-      const response = await apiClient.get('/protected/items', {
-        params: {
-          active: true,
-          source: 'all',
-          search: searchQuery,
-          barcode: searchQuery,
-          per_page: 24,
-        }
-      });
+      if (!businessId) return [];
+      const query = new URLSearchParams();
+      query.set('active', 'true');
+      query.set('source', sourceFilter);
+      query.set('per_page', '24');
+      if (searchQuery.trim()) {
+        query.set('search', searchQuery.trim());
+        query.set('barcode', searchQuery.trim());
+      }
+
+      const response = await apiClient.get(`/protected/items?${query.toString()}`);
       return mapCatalogIsActive(normalizeListResponse(response, 'items'))
         .map((item) => ({
           ...item,
@@ -511,6 +520,16 @@ function POSContent() {
                 className="pl-10 h-12 text-lg"
               />
             </div>
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="w-[170px] h-12">
+                <SelectValue placeholder="Origen" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="local">Locales</SelectItem>
+                <SelectItem value="sepa">SEPA</SelectItem>
+              </SelectContent>
+            </Select>
             <QuickAddForm onAdd={handleQuickAdd} categories={categories} />
           </div>
 

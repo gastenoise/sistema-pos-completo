@@ -59,6 +59,23 @@ export default function Items() {
   const [savingItem, setSavingItem] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
 
+  const getItemSelectionKey = (item) => `${item.source || 'local'}:${item.source === 'sepa' ? (item.sepa_item_id || item.id) : item.id}`;
+
+  const buildBulkTargets = () => {
+    const selectedSet = new Set(selectedItems);
+    return items
+      .map((item) => {
+        const key = getItemSelectionKey(item);
+        if (!selectedSet.has(key)) return null;
+        return {
+          id: item.source === 'sepa' ? (item.sepa_item_id || item.id) : item.id,
+          source: item.source === 'sepa' ? 'sepa' : 'local'
+        };
+      })
+      .filter(Boolean);
+  };
+
+
   const updateItemsCache = (entity) => {
     if (!entity?.id) return false;
     queryClient.setQueriesData({ queryKey: ['items', businessId] }, (prev) => {
@@ -124,6 +141,7 @@ export default function Items() {
         const saved = await sepaPriceMutation.mutateAsync({
           sepa_item_id: editingItem.sepa_item_id || editingItem.id,
           price: itemData.price,
+          category_id: itemData.category_id,
         });
         updateItemsCache(saved);
         toast.success('Precio SEPA actualizado');
@@ -162,17 +180,18 @@ export default function Items() {
     }
   };
 
-  const handleSelectItem = (itemId, checked) => {
+  const handleSelectItem = (item, checked) => {
+    const key = getItemSelectionKey(item);
     if (checked) {
-      setSelectedItems(prev => [...prev, itemId]);
+      setSelectedItems(prev => prev.includes(key) ? prev : [...prev, key]);
     } else {
-      setSelectedItems(prev => prev.filter(id => id !== itemId));
+      setSelectedItems(prev => prev.filter(id => id !== key));
     }
   };
 
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedItems(items.filter((item) => item.source !== 'sepa').map(item => item.id));
+      setSelectedItems(items.map((item) => getItemSelectionKey(item)));
     } else {
       setSelectedItems([]);
     }
@@ -182,9 +201,9 @@ export default function Items() {
     setBulkLoading(true);
     try {
       const response = await bulkMutation.mutateAsync({
-        ids: selectedItems,
+        targets: buildBulkTargets(),
         operation: 'set_category',
-        category_id: categoryId || null
+        category_id: categoryId && categoryId !== 'none' ? Number(categoryId) : null
       });
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
@@ -201,7 +220,7 @@ export default function Items() {
     setBulkLoading(true);
     try {
       const response = await bulkMutation.mutateAsync({
-        ids: selectedItems,
+        targets: buildBulkTargets(),
         operation: 'adjust_price',
         price_delta: percent
       });
@@ -452,11 +471,11 @@ export default function Items() {
                       key={`${item.source}-${item.id}`}
                       item={item}
                       categories={categories}
-                      selected={selectedItems.includes(item.id)}
-                      onSelect={(checked) => handleSelectItem(item.id, checked)}
+                      selected={selectedItems.includes(getItemSelectionKey(item))}
+                      onSelect={(checked) => handleSelectItem(item, checked)}
                       onEdit={handleEditItem}
                       onDeactivate={handleDeactivateItem}
-                      showCheckbox={item.source !== 'sepa'}
+                      showCheckbox
                     />
                   ))}
                 </TableBody>

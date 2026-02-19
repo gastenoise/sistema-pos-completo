@@ -83,8 +83,12 @@ export default function ItemEditorModal({
     e.preventDefault();
 
     if (isSepaItem) {
+      const nextPrice = formData.price === '' ? null : parseFloat(formData.price);
       onSave({
-        price: parseFloat(formData.price) || 0,
+        price: Number.isFinite(nextPrice) ? nextPrice : null,
+        category_id: formData.category_id !== NO_CATEGORY_VALUE
+          ? parseInt(formData.category_id, 10)
+          : null,
       });
       return;
     }
@@ -122,7 +126,7 @@ export default function ItemEditorModal({
                   Solo podés modificar el precio final para ítems con origen SEPA.
                 </div>
                 <div className="col-span-2">
-                  <Label htmlFor="price">Precio final *</Label>
+                  <Label htmlFor="price">Precio final (vacío = precio original SEPA)</Label>
                   <Input
                     id="price"
                     type="number"
@@ -131,9 +135,25 @@ export default function ItemEditorModal({
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     placeholder="0.00"
-                    required
                     autoFocus
                   />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="sepa-category">Categoría</Label>
+                  <Select
+                    value={formData.category_id}
+                    onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                  >
+                    <SelectTrigger id="sepa-category">
+                      <SelectValue placeholder="Seleccionar categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_CATEGORY_VALUE}>Sin categoría</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </>
             ) : (

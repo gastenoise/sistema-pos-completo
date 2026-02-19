@@ -30,14 +30,14 @@ export default function ItemRow({
 
   return (
     <tr className="hover:bg-slate-50 transition-colors">
-      {showCheckbox && (
-        <td className="px-4 py-3 w-12">
+      <td className="px-4 py-3 w-12">
+        {showCheckbox ? (
           <Checkbox 
             checked={selected}
             onCheckedChange={onSelect}
           />
-        </td>
-      )}
+        ) : null}
+      </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div 

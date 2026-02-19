@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Http\Requests\Concerns\AuthorizesBusinessContext;
 use App\Models\BusinessParameter;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateSepaItemPriceRequest extends FormRequest
 {
@@ -31,16 +32,21 @@ class UpdateSepaItemPriceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'price' => ['required', 'numeric', 'min:0'],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'category_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('categories', 'id')->where('business_id', (int) $this->currentBusinessId()),
+            ],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'price.required' => 'El precio es obligatorio.',
             'price.numeric' => 'El precio debe ser un número válido.',
             'price.min' => 'El precio no puede ser negativo.',
+            'category_id.exists' => 'La categoría no pertenece al negocio actual.',
         ];
     }
 }
