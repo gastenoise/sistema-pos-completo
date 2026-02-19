@@ -1,0 +1,153 @@
+<?php
+
+namespace Tests\Unit;
+
+use App\Models\SepaItem;
+use App\Services\Sepa\SepaImportService;
+use App\Services\Sepa\SepaSourceResolver;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use Tests\TestCase;
+
+class SepaImportServiceTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Schema::dropIfExists('sepa_items');
+        Schema::create('sepa_items', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('barcode')->unique();
+            $table->decimal('price', 12, 2);
+            $table->decimal('presentation_quantity', 12, 2)->nullable();
+            $table->string('presentation_unit', 20)->nullable();
+            $table->string('brand', 120)->nullable();
+            $table->decimal('list_price', 12, 2)->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function test_it_normalizes_presentation_unit_variants_in_build_record(): void
+    {
+        $service = $this->service();
+        $headers = [
+            'id_producto',
+            'productos_descripcion',
+            'productos_precio_lista',
+            'productos_cantidad_presentacion',
+            'productos_unidad_medida_presentacion',
+            'productos_marca',
+        ];
+
+        $cases = [
+            ['UNIDAD', 'un'],
+            ['Unida.', 'un'],
+            ['P.U.', 'un'],
+            ['pu', 'un'],
+            ['kg', 'kg'],
+        ];
+
+        foreach ($cases as [$input, $expected]) {
+            $row = ['7791234567890', 'Producto Test', '100.00', '1', $input, 'ACME'];
+
+            $record = $this->invokePrivate($service, 'buildRecord', [$headers, $row]);
+
+            $this->assertIsArray($record);
+            $this->assertSame($expected, $record['presentation_unit']);
+        }
+    }
+
+    public function test_it_normalizes_brand_variants_in_build_record(): void
+    {
+        $service = $this->service();
+        $headers = [
+            'id_producto',
+            'productos_descripcion',
+            'productos_precio_lista',
+            'productos_cantidad_presentacion',
+            'productos_unidad_medida_presentacion',
+            'productos_marca',
+        ];
+
+        $cases = [
+            ['sin marca', null],
+            ['Sin Marca', null],
+            ['ACME', 'ACME'],
+        ];
+
+        foreach ($cases as [$input, $expected]) {
+            $row = ['7791234567890', 'Producto Test', '100.00', '1', 'kg', $input];
+
+            $record = $this->invokePrivate($service, 'buildRecord', [$headers, $row]);
+
+            $this->assertIsArray($record);
+            $this->assertSame($expected, $record['brand']);
+        }
+    }
+
+    public function test_it_updates_existing_item_on_reimport_with_same_barcode_using_upsert(): void
+    {
+        $service = $this->service();
+
+        SepaItem::query()->create([
+            'name' => 'Producto Original',
+            'barcode' => '7791234567890',
+            'price' => 150,
+            'presentation_quantity' => 1,
+            'presentation_unit' => 'unidad',
+            'brand' => 'sin marca',
+            'list_price' => 150,
+        ]);
+
+        $batch = [[
+            'name' => 'Producto Reimportado',
+            'barcode' => '7791234567890',
+            'price' => 200,
+            'presentation_quantity' => 2,
+            'presentation_unit' => 'un',
+            'brand' => null,
+            'list_price' => 210,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]];
+
+        $metrics = [
+            'downloaded_files' => 0,
+            'valid_rows' => 1,
+            'invalid_rows' => 0,
+            'inserted_rows' => 0,
+            'updated_rows' => 0,
+            'error_samples' => [],
+        ];
+
+        $this->invokePrivate($service, 'persistChunk', [$batch, &$metrics]);
+
+        $this->assertDatabaseHas('sepa_items', [
+            'barcode' => '7791234567890',
+            'name' => 'Producto Reimportado',
+            'price' => 200.00,
+            'presentation_quantity' => 2.00,
+            'presentation_unit' => 'un',
+            'brand' => null,
+            'list_price' => 210.00,
+        ]);
+
+        $this->assertSame(0, $metrics['inserted_rows']);
+        $this->assertSame(1, $metrics['updated_rows']);
+    }
+
+    private function service(): SepaImportService
+    {
+        return new SepaImportService(new SepaSourceResolver());
+    }
+
+    private function invokePrivate(object $object, string $method, array $args = []): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invokeArgs($object, $args);
+    }
+}
