@@ -297,7 +297,7 @@ class SepaImportService
                     ?? $item['productos_contenido_neto']
                     ?? null
             );
-            $presentationUnit = $this->normalizeString($item['productos_unidad_medida_presentacion'] ?? null, 20);
+            $presentationUnit = $this->normalizePresentationUnit($item['productos_unidad_medida_presentacion'] ?? null);
         }
 
         $now = Carbon::now();
@@ -308,7 +308,7 @@ class SepaImportService
             'price' => $price ?? 0,
             'presentation_quantity' => $presentationQuantity,
             'presentation_unit' => $presentationUnit,
-            'brand' => $this->normalizeString($item['productos_marca'] ?? null, 120),
+            'brand' => $this->normalizeBrand($item['productos_marca'] ?? null),
             'list_price' => $listPrice,
             'created_at' => $now,
             'updated_at' => $now,
@@ -415,6 +415,48 @@ class SepaImportService
         $barcode = preg_replace('/\D+/', '', $barcode) ?? '';
 
         return $barcode !== '' ? $barcode : null;
+    }
+
+    private function normalizePresentationUnit(mixed $value): ?string
+    {
+        if (!is_scalar($value)) {
+            return null;
+        }
+
+        $normalized = mb_strtolower(trim((string) $value));
+        if ($normalized === '') {
+            return null;
+        }
+
+        $normalized = preg_replace('/[^\p{L}\p{N}]+/u', '', $normalized) ?? '';
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (in_array($normalized, ['unidad', 'unida', 'pu'], true)) {
+            return 'un';
+        }
+
+        return mb_substr($normalized, 0, 20);
+    }
+
+    private function normalizeBrand(mixed $value): ?string
+    {
+        if (!is_scalar($value)) {
+            return null;
+        }
+
+        $normalized = preg_replace('/\s+/', ' ', trim((string) $value));
+        if ($normalized === null || $normalized === '') {
+            return null;
+        }
+
+        $normalized = mb_strtoupper($normalized);
+        if ($normalized === 'SIN MARCA') {
+            return null;
+        }
+
+        return mb_substr($normalized, 0, 120);
     }
 
     private function normalizeDecimal(mixed $value): ?float
