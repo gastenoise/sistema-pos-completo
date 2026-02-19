@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
@@ -63,20 +64,82 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
-            // $table->enum('type', ['product', 'service', 'fee']); // ELIMINADO
             $table->string('name');
             $table->string('sku')->nullable();
-            $table->string('barcode')->nullable(); // agregado desde 2026_02_14_000001_add_barcode_to_items_table.php
+            $table->string('barcode')->nullable();
             $table->decimal('price', 12, 2);
             $table->decimal('presentation_quantity', 12, 2)->nullable();
             $table->string('presentation_unit', 20)->nullable();
             $table->string('brand', 120)->nullable();
             $table->decimal('list_price', 12, 2)->nullable();
-            $table->boolean('active')->default(true);
             $table->dateTime('last_price_update_at')->nullable();
             $table->decimal('last_price_update_rate', 10, 4)->nullable();
             $table->timestamps();
-            $table->index(['business_id', 'sku']);
+
+            $table->index(['business_id', 'name'], 'items_business_name_idx');
+            $table->index(['business_id', 'barcode'], 'items_business_barcode_idx');
+            $table->index(['business_id', 'sku'], 'items_business_sku_idx');
+        });
+
+        Schema::create('sepa_items', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('barcode');
+            $table->decimal('price', 12, 2);
+            $table->decimal('presentation_quantity', 12, 2)->nullable();
+            $table->string('presentation_unit', 20)->nullable();
+            $table->string('brand', 120)->nullable();
+            $table->decimal('list_price', 12, 2)->nullable();
+            $table->timestamps();
+
+            $table->unique('barcode', 'sepa_items_barcode_unique');
+            $table->index('barcode', 'sepa_items_barcode_idx');
+            $table->index('name', 'sepa_items_name_idx');
+        });
+
+        $driver = Schema::getConnection()->getDriverName();
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            Schema::table('sepa_items', function (Blueprint $table) {
+                $table->fullText('name', 'sepa_items_name_fulltext_idx');
+            });
+        }
+
+        if ($driver === 'pgsql') {
+            DB::statement('CREATE EXTENSION IF NOT EXISTS pg_trgm');
+            DB::statement('CREATE INDEX IF NOT EXISTS sepa_items_name_trgm_idx ON sepa_items USING gin (name gin_trgm_ops)');
+        }
+
+        Schema::create('sepa_item_business_prices', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('sepa_item_id')->constrained('sepa_items')->cascadeOnDelete();
+            $table->decimal('price', 12, 2)->nullable();
+            $table->foreignId('category_id')->nullable()->constrained('categories')->nullOnDelete();
+            $table->timestamps();
+
+            $table->unique(['business_id', 'sepa_item_id'], 'sepa_item_business_prices_unique');
+            $table->index(['business_id', 'category_id'], 'sepa_item_business_prices_business_category_idx');
+        });
+
+        Schema::create('sepa_import_runs', function (Blueprint $table) {
+            $table->id();
+            $table->string('day', 20);
+            $table->string('requested_date')->nullable();
+            $table->string('status', 20)->default('running');
+            $table->unsignedInteger('downloaded_files')->default(0);
+            $table->unsignedInteger('valid_rows')->default(0);
+            $table->unsignedInteger('invalid_rows')->default(0);
+            $table->unsignedInteger('inserted_rows')->default(0);
+            $table->unsignedInteger('updated_rows')->default(0);
+            $table->json('error_samples')->nullable();
+            $table->text('error_message')->nullable();
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('finished_at')->nullable();
+            $table->unsignedInteger('duration_seconds')->nullable();
+            $table->timestamps();
+
+            $table->index(['day', 'created_at'], 'sepa_import_runs_day_created_at_idx');
         });
 
         Schema::create('payment_methods', function (Blueprint $table) {
@@ -117,11 +180,7 @@ return new class extends Migration {
 
         Schema::create('business_smtp_settings', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('business_id')
-                ->constrained()
-                ->cascadeOnDelete()
-                ->unique();
-
+            $table->foreignId('business_id')->constrained()->cascadeOnDelete()->unique();
             $table->string('host');
             $table->integer('port');
             $table->string('username');
@@ -129,7 +188,6 @@ return new class extends Migration {
             $table->string('encryption')->nullable();
             $table->string('from_email');
             $table->string('from_name');
-
             $table->boolean('active')->default(true);
             $table->timestamps();
         });
@@ -157,19 +215,28 @@ return new class extends Migration {
             $table->foreignId('voided_by')->nullable()->constrained('users');
             $table->text('void_reason')->nullable();
             $table->timestamps();
+
+            $table->index(['business_id', 'status', 'created_at'], 'sales_biz_status_created_idx');
+            $table->index(['business_id', 'created_at'], 'sales_biz_created_idx');
         });
 
         Schema::create('sale_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('sale_id')->constrained()->cascadeOnDelete();
             $table->foreignId('item_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('item_source', 16)->default('local');
+            $table->foreignId('sepa_item_id')->nullable()->constrained('sepa_items')->nullOnDelete();
             $table->string('item_name_snapshot');
+            $table->string('barcode_snapshot')->nullable();
             $table->decimal('unit_price_snapshot', 12, 2);
             $table->foreignId('category_id_snapshot')->nullable()->constrained('categories')->nullOnDelete();
-            // Fin de agregado
+            $table->string('category_name_snapshot')->nullable();
             $table->integer('quantity');
             $table->decimal('total', 12, 2);
             $table->timestamps();
+
+            $table->index(['sale_id', 'item_id'], 'sale_items_sale_item_idx');
+            $table->index(['sale_id', 'item_source'], 'sale_items_sale_source_idx');
         });
 
         Schema::create('sale_payments', function (Blueprint $table) {
@@ -177,13 +244,13 @@ return new class extends Migration {
             $table->foreignId('sale_id')->constrained()->cascadeOnDelete();
             $table->foreignId('payment_method_id')->constrained('payment_methods');
             $table->decimal('amount', 12, 2);
-
-            $table->enum('status', ['pending','confirmed','failed'])->default('pending');
+            $table->enum('status', ['pending', 'confirmed', 'failed'])->default('pending');
             $table->string('transaction_reference')->nullable();
             $table->timestamp('confirmed_at')->nullable();
             $table->foreignId('confirmed_by')->nullable()->constrained('users')->nullOnDelete();
-
             $table->timestamps();
+
+            $table->index(['sale_id', 'status'], 'sale_payments_sale_status_idx');
         });
 
         Schema::create('cash_closures', function (Blueprint $table) {
@@ -247,10 +314,8 @@ return new class extends Migration {
             $table->index(['business_id', 'user_id']);
         });
 
-        // --- begin: navigation_events CON business_id nullable ---
         Schema::create('navigation_events', function (Blueprint $table) {
             $table->id();
-            // Hacer nullable business_id acá en la tabla original
             $table->foreignId('business_id')->nullable()->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('path');
@@ -259,9 +324,7 @@ return new class extends Migration {
             $table->timestamps();
             $table->index(['business_id', 'user_id', 'created_at']);
         });
-        // --- end: navigation_events ---
 
-        // --- begin: sale_ticket_email_statuses ---
         Schema::create('sale_ticket_email_statuses', function (Blueprint $table) {
             $table->id();
             $table->uuid('request_id')->unique();
@@ -280,11 +343,14 @@ return new class extends Migration {
             $table->index(['sale_id', 'created_at'], 'stes_sale_created_idx');
             $table->index(['status', 'created_at'], 'stes_status_created_idx');
         });
-        // --- end: sale_ticket_email_statuses ---
     }
 
     public function down(): void
     {
+        if (Schema::getConnection()->getDriverName() === 'pgsql') {
+            DB::statement('DROP INDEX IF EXISTS sepa_items_name_trgm_idx');
+        }
+
         Schema::dropIfExists('sale_ticket_email_statuses');
         Schema::dropIfExists('navigation_events');
         Schema::dropIfExists('api_keys');
@@ -305,6 +371,9 @@ return new class extends Migration {
             $table->dropColumn('preferred_payment_method_id');
         });
         Schema::dropIfExists('payment_methods');
+        Schema::dropIfExists('sepa_import_runs');
+        Schema::dropIfExists('sepa_item_business_prices');
+        Schema::dropIfExists('sepa_items');
         Schema::dropIfExists('items');
         Schema::dropIfExists('categories');
         Schema::dropIfExists('business_parameters');
