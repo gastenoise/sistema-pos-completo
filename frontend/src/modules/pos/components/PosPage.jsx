@@ -47,6 +47,7 @@ function POSContent() {
   const { user, logout } = useAuth();
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [barcodeQuery, setBarcodeQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showWizard, setShowWizard] = useState(false);
@@ -60,24 +61,24 @@ function POSContent() {
 
   // Fetch items (server-side top-N search)
   const { data: items = [], isLoading: loadingItems } = useQuery({
-    queryKey: ['items', businessId, searchQuery, sourceFilter, categoryFilter],
+    queryKey: ['items', businessId, searchQuery, barcodeQuery, sourceFilter, categoryFilter],
     queryFn: async () => {
       if (!businessId) return [];
       const query = new URLSearchParams();
-      query.set('active', 'true');
       query.set('source', sourceFilter);
       query.set('per_page', '24');
       const trimmedSearch = searchQuery.trim();
+      const trimmedBarcode = barcodeQuery.trim();
       if (trimmedSearch) {
         query.set('search', trimmedSearch);
-        if (/^\d{4,}$/.test(trimmedSearch)) {
-          query.set('barcode', trimmedSearch);
-        }
+      }
+      if (trimmedBarcode) {
+        query.set('barcode', trimmedBarcode);
       }
       if (categoryFilter !== 'all') {
         query.set('category', categoryFilter);
       }
-      if (!trimmedSearch && sourceFilter === 'all' && categoryFilter === 'all') {
+      if (!trimmedSearch && !trimmedBarcode && sourceFilter === 'all' && categoryFilter === 'all') {
         query.set('recent_first', 'true');
       }
 
@@ -88,8 +89,7 @@ function POSContent() {
           category_id: item.category_id !== null && item.category_id !== undefined
             ? Number(item.category_id)
             : null
-        }))
-        .filter((item) => item.is_active !== false);
+        }));
     },
     enabled: !!businessId
   });
@@ -524,10 +524,19 @@ function POSContent() {
               <Input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Buscar por nombre, código de barras o SKU... (/)"
+                placeholder="Buscar por nombre o marca... (/)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-12 text-lg"
+              />
+            </div>
+            <div className="relative w-[220px]">
+              <Input
+                type="text"
+                placeholder="Barcode o SKU"
+                value={barcodeQuery}
+                onChange={(e) => setBarcodeQuery(e.target.value)}
+                className="h-12"
               />
             </div>
             <Select value={sourceFilter} onValueChange={setSourceFilter}>

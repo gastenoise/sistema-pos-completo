@@ -35,7 +35,7 @@ export const normalizeItemsPage = (response) => {
 export const getItems = async (params) => {
   const query = new URLSearchParams();
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (key === 'only_sepa_price_overridden' && value !== true) {
+    if (key === 'price_updated' && value !== true) {
       return;
     }
 
@@ -78,14 +78,7 @@ export const saveSepaItemPrice = async (itemData) => {
   return normalizeItem(normalizeEntityResponse(response));
 };
 
-export const toggleItemStatus = async (item) => {
-  const response = await request(`/protected/items/${item.id}`, {
-    method: 'PUT',
-    body: { active: !item.is_active }
-  });
-
-  return normalizeItem(normalizeEntityResponse(response));
-};
+export const deleteItem = async (itemId) => request(`/protected/items/${itemId}`, { method: 'DELETE' });
 
 export const bulkUpdateItems = async (payload) => request('/protected/items/bulk', {
   method: 'PATCH',

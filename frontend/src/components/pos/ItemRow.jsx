@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tag, Pencil } from 'lucide-react';
+import { Tag, Pencil, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ export default function ItemRow({
   selected, 
   onSelect, 
   onEdit, 
-  onDeactivate,
+  onDelete,
   showCheckbox = true 
 }) {
   const { currentBusiness } = useBusiness();
@@ -92,16 +92,20 @@ export default function ItemRow({
       </td>
       <td className="px-4 py-3">
         <div className="flex flex-col gap-1">
-          <Badge variant={item.is_active ? 'default' : 'secondary'} className={item.is_active ? 'bg-green-100 text-green-800' : ''}>
-            {item.is_active ? 'Active' : 'Inactive'}
-          </Badge>
           <Badge variant="outline">{item.source === 'sepa' ? 'SEPA' : 'Local'}</Badge>
         </div>
       </td>
       <td className="px-4 py-3 text-right">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(item)}>
-          <Pencil className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center justify-end gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(item)}>
+            <Pencil className="w-4 h-4" />
+          </Button>
+          {item.source === 'local' && onDelete && (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => onDelete(item)}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
       </td>
     </tr>
   );

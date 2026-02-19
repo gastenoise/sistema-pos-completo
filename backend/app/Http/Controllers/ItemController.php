@@ -240,12 +240,11 @@ class ItemController extends Controller
     public function index(Request $request, CatalogQueryService $catalogQueryService)
     {
         $validated = $request->validate([
-            'active' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'category' => ['nullable'],
             'search' => ['nullable', 'string'],
             'barcode' => ['nullable', 'string', 'max:255'],
             'source' => ['nullable', Rule::in(['local', 'sepa', 'all'])],
-            'only_sepa_price_overridden' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
+            'price_updated' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'cursor_paginate' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'recent_first' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
@@ -314,7 +313,6 @@ class ItemController extends Controller
                 'presentation_unit' => $sepaItem->presentation_unit,
                 'brand' => $sepaItem->brand,
                 'list_price' => $sepaItem->list_price,
-                'is_active' => (bool) $sepaItem->active,
                 'source' => 'sepa',
                 'sepa_item_id' => (int) $sepaItem->id,
                 'is_price_overridden' => $override?->price !== null,
@@ -322,6 +320,13 @@ class ItemController extends Controller
                 'updated_at' => now(),
             ],
         ]);
+    }
+
+    public function destroy(Item $item)
+    {
+        $item->delete();
+
+        return response()->json(['success' => true]);
     }
 
     public function bulkUpdate(Request $request, BulkUpdateItemsAction $bulkUpdateItemsAction)
@@ -334,11 +339,10 @@ class ItemController extends Controller
             'targets' => ['nullable', 'array', 'min:1', 'max:500'],
             'targets.*.id' => ['required_with:targets', 'integer', 'min:1'],
             'targets.*.source' => ['required_with:targets', Rule::in(['local', 'sepa'])],
-            'operation' => ['required', Rule::in(['set_category', 'set_price', 'adjust_price', 'set_active'])],
+            'operation' => ['required', Rule::in(['set_category', 'set_price', 'adjust_price'])],
             'category_id' => ['nullable', Rule::exists('categories', 'id')->where('business_id', $businessId)],
             'price' => ['nullable', 'numeric', 'min:0'],
             'price_delta' => ['nullable', 'numeric'],
-            'active' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
         ]);
 
         if (empty($validated['ids']) && empty($validated['targets'])) {
@@ -357,10 +361,6 @@ class ItemController extends Controller
         if ($operation === 'adjust_price' && !array_key_exists('price_delta', $validated)) {
             return response()->json(['success' => false, 'message' => 'price_delta is required for adjust_price operation.'], 422);
         }
-        if ($operation === 'set_active' && !array_key_exists('active', $validated)) {
-            return response()->json(['success' => false, 'message' => 'active is required for set_active operation.'], 422);
-        }
-
         $result = $bulkUpdateItemsAction->execute($validated);
 
         return response()->json(['success' => true, 'data' => $result]);

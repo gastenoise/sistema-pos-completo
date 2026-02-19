@@ -28,7 +28,7 @@ import {
   usePreviewItemsImportPageMutation,
   useSaveItemMutation,
   useSaveSepaPriceMutation,
-  useToggleItemStatusMutation
+  useDeleteItemMutation
 } from '@/modules/items/hooks/useItemsData';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
@@ -48,7 +48,7 @@ export default function Items() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [barcodeFilter, setBarcodeFilter] = useState('');
-  const [onlySepaPriceOverridden, setOnlySepaPriceOverridden] = useState(false);
+  const [priceUpdated, setPriceUpdated] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedItems, setSelectedItems] = useState([]);
   const [showEditorModal, setShowEditorModal] = useState(false);
@@ -62,7 +62,7 @@ export default function Items() {
 
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, barcodeFilter, categoryFilter, sourceFilter, onlySepaPriceOverridden]);
+  }, [searchQuery, barcodeFilter, categoryFilter, sourceFilter, priceUpdated]);
 
   const getItemSelectionKey = (item) => `${item.source || 'local'}:${item.source === 'sepa' ? (item.sepa_item_id || item.id) : item.id}`;
 
@@ -119,7 +119,7 @@ export default function Items() {
     barcode: barcodeFilter,
     categoryFilter,
     source: sourceFilter,
-    onlySepaPriceOverridden,
+    priceUpdated,
     page,
   });
 
@@ -135,7 +135,7 @@ export default function Items() {
   // Create/Update mutation
   const itemMutation = useSaveItemMutation();
   const sepaPriceMutation = useSaveSepaPriceMutation();
-  const toggleStatusMutation = useToggleItemStatusMutation();
+  const deleteItemMutation = useDeleteItemMutation();
   const bulkMutation = useBulkItemsMutation();
   const importPreviewMutation = usePreviewItemsImportMutation();
   const importPreviewPageMutation = usePreviewItemsImportPageMutation();
@@ -175,15 +175,13 @@ export default function Items() {
     setShowEditorModal(true);
   };
 
-  const handleDeactivateItem = async (item) => {
+  const handleDeleteItem = async (item) => {
     try {
-      const updated = await toggleStatusMutation.mutateAsync(item);
-      if (!updateItemsCache(updated)) {
-        queryClient.invalidateQueries({ queryKey: ['items', businessId] });
-      }
-      toast.success(`Item ${item.is_active ? 'deactivated' : 'activated'}`);
+      await deleteItemMutation.mutateAsync(item.id);
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+      toast.success('Item deleted');
     } catch (error) {
-      toast.error('Failed to update item');
+      toast.error('Failed to delete item');
     }
   };
 
@@ -399,7 +397,7 @@ export default function Items() {
               />
             </div>
             <Input
-              placeholder="Barcode"
+              placeholder="Barcode o SKU"
               value={barcodeFilter}
               onChange={(e) => setBarcodeFilter(e.target.value)}
               className="sm:w-44"
@@ -439,10 +437,10 @@ export default function Items() {
             </Select>
             <label className="flex items-center gap-2 text-sm text-slate-600">
               <Checkbox
-                checked={onlySepaPriceOverridden}
-                onCheckedChange={(checked) => setOnlySepaPriceOverridden(Boolean(checked))}
+                checked={priceUpdated}
+                onCheckedChange={(checked) => setPriceUpdated(Boolean(checked))}
               />
-              Solo SEPA con precio override
+              Precio actualizado
             </label>
           </div>
         </div>
@@ -490,7 +488,7 @@ export default function Items() {
                     <TableHead>Presentación</TableHead>
                     <TableHead className="text-right">Price</TableHead>
                     <TableHead className="text-center">Stock</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Fuente</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -503,7 +501,7 @@ export default function Items() {
                       selected={selectedItems.includes(getItemSelectionKey(item))}
                       onSelect={(checked) => handleSelectItem(item, checked)}
                       onEdit={handleEditItem}
-                      onDeactivate={handleDeactivateItem}
+                      onDelete={handleDeleteItem}
                       showCheckbox
                     />
                   ))}

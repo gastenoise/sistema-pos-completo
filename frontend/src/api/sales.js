@@ -4,7 +4,6 @@ import { mapCatalogIsActive } from '@/lib/catalogNaming';
 
 export const getPosItems = async ({ search = '', barcode = '', limit = 20 } = {}) => {
   const query = new URLSearchParams();
-  query.set('active', 'true');
   query.set('source', 'all');
   query.set('per_page', String(limit));
   if (search) {

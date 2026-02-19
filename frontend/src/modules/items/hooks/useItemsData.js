@@ -8,7 +8,7 @@ import {
   previewItemsImportPage,
   saveItem,
   saveSepaItemPrice,
-  toggleItemStatus
+  deleteItem
 } from '@/api/items';
 
 export const ITEMS_PER_PAGE = 20;
@@ -19,7 +19,7 @@ export const useItemsQuery = ({
   barcode,
   categoryFilter,
   source,
-  onlySepaPriceOverridden,
+  priceUpdated,
   page,
 }) => useQuery({
   queryKey: ['items', businessId, searchQuery, barcode, categoryFilter, source, onlySepaPriceOverridden, page],
@@ -28,7 +28,7 @@ export const useItemsQuery = ({
     barcode,
     category: categoryFilter,
     source,
-    only_sepa_price_overridden: onlySepaPriceOverridden,
+    price_updated: priceUpdated,
     page,
     per_page: ITEMS_PER_PAGE
   }),
@@ -43,7 +43,7 @@ export const useItemCategoriesQuery = (businessId) => useQuery({
 
 export const useSaveItemMutation = () => useMutation({ mutationFn: saveItem });
 export const useSaveSepaPriceMutation = () => useMutation({ mutationFn: saveSepaItemPrice });
-export const useToggleItemStatusMutation = () => useMutation({ mutationFn: toggleItemStatus });
+export const useDeleteItemMutation = () => useMutation({ mutationFn: deleteItem });
 export const useBulkItemsMutation = () => useMutation({ mutationFn: bulkUpdateItems });
 export const usePreviewItemsImportMutation = () => useMutation({ mutationFn: previewItemsImport });
 export const usePreviewItemsImportPageMutation = () => useMutation({

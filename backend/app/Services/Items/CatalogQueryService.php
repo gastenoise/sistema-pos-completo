@@ -27,7 +27,6 @@ class CatalogQueryService
         'presentation_unit',
         'brand',
         'list_price',
-        'is_active',
         'created_at',
         'updated_at',
         'source',
@@ -64,19 +63,6 @@ class CatalogQueryService
     private function buildCatalogQuery(int $businessId, bool $sepaEnabled, string $source, array $filters): EloquentBuilder|QueryBuilder
     {
         $normalizedSource = in_array($source, ['local', 'sepa', 'all'], true) ? $source : 'all';
-        $onlySepaPriceOverridden = filter_var($filters['only_sepa_price_overridden'] ?? false, FILTER_VALIDATE_BOOLEAN);
-
-        if ($onlySepaPriceOverridden) {
-            if (!$sepaEnabled) {
-                return $this->buildLocalQuery($filters)->whereRaw('1 = 0');
-            }
-
-            return $this->buildSepaQuery($businessId, $filters)
-                ->orderByDesc('is_active')
-                ->orderBy('name')
-                ->orderBy('id');
-        }
-
         if (!$sepaEnabled) {
             return $this->buildLocalQuery($filters);
         }
@@ -95,7 +81,6 @@ class CatalogQueryService
         return DB::query()
             ->fromSub($localQuery->unionAll($sepaQuery), 'catalog_items')
             ->select(self::CATALOG_SELECT_COLUMNS)
-            ->orderByDesc('is_active')
             ->orderBy('name')
             ->orderBy('id');
     }
@@ -114,7 +99,6 @@ class CatalogQueryService
             'items.presentation_unit',
             'items.brand',
             'items.list_price',
-            'items.active as is_active',
             'items.created_at',
             'items.updated_at',
             DB::raw("'local' as source"),
@@ -144,7 +128,6 @@ class CatalogQueryService
                 'sepa_items.presentation_unit',
                 'sepa_items.brand',
                 'sepa_items.list_price',
-                'sepa_items.active as is_active',
                 'sepa_items.created_at',
                 'sepa_items.updated_at',
                 DB::raw("'sepa' as source"),
@@ -157,9 +140,6 @@ class CatalogQueryService
 
     private function applyCommonFilters(EloquentBuilder $query, array $filters, string $table): EloquentBuilder
     {
-        if (array_key_exists('active', $filters) && $filters['active'] !== null && $filters['active'] !== '') {
-            $query->where("{$table}.active", filter_var($filters['active'], FILTER_VALIDATE_BOOLEAN));
-        }
 
         if (array_key_exists('category', $filters) && $filters['category'] !== null && $filters['category'] !== '') {
             $categoryColumn = $table === 'items' ? 'items.category_id' : 'sibp.category_id';
@@ -170,13 +150,25 @@ class CatalogQueryService
             }
         }
 
-        if ($table === 'sepa_items' && filter_var($filters['only_sepa_price_overridden'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-            $query->whereNotNull('sibp.price');
+        if (filter_var($filters['price_updated'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            $query->where(function (EloquentBuilder $inner) use ($table) {
+                if ($table === 'items') {
+                    $inner->whereNotNull('items.list_price')->whereColumn('items.price', '>', 'items.list_price');
+                } else {
+                    $inner->whereNotNull('sepa_items.list_price')
+                        ->whereRaw('COALESCE(sibp.price, sepa_items.list_price, sepa_items.price) > sepa_items.list_price');
+                }
+            });
         }
 
         if (!empty($filters['barcode'])) {
             $barcode = trim((string) $filters['barcode']);
-            $query->where("{$table}.barcode", 'like', "{$barcode}%");
+            $query->where(function (EloquentBuilder $inner) use ($table, $barcode) {
+                $inner->where("{$table}.barcode", 'like', "{$barcode}%");
+                if ($table === 'items') {
+                    $inner->orWhere('items.sku', 'like', "{$barcode}%");
+                }
+            });
         }
 
         if (!empty($filters['search'])) {
@@ -192,41 +184,19 @@ class CatalogQueryService
         if ($term === '') {
             return;
         }
-
-        if ($this->looksLikeBarcode($term)) {
-            $query->where(function (EloquentBuilder $inner) use ($table, $term) {
-                $inner->where("{$table}.barcode", '=', $term)
-                    ->orWhere("{$table}.barcode", 'like', "{$term}%");
-            });
-
-            return;
-        }
-
         $tokens = preg_split('/\s+/', trim($term)) ?: [];
         $tokens = array_values(array_filter($tokens, static fn (string $token): bool => $token !== ''));
 
         $query->where(function (EloquentBuilder $inner) use ($table, $term, $tokens) {
             $inner->where("{$table}.name", 'like', "%{$term}%")
-                ->orWhere("{$table}.barcode", 'like', "{$term}%");
-
-            if ($table === 'items') {
-                $inner->orWhere("{$table}.sku", 'like', "%{$term}%");
-            }
+                ->orWhere("{$table}.brand", 'like', "%{$term}%");
 
             foreach ($tokens as $token) {
-                $inner->orWhere("{$table}.name", 'like', "%{$token}%");
-                if ($table === 'items') {
-                    $inner->orWhere("{$table}.sku", 'like', "%{$token}%");
-                }
+                $inner->orWhere("{$table}.name", 'like', "%{$token}%")
+                    ->orWhere("{$table}.brand", 'like', "%{$token}%");
             }
         });
     }
-
-    private function looksLikeBarcode(string $term): bool
-    {
-        return preg_match('/^\d{4,}$/', $term) === 1;
-    }
-
 
     private function applyRecentOrdering(EloquentBuilder|QueryBuilder $query, int $businessId, array $filters): void
     {
@@ -262,7 +232,6 @@ class CatalogQueryService
         $sql = 'CASE ' . implode(' ', $cases) . ' ELSE 999999 END';
         $query->reorder();
         $query->orderByRaw($sql . ' ASC', $bindings)
-            ->orderByDesc('is_active')
             ->orderBy('name')
             ->orderBy('id');
     }
