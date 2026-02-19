@@ -42,7 +42,6 @@ class SaleAddItemSourceResolutionTest extends TestCase
 
         $sepaItem = SepaItem::create([
             'name' => 'Yerba SEPA',
-            'sku' => 'SEPA-1',
             'barcode' => '7791111111111',
             'price' => 1000,
             'presentation_quantity' => 1,

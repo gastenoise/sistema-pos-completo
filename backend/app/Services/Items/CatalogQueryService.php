@@ -137,7 +137,7 @@ class CatalogQueryService
                 DB::raw("{$businessId} as business_id"),
                 DB::raw('sibp.category_id as category_id'),
                 'sepa_items.name',
-                DB::raw('null as sku'),
+                DB::raw('null as sku'), // compat API: SEPA mantiene sku en null sin depender de sepa_items.sku
                 'sepa_items.barcode',
                 DB::raw('COALESCE(sibp.price, sepa_items.list_price, sepa_items.price) as price'),
                 'sepa_items.presentation_quantity',
