@@ -433,6 +433,10 @@ class SepaImportService
             return null;
         }
 
+        if (in_array($normalized, ['cm3'], true)) {
+            return 'cc';
+        }
+
         if (in_array($normalized, ['unidad', 'unida', 'pu', 'uni'], true)) {
             return 'un';
         }
