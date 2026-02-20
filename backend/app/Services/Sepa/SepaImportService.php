@@ -433,7 +433,7 @@ class SepaImportService
             return null;
         }
 
-        if (in_array($normalized, ['unidad', 'unida', 'pu'], true)) {
+        if (in_array($normalized, ['unidad', 'unida', 'pu', 'uni'], true)) {
             return 'un';
         }
 
