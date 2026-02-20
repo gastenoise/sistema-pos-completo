@@ -16,16 +16,16 @@ export const ITEMS_PER_PAGE = 20;
 export const useItemsQuery = ({
   businessId,
   searchQuery,
-  barcode,
+  barcodeOrSku,
   categoryFilter,
   source,
   onlyPriceUpdated,
   page,
 }) => useQuery({
-  queryKey: ['items', businessId, searchQuery, barcode, categoryFilter, source, onlyPriceUpdated, page],
+  queryKey: ['items', businessId, searchQuery, barcodeOrSku, categoryFilter, source, onlyPriceUpdated, page],
   queryFn: () => getItems({
     search: searchQuery,
-    barcode,
+    barcode_or_sku: barcodeOrSku,
     category: categoryFilter,
     source,
     only_price_updated: onlyPriceUpdated,
