@@ -1,16 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, Upload, Package, Loader2 } from 'lucide-react';
-import { Input } from "@/components/ui/input";
+import { Plus, Upload, Package, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -39,18 +31,28 @@ import ItemRow from '@/components/pos/ItemRow';
 import ItemEditorModal from '@/components/pos/ItemEditorModal';
 import BulkActionsBar from '@/components/pos/BulkActionsBar';
 import CsvImportWizard from '@/components/pos/CsvImportWizard';
+import ItemsFiltersDialog from '@/components/items/ItemsFiltersDialog';
+import { useItemFilters } from '@/modules/items/hooks/useItemFilters';
 
 export default function Items() {
   const { businessId } = useBusiness();
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
   
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [sourceFilter, setSourceFilter] = useState('all');
-  const [barcodeFilter, setBarcodeFilter] = useState('');
-  const [onlyPriceUpdated, setOnlyPriceUpdated] = useState(false);
-  const [page, setPage] = useState(1);
+  const {
+    searchQuery,
+    setSearchQuery,
+    barcodeOrSkuQuery,
+    setBarcodeOrSkuQuery,
+    categoryFilter,
+    setCategoryFilter,
+    sourceFilter,
+    setSourceFilter,
+    onlyPriceUpdated,
+    setOnlyPriceUpdated,
+    page,
+    setPage,
+  } = useItemFilters({ withPagination: true });
   const [selectedItems, setSelectedItems] = useState([]);
   const [showEditorModal, setShowEditorModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -60,10 +62,6 @@ export default function Items() {
   const [importLoading, setImportLoading] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
-
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery, barcodeFilter, categoryFilter, sourceFilter, onlyPriceUpdated]);
 
   const getItemSelectionKey = (item) => `${item.source || 'local'}:${item.source === 'sepa' ? (item.sepa_item_id || item.id) : item.id}`;
 
@@ -118,7 +116,7 @@ export default function Items() {
   } = useItemsQuery({
     businessId,
     searchQuery,
-    barcode: barcodeFilter,
+    barcodeOrSku: barcodeOrSkuQuery,
     categoryFilter,
     source: sourceFilter,
     onlyPriceUpdated,
@@ -417,63 +415,26 @@ export default function Items() {
 
         {/* Filters */}
         <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="Nombre o marca"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Input
-              placeholder="Barcode o SKU"
-              value={barcodeFilter}
-              onChange={(e) => setBarcodeFilter(e.target.value)}
-              className="sm:w-44"
-            />
-            <Select
-              value={String(categoryFilter)}
-              onValueChange={(v) => {
-                if (v === 'all') {
-                  setCategoryFilter('all');
-                } else if (v === 'uncategorized') {
-                  setCategoryFilter('uncategorized');
-                } else {
-                  setCategoryFilter(Number(v));
-                }
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Categorías</SelectItem>
-                {categories.map(cat => (
-                  <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
-                ))}
-                <SelectItem value="uncategorized">Sin Categoría</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={sourceFilter} onValueChange={setSourceFilter}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Origen" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="local">Locales</SelectItem>
-                <SelectItem value="sepa">SEPA</SelectItem>
-              </SelectContent>
-            </Select>
-            <label className="flex items-center gap-2 text-sm text-slate-600">
-              <Checkbox
-                checked={onlyPriceUpdated}
-                onCheckedChange={(checked) => setOnlyPriceUpdated(Boolean(checked))}
-              />
-              Precio actualizado
-            </label>
-          </div>
+          <ItemsFiltersDialog
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            barcodeOrSkuValue={barcodeOrSkuQuery}
+            onBarcodeOrSkuChange={setBarcodeOrSkuQuery}
+            categoryValue={String(categoryFilter)}
+            onCategoryChange={(value) => {
+              if (value === 'all' || value === 'uncategorized') {
+                setCategoryFilter(value);
+                return;
+              }
+
+              setCategoryFilter(Number(value));
+            }}
+            sourceValue={sourceFilter}
+            onSourceChange={setSourceFilter}
+            onlyPriceUpdated={onlyPriceUpdated}
+            onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
+            categories={categories}
+          />
         </div>
 
         {/* Bulk Actions */}

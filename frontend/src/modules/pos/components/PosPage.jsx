@@ -2,19 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { apiClient } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
-  Search, Package, Loader2, ShoppingBag, Coffee,
+  Package, Loader2, ShoppingBag, Coffee,
   Utensils, Shirt, Laptop, Smartphone, Book, Wrench, Home, Car, Heart,
   Gamepad, Pizza, Apple, Cake, Watch, Glasses, Plane, Music,
   Camera, Dumbbell, Paintbrush, Hammer, Scissors, Zap, Star, Gift, Tag, CreditCard, Eye
 } from 'lucide-react';
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +32,8 @@ import QuickAddForm from '@/components/pos/QuickAddForm';
 import NetworkIndicator from '@/components/pos/NetworkIndicator';
 import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import TicketActions from '@/components/sales/TicketActions';
+import ItemsFiltersDialog from '@/components/items/ItemsFiltersDialog';
+import { useItemFilters } from '@/modules/items/hooks/useItemFilters';
 
 function POSContent() {
   const { businessId, currentBusiness, businesses } = useBusiness();
@@ -47,10 +41,18 @@ function POSContent() {
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
   
-  const [searchQuery, setSearchQuery] = useState('');
-  const [barcodeOrSkuQuery, setBarcodeOrSkuQuery] = useState('');
-  const [sourceFilter, setSourceFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const {
+    searchQuery,
+    setSearchQuery,
+    barcodeOrSkuQuery,
+    setBarcodeOrSkuQuery,
+    sourceFilter,
+    setSourceFilter,
+    categoryFilter,
+    setCategoryFilter,
+    onlyPriceUpdated,
+    setOnlyPriceUpdated,
+  } = useItemFilters();
   const [showWizard, setShowWizard] = useState(false);
   const [showCashOpenModal, setShowCashOpenModal] = useState(false);
   const [isOpeningCashRegister, setIsOpeningCashRegister] = useState(false);
@@ -63,7 +65,7 @@ function POSContent() {
 
   // Fetch items (server-side top-N search)
   const { data: items = [], isLoading: loadingItems, isFetching: fetchingItems } = useQuery({
-    queryKey: ['items', businessId, searchQuery, barcodeOrSkuQuery, sourceFilter, categoryFilter],
+    queryKey: ['items', businessId, searchQuery, barcodeOrSkuQuery, sourceFilter, categoryFilter, onlyPriceUpdated],
     queryFn: async () => {
       if (!businessId) return [];
       const query = new URLSearchParams();
@@ -79,6 +81,9 @@ function POSContent() {
       }
       if (categoryFilter !== 'all') {
         query.set('category', categoryFilter);
+      }
+      if (onlyPriceUpdated) {
+        query.set('only_price_updated', 'true');
       }
       if (!trimmedSearch && !trimmedBarcodeOrSku && sourceFilter === 'all' && categoryFilter === 'all') {
         query.set('recent_first', 'true');
@@ -527,50 +532,23 @@ function POSContent() {
         {/* Items Panel */}
         <div className="flex-1 flex flex-col p-4">
           {/* Search Bar */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <Input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Nombre o marca"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-12 text-lg"
-              />
-            </div>
-            <div className="relative w-full sm:w-[220px]">
-              <Input
-                type="text"
-                placeholder="Barcode o SKU"
-                value={barcodeOrSkuQuery}
-                onChange={(e) => setBarcodeOrSkuQuery(e.target.value)}
-                className="h-12"
-              />
-            </div>
-            <Select value={sourceFilter} onValueChange={setSourceFilter}>
-              <SelectTrigger className="w-[170px] h-12">
-                <SelectValue placeholder="Origen" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="local">Locales</SelectItem>
-                <SelectItem value="sepa">SEPA</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[180px] h-12">
-                <SelectValue placeholder="Categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas categorías</SelectItem>
-                <SelectItem value="uncategorized">Sin categoría</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <QuickAddForm onAdd={handleQuickAdd} categories={categories} />
+          <div className="mb-4">
+            <ItemsFiltersDialog
+              searchInputRef={searchInputRef}
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
+              barcodeOrSkuValue={barcodeOrSkuQuery}
+              onBarcodeOrSkuChange={setBarcodeOrSkuQuery}
+              categoryValue={String(categoryFilter)}
+              onCategoryChange={(value) => setCategoryFilter(value)}
+              sourceValue={sourceFilter}
+              onSourceChange={setSourceFilter}
+              onlyPriceUpdated={onlyPriceUpdated}
+              onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
+              categories={categories}
+              inputClassName="h-12"
+              rightContent={<QuickAddForm onAdd={handleQuickAdd} categories={categories} />}
+            />
           </div>
 
           {/* Items Grid */}
