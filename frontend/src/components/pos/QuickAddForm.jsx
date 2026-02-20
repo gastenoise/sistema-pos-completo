@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,11 +55,11 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
         save_to_catalog: formData.save_to_catalog,
         category_id: Number(formData.category_id),
       });
-      toast.success('Item agregado');
+      toast.success(TOAST_MESSAGES.items.quickAddSuccess);
       setFormData({ price: '', category_id: '', save_to_catalog: false, name: '' });
       setOpen(false);
     } catch (_error) {
-      toast.error('No se pudo agregar el item');
+      toast.error(TOAST_MESSAGES.items.quickAddError);
     } finally {
       setIsLoading(false);
     }

@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import DivisionStep from './wizard/DivisionStep';
 import ProcessStep from './wizard/ProcessStep';
 import { sumToCents, toCents } from '@/lib/money';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 export default function PaymentWizard({
   open,
@@ -77,19 +78,19 @@ export default function PaymentWizard({
       setPersistedPayments(initialized.payments);
       setStep(2);
     } catch (error) {
-      toast.error(error?.message || 'Failed to save payment division');
+      toast.error(error?.message || TOAST_MESSAGES.payments.divisionSaveError);
     } finally {
       setLoading(false);
     }
   };
 
   const handleBackToDivision = () => {
-    toast.error('Payment division cannot be edited after sale initialization');
+    toast.error(TOAST_MESSAGES.payments.divisionLocked);
   };
 
   const handleUpdatePaymentStatus = async (paymentId, status, reference = null) => {
     if (!saleId) {
-      toast.error('Sale is not initialized');
+      toast.error(TOAST_MESSAGES.payments.saleNotInitialized);
       return;
     }
 
@@ -103,23 +104,23 @@ export default function PaymentWizard({
 
       setPersistedPayments((prev) => prev.map((p) => (p.id === paymentId ? { ...p, ...updatedPayment } : p)));
     } catch (error) {
-      toast.error(error?.message || 'Failed to update payment status');
+      toast.error(error?.message || TOAST_MESSAGES.payments.paymentStatusUpdateError);
     }
   };
 
   const handleCloseSale = async () => {
     if (!saleId) {
-      toast.error('Sale is not initialized');
+      toast.error(TOAST_MESSAGES.payments.saleNotInitialized);
       return;
     }
 
     setLoading(true);
     try {
       await onComplete({ saleId });
-      toast.success('Sale completed successfully!');
+      toast.success(TOAST_MESSAGES.payments.saleCompleted);
       onClose();
     } catch (error) {
-      toast.error(error?.message || 'Failed to close sale');
+      toast.error(error?.message || TOAST_MESSAGES.payments.saleCloseError);
     } finally {
       setLoading(false);
     }

@@ -23,6 +23,7 @@ import {
 import { toast } from 'sonner';
 import { formatPrice } from '@/lib/formatPrice';
 import { formatDateTimeLocal } from '@/lib/dateTime';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useAuth } from '@/lib/AuthContext';
@@ -102,9 +103,9 @@ export default function CashRegister() {
       await openRegisterMutation.mutateAsync(amount);
       await refetchSession();
       setShowOpenDialog(false);
-      toast.success('Caja registradora abierta');
+      toast.success(TOAST_MESSAGES.cashRegister.openSuccess);
     } catch (error) {
-      toast.error('Error al hacer apertura de caja');
+      toast.error(TOAST_MESSAGES.cashRegister.openError);
     } finally {
       setLoading(false);
     }
@@ -122,9 +123,9 @@ export default function CashRegister() {
       queryClient.invalidateQueries({ queryKey: ['recentSessions', businessId] });
       setShowCloseDialog(false);
       setRealCash('');
-      toast.success('Caja registradora cerrada');
+      toast.success(TOAST_MESSAGES.cashRegister.closeSuccess);
     } catch (error) {
-      toast.error('Error al hacer cierre de caja');
+      toast.error(TOAST_MESSAGES.cashRegister.closeError);
     } finally {
       setLoading(false);
     }

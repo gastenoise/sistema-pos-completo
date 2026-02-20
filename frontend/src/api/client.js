@@ -1,4 +1,5 @@
 import { clearToken, getToken } from './auth';
+import { API_MESSAGES } from '@/lib/toastMessages';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 const BUSINESS_STORAGE_KEY = 'pos_current_business';
@@ -10,7 +11,7 @@ let didNotifySessionExpired = false;
 let csrfCookiePromise = null;
 
 const AUTH_MESSAGE_REGEX = /not authenticated|unauthenticated|unauthorized|token|session/i;
-const DEFAULT_ERROR_MESSAGE = 'Something went wrong. Please try again.';
+const DEFAULT_ERROR_MESSAGE = API_MESSAGES.defaultError;
 
 const notifySessionExpired = (reason = 'session_expired') => {
   clearToken();
@@ -82,7 +83,7 @@ export const ensureCsrfCookie = async () => {
 
   const response = await csrfCookiePromise;
   if (!response.ok) {
-    throw new Error('Unable to initialize CSRF protection.');
+    throw new Error(API_MESSAGES.csrfInitError);
   }
 };
 
@@ -174,7 +175,7 @@ const parseSuccessPayload = async (response, responseType = 'auto') => {
   if (!isJson && typeof data === 'string') {
     const looksLikeHtml = /<!doctype html|<html|<head|<body|<div id="root">/i.test(data);
     if (looksLikeHtml) {
-      const error = new Error('Unexpected HTML response. Check VITE_API_BASE_URL.');
+      const error = new Error(API_MESSAGES.unexpectedHtmlResponse);
       error.status = response.status;
       error.data = data;
       throw error;
@@ -188,7 +189,7 @@ const parseResponse = async (response, responseType = 'auto') => {
   if (!response.ok) {
     const data = await parseErrorPayload(response);
     const message = isAuthFailure(response.status, data)
-      ? 'Your session has expired. Please log in again.'
+      ? API_MESSAGES.sessionExpired
       : extractErrorMessage(data, response.statusText || DEFAULT_ERROR_MESSAGE);
     const error = new Error(message);
     error.status = response.status;

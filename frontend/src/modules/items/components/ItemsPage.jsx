@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from 'sonner';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import {
   useBulkItemsMutation,
   useConfirmItemsImportMutation,
@@ -151,20 +152,20 @@ export default function Items() {
           category_id: itemData.category_id,
         });
         updateItemsCache(saved);
-        toast.success('Precio SEPA actualizado');
+        toast.success(TOAST_MESSAGES.items.sepaPriceUpdated);
       } else if (editingItem) {
         const saved = await itemMutation.mutateAsync({ ...itemData, id: editingItem.id });
         updateItemsCache(saved);
-        toast.success('Item updated');
+        toast.success(TOAST_MESSAGES.items.updated);
       } else {
         const saved = await itemMutation.mutateAsync(itemData);
         updateItemsCache(saved);
-        toast.success('Item created');
+        toast.success(TOAST_MESSAGES.items.created);
       }
       setShowEditorModal(false);
       setEditingItem(null);
     } catch (error) {
-      toast.error('Failed to save item');
+      toast.error(TOAST_MESSAGES.items.saveError);
     } finally {
       setSavingItem(false);
     }
@@ -190,12 +191,12 @@ export default function Items() {
     try {
       await deleteItemMutation.mutateAsync(item.id);
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
-      toast.success('Item eliminado');
+      toast.success(TOAST_MESSAGES.items.deleted);
       setShowEditorModal(false);
       setEditingItem(null);
       setSelectedItems((prev) => prev.filter((key) => key !== getItemSelectionKey(item)));
     } catch (error) {
-      toast.error(error?.message || 'No se pudo eliminar el item');
+      toast.error(error?.message || TOAST_MESSAGES.items.deleteError);
     }
   };
 
@@ -227,9 +228,9 @@ export default function Items() {
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
       const updatedCount = response?.data?.updated_count || selectedItems.length;
-      toast.success(`Category assigned to ${updatedCount} items`);
+      toast.success(TOAST_MESSAGES.items.categoryAssignSuccess(updatedCount));
     } catch (error) {
-      toast.error(error?.message || 'Failed to assign category');
+      toast.error(error?.message || TOAST_MESSAGES.items.categoryAssignError);
     } finally {
       setBulkLoading(false);
     }
@@ -247,9 +248,9 @@ export default function Items() {
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
       const updatedCount = response?.data?.updated_count || selectedItems.length;
-      toast.success(`Precio actualizado en ${updatedCount} ítems`);
+      toast.success(TOAST_MESSAGES.items.priceUpdated(updatedCount));
     } catch (error) {
-      toast.error(error?.message || 'Failed to set price');
+      toast.error(error?.message || TOAST_MESSAGES.items.setPriceError);
     } finally {
       setBulkLoading(false);
     }
@@ -266,9 +267,9 @@ export default function Items() {
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
       const updatedCount = response?.data?.updated_count || selectedItems.length;
-      toast.success(`Price increased by ${percent}% for ${updatedCount} items`);
+      toast.success(TOAST_MESSAGES.items.increasePriceSuccess(percent, updatedCount));
     } catch (error) {
-      toast.error(error?.message || 'Failed to update prices');
+      toast.error(error?.message || TOAST_MESSAGES.items.updatePricesError);
     } finally {
       setBulkLoading(false);
     }
@@ -280,12 +281,12 @@ export default function Items() {
       const previewPayload = await importPreviewMutation.mutateAsync(file);
       const parsingErrors = previewPayload?.parsing_errors || [];
       if (parsingErrors.length > 0) {
-        toast.warning(`CSV preview generated with ${parsingErrors.length} parsing errors`);
+        toast.warning(TOAST_MESSAGES.items.csvPreviewWarning(parsingErrors.length));
       }
       setImportFile(file);
       setImportPreviewData(previewPayload);
     } catch (error) {
-      toast.error('Failed to preview import');
+      toast.error(TOAST_MESSAGES.items.previewImportError);
     } finally {
       setImportLoading(false);
     }
@@ -360,12 +361,12 @@ export default function Items() {
         || importPreviewData?.total_rows;
       const createdCount = response?.data?.created_count ?? response?.created_count ?? 0;
       const updatedCount = response?.data?.updated_count ?? response?.updated_count ?? 0;
-      toast.success(`Imported ${importedCount || 0} items (created: ${createdCount}, updated: ${updatedCount})`);
+      toast.success(TOAST_MESSAGES.items.importSuccess(importedCount, createdCount, updatedCount));
       setShowImportWizard(false);
       setImportPreviewData(null);
       setImportFile(null);
     } catch (error) {
-      toast.error('Failed to import items');
+      toast.error(TOAST_MESSAGES.items.importError);
     } finally {
       setImportLoading(false);
     }
