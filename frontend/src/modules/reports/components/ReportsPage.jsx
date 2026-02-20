@@ -56,6 +56,8 @@ import {
 } from '@/modules/reports/hooks/useSalesReports';
 import { exportSalesReport } from '@/api/reports';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
+import { canVoidSales as canVoidSalesByRole } from '@/lib/canVoidSales';
+import { useUserBusinessContext } from '@/hooks/useUserBusinessContext';
 
 // Utilidad reutilizable para la fecha de mañana en formato yyyy-MM-dd
 function getTomorrowISODateLocal(referenceDate = new Date()) {
@@ -85,19 +87,16 @@ export default function Reports() {
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
   const selectedCategory = categoryFilter !== 'all' ? categoryFilter : null;
 
+  const userContext = useUserBusinessContext(businessId);
+
 
   const selectedBusiness = businesses.find((business) => {
     const id = business?.business_id ?? business?.id;
     return String(id) === String(businessId);
   });
 
-  const currentBusinessRole = currentBusiness?.pivot?.role
-    || currentBusiness?.role
-    || selectedBusiness?.pivot?.role
-    || selectedBusiness?.role
-    || null;
-
-  const canVoidSales = currentBusinessRole === 'admin';
+  const canVoidSales = canVoidSalesByRole(currentBusiness, businesses, userContext)
+    || canVoidSalesByRole(selectedBusiness, businesses, userContext);
   // Fetch sales
   const { data: sales = [], isLoading: loadingSales, isFetching: fetchingSales } = useSalesQuery({
     businessId,

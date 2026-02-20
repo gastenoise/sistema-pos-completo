@@ -14,7 +14,12 @@ class VoidSaleAction
         }
 
         if (!$user->hasRole('admin', $businessId)) {
-            return ['success' => false, 'message' => 'Only admins can void sales', 'status' => 403];
+            return [
+                'success' => false,
+                'message' => 'Solo los administradores pueden anular ventas.',
+                'error' => 'forbidden',
+                'status' => 403,
+            ];
         }
 
         if ($sale->status === 'voided') {
