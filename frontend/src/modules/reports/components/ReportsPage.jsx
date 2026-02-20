@@ -55,6 +55,7 @@ import {
   useSalesSummaryQuery,
 } from '@/modules/reports/hooks/useSalesReports';
 import { exportSalesReport } from '@/api/reports';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 // Utilidad reutilizable para la fecha de mañana en formato yyyy-MM-dd
 function getTomorrowISODateLocal(referenceDate = new Date()) {
@@ -222,7 +223,7 @@ export default function Reports() {
         : new Blob([response.data], { type: mimeType });
 
       if (!downloadableBlob.size) {
-        toast.error('Export completed but the file is empty. Try a different date range.');
+        toast.error(TOAST_MESSAGES.reports.exportEmptyFile);
         return;
       }
 
@@ -232,9 +233,9 @@ export default function Reports() {
       a.download = fileName;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Report exported');
+      toast.success(TOAST_MESSAGES.reports.exportSuccess);
     } catch (error) {
-      toast.error(error?.message || 'Failed to export report');
+      toast.error(error?.message || TOAST_MESSAGES.reports.exportError);
     }
   };
 

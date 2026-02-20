@@ -12,6 +12,7 @@ import {
 import EmailShareDialog from '@/components/payments/EmailShareDialog';
 import WhatsappShareDialog from '@/components/payments/WhatsappShareDialog';
 import { sanitizeEmailAddress, sanitizePhoneNumber } from '@/lib/sanitize';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 export default function PaymentShareActions({
   shareText,
@@ -38,9 +39,9 @@ export default function PaymentShareActions({
       const whatsappUrl = `https://wa.me/${safePhoneNumber}?text=${encodeURIComponent(shareText)}`;
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
       setIsWhatsappDialogOpen(false);
-      toast.success('WhatsApp abierto con la información lista para enviar.');
+      toast.success(TOAST_MESSAGES.payments.infoWhatsappOpened);
     } catch (error) {
-      toast.error(error?.message || 'No se pudo abrir WhatsApp.');
+      toast.error(error?.message || TOAST_MESSAGES.payments.whatsappOpenError);
     } finally {
       setIsSharingWhatsapp(false);
     }
@@ -64,9 +65,9 @@ export default function PaymentShareActions({
       const mailtoUrl = `mailto:${encodeURIComponent(safeEmail)}?subject=${encodeURIComponent(finalSubject)}&body=${encodeURIComponent(bodyParts.join('\n'))}`;
       window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
       setIsEmailDialogOpen(false);
-      toast.success('Cliente de correo abierto con la información.');
+      toast.success(TOAST_MESSAGES.payments.infoEmailOpened);
     } catch (error) {
-      toast.error(error?.message || 'No se pudo abrir el cliente de correo.');
+      toast.error(error?.message || TOAST_MESSAGES.payments.emailOpenError);
     } finally {
       setIsSharingEmail(false);
     }

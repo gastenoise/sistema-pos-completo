@@ -22,6 +22,7 @@ import EmailShareDialog from '@/components/payments/EmailShareDialog';
 import WhatsappShareDialog from '@/components/payments/WhatsappShareDialog';
 import { DEFAULT_COUNTRY_DIAL_CODE, normalizeWhatsappNumber } from '@/lib/whatsapp';
 import { sanitizeEmailAddress, sanitizePhoneNumber } from '@/lib/sanitize';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 const resolveErrorMessage = (error, fallbackMessage) => {
   return error?.message || error?.data?.message || fallbackMessage;
@@ -255,9 +256,9 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
         saleId,
         ticketNode: ticketContentRef.current,
       });
-      notifyTicketActionSuccess('Ticket PDF descargado correctamente.');
+      notifyTicketActionSuccess(TOAST_MESSAGES.tickets.downloadSuccess);
     } catch (downloadError) {
-      notifyTicketActionError('No se pudo descargar el PDF del ticket.', downloadError);
+      notifyTicketActionError(TOAST_MESSAGES.tickets.downloadError, downloadError);
     } finally {
       setIsDownloading(false);
     }
@@ -277,9 +278,9 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
 
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
       setIsWhatsappDialogOpen(false);
-      notifyTicketActionSuccess('WhatsApp abierto con el ticket listo para enviar.');
+      notifyTicketActionSuccess(TOAST_MESSAGES.tickets.whatsappOpened);
     } catch (shareError) {
-      notifyTicketActionError('No se pudo abrir WhatsApp.', shareError);
+      notifyTicketActionError(TOAST_MESSAGES.payments.whatsappOpenError, shareError);
     } finally {
       setIsLoadingWhatsapp(false);
     }
@@ -301,12 +302,12 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
         }
 
         if (currentStatus === 'failed') {
-          notifyTicketActionError(statusResponse?.error_message || 'No se pudo enviar el ticket por e-mail.');
+          notifyTicketActionError(statusResponse?.error_message || TOAST_MESSAGES.tickets.sendEmailError);
           return;
         }
       } catch (statusError) {
         if (attempt === maxAttempts - 1) {
-          notifyTicketActionError('No se pudo confirmar el estado del envío de e-mail.', statusError);
+          notifyTicketActionError(TOAST_MESSAGES.tickets.emailStatusCheckError, statusError);
         }
       }
     }
@@ -316,7 +317,7 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
     if (!saleId || isSendingEmail) return;
 
     if (!isSmtpValid) {
-      notifyTicketActionError(smtpStatus?.message || 'Configurá un SMTP activo para habilitar el envío por e-mail.');
+      notifyTicketActionError(smtpStatus?.message || TOAST_MESSAGES.tickets.smtpRequired);
       return;
     }
 
@@ -330,7 +331,7 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
       const formData = new FormData();
       const safeEmail = sanitizeEmailAddress(formPayload.to_email);
       if (!safeEmail) {
-        notifyTicketActionError('Ingresá un e-mail válido para enviar el ticket.');
+        notifyTicketActionError(TOAST_MESSAGES.tickets.invalidEmail);
         return;
       }
 
@@ -352,14 +353,14 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
       const requestId = response?.request_id;
       const toEmail = response?.to_email || safeEmail;
 
-      notifyTicketActionSuccess(response?.message || 'El correo quedó en cola y se enviará en segundo plano.');
+      notifyTicketActionSuccess(response?.message || TOAST_MESSAGES.tickets.emailQueued);
       setIsEmailDialogOpen(false);
 
       if (requestId) {
         pollEmailDeliveryStatus({ requestId, toEmail });
       }
     } catch (sendError) {
-      notifyTicketActionError('No se pudo enviar el ticket por e-mail.', sendError);
+      notifyTicketActionError(TOAST_MESSAGES.tickets.sendEmailError, sendError);
     } finally {
       setIsSendingEmail(false);
     }

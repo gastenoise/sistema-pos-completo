@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '@/api/client';
 import { createPageUrl } from '@/utils';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { Store, ChevronRight, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from 'sonner';
@@ -34,7 +35,7 @@ export default function BusinessSelect() {
       selectBusiness(null);
 
     } catch {
-      toast.error('Failed to load businesses');
+      toast.error(TOAST_MESSAGES.business.loadError);
     } finally {
       setLoading(false);
     }
@@ -50,7 +51,7 @@ export default function BusinessSelect() {
       });
       window.location.href = createPageUrl('POS');
     } catch {
-      toast.error('Failed to select business');
+      toast.error(TOAST_MESSAGES.business.selectError);
       setSelectingId(null);
     }
   };

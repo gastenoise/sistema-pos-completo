@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { formatDateTimeLocal } from '@/lib/dateTime';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 /** @typedef {import('@/types/user').CanonicalUserProfile} CanonicalUserProfile */
 
@@ -52,9 +53,9 @@ export default function Profile() {
         phone: userData.phone 
       });
       setUser({ ...user, name: userData.full_name, phone: userData.phone });
-      toast.success('Profile updated successfully');
+      toast.success(TOAST_MESSAGES.profile.updateSuccess);
     } catch {
-      toast.error('Failed to update profile');
+      toast.error(TOAST_MESSAGES.profile.updateError);
     } finally {
       setSaving(false);
     }
@@ -62,11 +63,11 @@ export default function Profile() {
 
   const handleChangePassword = async () => {
     if (passwordData.new !== passwordData.confirm) {
-      toast.error('New passwords do not match');
+      toast.error(TOAST_MESSAGES.profile.passwordsDoNotMatch);
       return;
     }
     if (passwordData.new.length < 8) {
-      toast.error('Password must be at least 8 characters');
+      toast.error(TOAST_MESSAGES.profile.passwordMinLength);
       return;
     }
     
@@ -77,10 +78,10 @@ export default function Profile() {
         new_password: passwordData.new,
         new_password_confirmation: passwordData.confirm
       });
-      toast.success('Password changed successfully');
+      toast.success(TOAST_MESSAGES.profile.passwordChangeSuccess);
       setPasswordData({ current: '', new: '', confirm: '' });
     } catch {
-      toast.error('Failed to change password');
+      toast.error(TOAST_MESSAGES.profile.passwordChangeError);
     } finally {
       setSavingPassword(false);
     }

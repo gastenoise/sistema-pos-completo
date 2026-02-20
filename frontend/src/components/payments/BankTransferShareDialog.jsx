@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import EmailShareDialog from './EmailShareDialog';
 import WhatsappShareDialog from './WhatsappShareDialog';
 import { sanitizeEmailAddress, sanitizePhoneNumber } from '@/lib/sanitize';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 const resolveBankAccountData = (bankAccountData = {}) => ({
   bank_name: bankAccountData.bank_name || '',
@@ -47,9 +48,9 @@ export default function BankTransferShareDialog({
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(plainText);
-      toast.success('Datos bancarios copiados al portapapeles.');
+      toast.success(TOAST_MESSAGES.payments.bankDataCopied);
     } catch (error) {
-      toast.error(error?.message || 'No se pudieron copiar los datos bancarios.');
+      toast.error(error?.message || TOAST_MESSAGES.payments.bankDataCopyError);
     }
   };
 
@@ -63,9 +64,9 @@ export default function BankTransferShareDialog({
       const whatsappUrl = `https://wa.me/${safePhoneNumber}?text=${encodeURIComponent(plainText)}`;
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
       setIsWhatsappDialogOpen(false);
-      toast.success('WhatsApp abierto con los datos bancarios listos para enviar.');
+      toast.success(TOAST_MESSAGES.payments.whatsappOpenedWithBankData);
     } catch (error) {
-      toast.error(error?.message || 'No se pudo abrir WhatsApp.');
+      toast.error(error?.message || TOAST_MESSAGES.payments.whatsappOpenError);
     } finally {
       setIsSharingWhatsapp(false);
     }
@@ -90,9 +91,9 @@ export default function BankTransferShareDialog({
 
       window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
       setIsEmailDialogOpen(false);
-      toast.success('Cliente de correo abierto con los datos bancarios.');
+      toast.success(TOAST_MESSAGES.payments.emailOpenedWithBankData);
     } catch (error) {
-      toast.error(error?.message || 'No se pudo abrir el cliente de correo.');
+      toast.error(error?.message || TOAST_MESSAGES.payments.emailOpenError);
     } finally {
       setIsSharingEmail(false);
     }

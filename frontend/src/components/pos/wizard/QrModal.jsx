@@ -10,13 +10,14 @@ import {
 import { toast } from 'sonner';
 import { useBusiness } from '../BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 export default function QrModal({ open, onClose, amount, onConfirm }) {
   const { currentBusiness } = useBusiness();
 
   const handleCopy = () => {
     navigator.clipboard.writeText('https://mercadopago.com/example-qr');
-    toast.success('Link copied to clipboard');
+    toast.success(TOAST_MESSAGES.payments.linkCopied);
   };
 
   const handleWhatsApp = () => {

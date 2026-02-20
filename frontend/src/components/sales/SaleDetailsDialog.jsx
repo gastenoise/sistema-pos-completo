@@ -6,6 +6,7 @@ import { apiClient } from '@/api/client';
 import { formatPrice } from '@/lib/formatPrice';
 import { formatDateTimeLocal, parseBackendDateToUtcDate } from '@/lib/dateTime';
 import { getSaleStatusLabel } from '@/lib/saleStatus';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -81,10 +82,10 @@ export default function SaleDetailsDialog({
     setIsVoiding(true);
     try {
       await apiClient.post(`/protected/sales/${sale.id}/void`, { reason });
-      toast.success('Venta anulada correctamente');
+      toast.success(TOAST_MESSAGES.sales.cancelSuccess);
       await onVoided?.(sale.id);
     } catch (error) {
-      toast.error(error?.message || 'No se pudo anular la venta');
+      toast.error(error?.message || TOAST_MESSAGES.sales.cancelError);
     } finally {
       setIsVoiding(false);
     }

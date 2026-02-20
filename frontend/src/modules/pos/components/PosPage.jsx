@@ -27,6 +27,7 @@ import { mapCatalogIsActive } from '@/lib/catalogNaming';
 import { formatPrice } from '@/lib/formatPrice';
 import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
 import { getIconComponent } from '@/lib/iconCatalog';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useCart, CartProvider } from '@/components/pos/CartContext';
@@ -338,12 +339,12 @@ function POSContent() {
 
   const handleItemClick = (item) => {
     addToCart(item);
-    toast.success(`Added ${item.name}`);
+    toast.success(TOAST_MESSAGES.pos.itemAdded(item.name));
   };
 
   const handleCharge = () => {
     if (cartItems.length === 0) {
-      toast.error('Cart is empty');
+      toast.error(TOAST_MESSAGES.pos.cartEmpty);
       return;
     }
 
@@ -367,13 +368,13 @@ function POSContent() {
       const shouldContinuePayment = Boolean(pendingPayment);
       setShowCashOpenModal(false);
       setPendingPayment(null);
-      toast.success('Se abrió la caja');
+      toast.success(TOAST_MESSAGES.cashRegister.openSuccess);
 
       if (shouldContinuePayment) {
         setShowWizard(true);
       }
     } catch (error) {
-      toast.error('Error al abrir la caja');
+      toast.error(TOAST_MESSAGES.cashRegister.openError);
     } finally {
       setIsOpeningCashRegister(false);
     }
@@ -491,10 +492,10 @@ function POSContent() {
     
     if (successCount > 0) {
       setSyncedSaleIds(syncedIds);
-      toast.success(`Synced ${successCount} sale${successCount !== 1 ? 's' : ''}`);
+      toast.success(TOAST_MESSAGES.pos.syncSuccess(successCount));
     }
     if (failCount > 0) {
-      toast.error(`Failed to sync ${failCount} sale${failCount !== 1 ? 's' : ''}`);
+      toast.error(TOAST_MESSAGES.pos.syncError(failCount));
     }
   };
 

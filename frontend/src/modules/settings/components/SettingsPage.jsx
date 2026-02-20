@@ -47,6 +47,7 @@ import ColorPickerField from '@/components/common/ColorPickerField';
 import IconPickerField from '@/components/common/IconPickerField';
 import { DEFAULT_COLOR_HEX, normalizeHexColor } from '@/lib/colors';
 import { DEFAULT_ICON_NAME, getIconComponent, resolveIconId, resolveIconName } from '@/lib/iconCatalog';
+import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 export default function Settings() {
   const { businessId, currentBusiness, refreshCurrentBusiness } = useBusiness();
@@ -274,9 +275,9 @@ export default function Settings() {
       const updatedBusiness = normalizeEntityResponse(updated);
       const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
       syncBusinessState(mergedBusiness);
-      toast.success('Business information saved');
+      toast.success(TOAST_MESSAGES.settings.businessInfoSaved);
     } catch (error) {
-      toast.error('Failed to save business information');
+      toast.error(TOAST_MESSAGES.settings.businessInfoSaveError);
     } finally {
       setSavingBusinessInfo(false);
     }
@@ -295,9 +296,9 @@ export default function Settings() {
       const updatedBusiness = normalizeEntityResponse(updated);
       const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
       syncBusinessState(mergedBusiness);
-      toast.success('Business options saved');
+      toast.success(TOAST_MESSAGES.settings.businessOptionsSaved);
     } catch (error) {
-      toast.error('Failed to save business options');
+      toast.error(TOAST_MESSAGES.settings.businessOptionsSaveError);
     } finally {
       setSavingBusinessParameters(false);
     }
@@ -314,18 +315,18 @@ export default function Settings() {
       if (editingCategory) {
         const response = await apiClient.put(`/protected/categories/${editingCategory.id}`, categoryPayload);
         updateCategoryCache(response);
-        toast.success('Category updated');
+        toast.success(TOAST_MESSAGES.settings.categoryUpdated);
       } else {
         const response = await apiClient.post('/protected/categories', { ...categoryPayload, is_active: true });
         updateCategoryCache(response);
-        toast.success('Category created');
+        toast.success(TOAST_MESSAGES.settings.categoryCreated);
       }
       queryClient.invalidateQueries({ queryKey: ['categories', businessId] });
       setShowCategoryModal(false);
       setEditingCategory(null);
       setCategoryData({ name: '', color: DEFAULT_COLOR_HEX, icon: DEFAULT_ICON_NAME });
     } catch (error) {
-      toast.error('Failed to save category');
+      toast.error(TOAST_MESSAGES.settings.categorySaveError);
     } finally {
       setSavingCategory(false);
     }
@@ -336,9 +337,9 @@ export default function Settings() {
       const response = await apiClient.delete(`/protected/categories/${category.id}`);
       updateCategoryCache(response);
       queryClient.invalidateQueries({ queryKey: ['categories', businessId] });
-      toast.success('Category deleted');
+      toast.success(TOAST_MESSAGES.settings.categoryDeleted);
     } catch (error) {
-      toast.error('Failed to delete category');
+      toast.error(TOAST_MESSAGES.settings.categoryDeleteError);
     }
   };
 
@@ -354,9 +355,9 @@ export default function Settings() {
         preferred_payment_method_id: defaultPaymentId
       });
       queryClient.invalidateQueries({ queryKey: ['paymentMethods', businessId] });
-      toast.success('Payment methods saved');
+      toast.success(TOAST_MESSAGES.settings.paymentMethodsSaved);
     } catch (error) {
-      toast.error('Failed to save payment methods');
+      toast.error(TOAST_MESSAGES.settings.paymentMethodsSaveError);
     } finally {
       setSavingPayments(false);
     }
@@ -379,10 +380,10 @@ export default function Settings() {
     setSavingBank(true);
     try {
       await apiClient.put('/protected/banks', bankData);
-      toast.success('Bank account saved');
+      toast.success(TOAST_MESSAGES.settings.bankAccountSaved);
       queryClient.invalidateQueries({ queryKey: ['bankAccount', businessId] });
     } catch (error) {
-      toast.error('Failed to save bank account');
+      toast.error(TOAST_MESSAGES.settings.bankAccountSaveError);
     } finally {
       setSavingBank(false);
     }
@@ -398,11 +399,11 @@ export default function Settings() {
     try {
       const fallbackEmail = currentBusiness?.email || currentBusiness?.business_email || '';
       if (!smtpData.from_email?.trim() && !fallbackEmail) {
-        toast.error('Business email is required to send SMTP emails');
+        toast.error(TOAST_MESSAGES.settings.businessEmailRequiredForSmtp);
         return;
       }
       if (!smtpData.port || Number.isNaN(smtpData.port)) {
-        toast.error('SMTP port is required');
+        toast.error(TOAST_MESSAGES.settings.smtpPortRequired);
         return;
       }
       const payload = {
@@ -411,11 +412,11 @@ export default function Settings() {
         from_email: smtpData.from_email?.trim() || fallbackEmail
       };
       await apiClient.put('/protected/business/smtp', payload);
-      toast.success('SMTP configuration saved');
+      toast.success(TOAST_MESSAGES.settings.smtpConfigSaved);
       queryClient.invalidateQueries({ queryKey: ['smtpConfig', businessId] });
       queryClient.invalidateQueries({ queryKey: ['smtpStatus', businessId] });
     } catch (error) {
-      toast.error('Failed to save SMTP configuration');
+      toast.error(TOAST_MESSAGES.settings.smtpConfigSaveError);
     } finally {
       setSavingSmtp(false);
     }
@@ -427,7 +428,7 @@ export default function Settings() {
       const fallbackEmail = currentBusiness?.email || currentBusiness?.business_email || '';
       const targetEmail = user?.email || smtpData.from_email || fallbackEmail;
       if (!targetEmail) {
-        toast.error('Add a recipient email to run the SMTP test');
+        toast.error(TOAST_MESSAGES.settings.smtpRecipientRequired);
         return;
       }
       const payload = {
@@ -449,7 +450,7 @@ export default function Settings() {
         payload.from_email = fallbackEmail;
       }
       const response = await apiClient.post('/protected/business/smtp/test', payload);
-      toast.success(response?.message || 'SMTP configuration test successful');
+      toast.success(response?.message || TOAST_MESSAGES.settings.smtpTestSuccess);
     } catch (error) {
       const message = error?.data?.message || error?.message || 'SMTP test failed';
       toast.error(message);
@@ -464,7 +465,7 @@ export default function Settings() {
       return;
     }
     setModules(prev => ({ ...prev, [moduleKey]: !prev[moduleKey] }));
-    toast.success(`Module ${!modules[moduleKey] ? 'enabled' : 'disabled'}`);
+    toast.success(TOAST_MESSAGES.settings.moduleToggleSuccess(!modules[moduleKey]));
   };
 
   const handleLogout = () => {
