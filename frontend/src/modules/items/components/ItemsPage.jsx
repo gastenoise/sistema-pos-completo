@@ -131,6 +131,7 @@ export default function Items() {
   const totalLoaded = items.length;
   const totalAvailable = pagination?.total ?? totalLoaded;
   const totalPages = Number(pagination?.last_page || 1);
+  const currentPage = Number(pagination?.current_page || page);
 
   // Create/Update mutation
   const itemMutation = useSaveItemMutation();
@@ -528,9 +529,9 @@ export default function Items() {
               Mostrando {totalLoaded} de {totalAvailable} ítems
             </p>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Anterior</Button>
-              <span className="text-sm text-slate-600">Página {page} de {totalPages}</span>
-              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Siguiente</Button>
+              <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage(Math.max(1, currentPage - 1))}>Anterior</Button>
+              <span className="text-sm text-slate-600">Página {currentPage} de {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setPage(Math.min(totalPages, currentPage + 1))}>Siguiente</Button>
             </div>
           </div>
         </div>
