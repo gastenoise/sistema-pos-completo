@@ -99,7 +99,7 @@ export default function Reports() {
 
   const canVoidSales = currentBusinessRole === 'admin';
   // Fetch sales
-  const { data: sales = [], isLoading: loadingSales } = useSalesQuery({
+  const { data: sales = [], isLoading: loadingSales, isFetching: fetchingSales } = useSalesQuery({
     businessId,
     dateFrom,
     dateTo,
@@ -108,7 +108,7 @@ export default function Reports() {
     categoryId: selectedCategory
   });
 
-  const { data: salesSummary = {} } = useSalesSummaryQuery({
+  const { data: salesSummary = {}, isFetching: fetchingSummary } = useSalesSummaryQuery({
     businessId,
     dateFrom,
     dateTo,
@@ -194,6 +194,8 @@ export default function Reports() {
 
     return [...new Set(breakdown.map((entry) => entry.name))].join(', ');
   };
+
+  const showSalesOverlay = !loadingSales && (fetchingSales || fetchingSummary);
 
   const statusOptions = [
     { value: 'closed', label: 'Cerradas' },
@@ -541,7 +543,15 @@ export default function Reports() {
         </Card>
 
         {/* Sales Table */}
-        <Card>
+        <Card className="relative">
+          {showSalesOverlay && (
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/60">
+              <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Cargando…
+              </div>
+            </div>
+          )}
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg">Ventas</CardTitle>

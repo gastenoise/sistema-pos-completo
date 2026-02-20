@@ -150,7 +150,7 @@ export default function Settings() {
   };
 
   // Fetch categories
-  const { data: categories = [], isLoading: loadingCategories } = useQuery({
+  const { data: categories = [], isLoading: loadingCategories, isFetching: fetchingCategories } = useQuery({
     queryKey: ['categories', businessId],
     queryFn: async () => {
       if (!businessId) return [];
@@ -161,7 +161,7 @@ export default function Settings() {
   });
 
   // Fetch payment methods
-  const { data: paymentMethods = [], isLoading: loadingPayments } = useQuery({
+  const { data: paymentMethods = [], isLoading: loadingPayments, isFetching: fetchingPayments } = useQuery({
     queryKey: ['paymentMethods', businessId],
     queryFn: async () => {
       if (!businessId) return [];
@@ -253,6 +253,8 @@ export default function Settings() {
       business_parameters: normalizeBusinessParameters(nextBusiness)
     });
   };
+
+  const showSettingsOverlay = fetchingCategories || fetchingPayments || savingCategory || savingPayments;
 
   const handleSaveBusinessInfo = async (event) => {
     event?.preventDefault();
@@ -494,7 +496,16 @@ export default function Settings() {
           <p className="text-slate-500">Administrá la configuración de tu negocio</p>
         </div>
 
-        <Tabs defaultValue="business">
+        <div className="relative">
+          {showSettingsOverlay && (
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/50">
+              <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Cargando…
+              </div>
+            </div>
+          )}
+          <Tabs defaultValue="business">
           <TabsList className="mb-6">
             <TabsTrigger value="business" className="gap-2">
               <Store className="w-4 h-4" />
@@ -1052,6 +1063,7 @@ export default function Settings() {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
 
       {/* Premium Dialog */}

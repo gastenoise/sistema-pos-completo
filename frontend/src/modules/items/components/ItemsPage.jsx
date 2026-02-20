@@ -114,6 +114,7 @@ export default function Items() {
   const {
     data: itemsResponse,
     isLoading: loadingItems,
+    isFetching: fetchingItems,
   } = useItemsQuery({
     businessId,
     searchQuery,
@@ -142,6 +143,20 @@ export default function Items() {
   const importPreviewMutation = usePreviewItemsImportMutation();
   const importPreviewPageMutation = usePreviewItemsImportPageMutation();
   const importConfirmMutation = useConfirmItemsImportMutation();
+
+  const isMutatingItems = (
+    itemMutation.isPending
+    || sepaPriceMutation.isPending
+    || bulkMutation.isPending
+    || deleteItemMutation.isPending
+    || importPreviewMutation.isPending
+    || importPreviewPageMutation.isPending
+    || importConfirmMutation.isPending
+    || savingItem
+    || bulkLoading
+    || importLoading
+  );
+  const showItemsOverlay = !loadingItems && (fetchingItems || isMutatingItems);
 
   const handleSaveItem = async (itemData) => {
     setSavingItem(true);
@@ -477,7 +492,15 @@ export default function Items() {
         )}
 
         {/* Table */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="relative bg-white rounded-xl border border-slate-200 overflow-hidden">
+          {showItemsOverlay && (
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/60">
+              <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Cargando…
+              </div>
+            </div>
+          )}
           {loadingItems ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />

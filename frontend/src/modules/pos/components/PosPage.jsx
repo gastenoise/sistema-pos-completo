@@ -57,11 +57,12 @@ function POSContent() {
   const [pendingPayment, setPendingPayment] = useState(null);
   const [isLastSaleDialogOpen, setIsLastSaleDialogOpen] = useState(false);
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
+  const [isProcessingItemsAction, setIsProcessingItemsAction] = useState(false);
   
   const searchInputRef = useRef(null);
 
   // Fetch items (server-side top-N search)
-  const { data: items = [], isLoading: loadingItems } = useQuery({
+  const { data: items = [], isLoading: loadingItems, isFetching: fetchingItems } = useQuery({
     queryKey: ['items', businessId, searchQuery, barcodeOrSkuQuery, sourceFilter, categoryFilter],
     queryFn: async () => {
       if (!businessId) return [];
@@ -434,29 +435,34 @@ function POSContent() {
 
   const handleQuickAdd = async (itemData) => {
     if (itemData.save_to_catalog) {
-      const payload = {
-        name: itemData.name,
-        price: Number(itemData.price),
-        is_active: true,
-        ...(itemData.category_id !== undefined && { category_id: itemData.category_id }),
-      };
+      setIsProcessingItemsAction(true);
+      try {
+        const payload = {
+          name: itemData.name,
+          price: Number(itemData.price),
+          is_active: true,
+          ...(itemData.category_id !== undefined && { category_id: itemData.category_id }),
+        };
 
-      const createdResponse = await apiClient.post('/protected/items', payload);
-      const createdItem = normalizeEntityResponse(createdResponse);
+        const createdResponse = await apiClient.post('/protected/items', payload);
+        const createdItem = normalizeEntityResponse(createdResponse);
 
-      if (!createdItem?.id) {
-        throw new Error('No se pudo crear el item en catálogo');
+        if (!createdItem?.id) {
+          throw new Error('No se pudo crear el item en catálogo');
+        }
+
+        addToCart({
+          id: createdItem.id,
+          name: createdItem.name,
+          price: Number(createdItem.price),
+          category_id: createdItem.category_id ?? itemData.category_id ?? null,
+        });
+
+        queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+        return;
+      } finally {
+        setIsProcessingItemsAction(false);
       }
-
-      addToCart({
-        id: createdItem.id,
-        name: createdItem.name,
-        price: Number(createdItem.price),
-        category_id: createdItem.category_id ?? itemData.category_id ?? null,
-      });
-
-      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
-      return;
     }
 
     addToCart({
@@ -508,6 +514,8 @@ function POSContent() {
     const IconComponent = getIconComponent(category?.icon);
     return { Icon: IconComponent, color: category?.color || '#94a3b8' };
   };
+
+  const showItemsOverlay = !loadingItems && (fetchingItems || isProcessingItemsAction);
 
   const filteredItems = items;
 
@@ -566,7 +574,15 @@ function POSContent() {
           </div>
 
           {/* Items Grid */}
-          <div className="flex-1 overflow-auto">
+          <div className="relative flex-1 overflow-auto">
+            {showItemsOverlay && (
+              <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/60">
+                <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Cargando…
+                </div>
+              </div>
+            )}
             {loadingItems ? (
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600" />

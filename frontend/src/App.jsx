@@ -12,6 +12,7 @@ import { CartProvider } from '@/components/pos/CartContext';
 import { useBusiness } from '@/components/pos/BusinessContext';
 import Login from './pages/Login';
 import { Button } from '@/components/ui/button';
+import GlobalLoadingOverlay from '@/components/common/GlobalLoadingOverlay';
 import {
   Dialog,
   DialogContent,
@@ -128,6 +129,7 @@ function App() {
           <CartProvider>
             <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <NavigationTracker />
+              <GlobalLoadingOverlay />
               <AuthenticatedApp />
             </Router>
           </CartProvider>
