@@ -28,6 +28,8 @@ import { formatPrice } from '@/lib/formatPrice';
 import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
 import { getIconComponent } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
+import { canVoidSales as canVoidSalesByRole } from '@/lib/canVoidSales';
+import { useUserBusinessContext } from '@/hooks/useUserBusinessContext';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useCart, CartProvider } from '@/components/pos/CartContext';
@@ -58,6 +60,7 @@ function POSContent() {
   const [isLastSaleDialogOpen, setIsLastSaleDialogOpen] = useState(false);
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
   const [isProcessingItemsAction, setIsProcessingItemsAction] = useState(false);
+  const userContext = useUserBusinessContext(businessId);
   
   const searchInputRef = useRef(null);
 
@@ -143,13 +146,8 @@ function POSContent() {
     return String(id) === String(businessId);
   });
 
-  const currentBusinessRole = currentBusiness?.pivot?.role
-    || currentBusiness?.role
-    || selectedBusiness?.pivot?.role
-    || selectedBusiness?.role
-    || null;
-
-  const canVoidSales = currentBusinessRole === 'admin';
+  const canVoidSales = canVoidSalesByRole(currentBusiness, businesses, userContext)
+    || canVoidSalesByRole(selectedBusiness, businesses, userContext);
 
   const currentBusinessParameters = {
     ...normalizeBusinessParameters(selectedBusiness),
