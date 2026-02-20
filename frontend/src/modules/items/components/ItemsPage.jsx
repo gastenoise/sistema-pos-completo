@@ -404,14 +404,14 @@ export default function Items() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
-                placeholder="Buscar por nombre, código de barras o SKU..."
+                placeholder="Nombre o marca"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
             <Input
-              placeholder="Barcode"
+              placeholder="Barcode o SKU"
               value={barcodeFilter}
               onChange={(e) => setBarcodeFilter(e.target.value)}
               className="sm:w-44"

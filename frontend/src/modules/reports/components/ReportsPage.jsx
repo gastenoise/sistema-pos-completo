@@ -499,8 +499,8 @@ export default function Reports() {
 
               {totalsByCategory.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Sales by category</p>
-                  <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Ventas por categoría</p>
+                  <div className="grid grid-cols-4 gap-4 lg:grid-cols-6">
                     {totalsByCategory.map((category) => {
                       const categoryColor = resolveCategoryColor(category);
                       return (

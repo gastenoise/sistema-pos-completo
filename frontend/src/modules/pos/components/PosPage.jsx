@@ -524,7 +524,7 @@ function POSContent() {
               <Input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Buscar por nombre o marca... (/)"
+                placeholder="Nombre o marca"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-12 text-lg"

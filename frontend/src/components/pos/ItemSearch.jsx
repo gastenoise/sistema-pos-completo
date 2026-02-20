@@ -7,7 +7,7 @@ import { usePosItemsQuery } from '@/modules/pos/hooks/usePosData';
 
 export default function ItemSearch({
   onSelect,
-  placeholder = 'Buscar por nombre, código de barras o SKU...',
+  placeholder = 'Nombre o marca',
   limit = 10,
 }) {
   const [query, setQuery] = useState('');
