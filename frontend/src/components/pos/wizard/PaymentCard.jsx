@@ -37,10 +37,10 @@ export default function PaymentCard({
   const { currentBusiness } = useBusiness();
 
   const statusConfig = {
-    pending: { icon: Clock, color: 'bg-amber-100 text-amber-800', label: 'Pending' },
-    processing: { icon: Loader2, color: 'bg-blue-100 text-blue-800', label: 'Processing' },
-    confirmed: { icon: CheckCircle2, color: 'bg-green-100 text-green-800', label: 'Confirmed' },
-    failed: { icon: XCircle, color: 'bg-red-100 text-red-800', label: 'Failed' }
+    pending: { icon: Clock, color: 'bg-amber-100 text-amber-800', label: 'Pendiente' },
+    processing: { icon: Loader2, color: 'bg-blue-100 text-blue-800', label: 'Procesando' },
+    confirmed: { icon: CheckCircle2, color: 'bg-green-100 text-green-800', label: 'Confirmado' },
+    failed: { icon: XCircle, color: 'bg-red-100 text-red-800', label: 'Falló' }
   };
 
   const status = statusConfig[payment.status] || statusConfig.pending;
@@ -74,7 +74,7 @@ export default function PaymentCard({
 
   const renderActions = () => {
     if (payment.status === 'confirmed') {
-      return <Badge className="bg-green-600">Confirmed</Badge>;
+      return <Badge className="bg-green-600">Confirmado</Badge>;
     }
 
     switch (paymentMethodType) {
@@ -84,10 +84,10 @@ export default function PaymentCard({
             size="sm"
             onClick={handleConfirmCash}
             disabled={loading}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-green-700 hover:bg-green-800"
           >
             <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
-            {loading ? 'Confirming...' : 'Confirm Cash Received'}
+            {loading ? 'Confirmando...' : 'Confirmar Efectivo Recibido'}
           </Button>
         );
 
