@@ -47,11 +47,11 @@ export default function CashRegister() {
   const [loading, setLoading] = useState(false);
   const [showRecentSessions, setShowRecentSessions] = useState(false);
 
-  const { data: currentSession, isLoading: loadingSession, refetch: refetchSession } = useCashStatusQuery(businessId);
+  const { data: currentSession, isLoading: loadingSession, isFetching: fetchingSession, refetch: refetchSession } = useCashStatusQuery(businessId);
 
-  const { data: recentSessions = [] } = useClosedSessionsQuery(businessId);
+  const { data: recentSessions = [], isFetching: fetchingRecentSessions } = useClosedSessionsQuery(businessId);
 
-  const { data: expectedTotals } = useExpectedTotalsQuery(currentSession?.id);
+  const { data: expectedTotals, isFetching: fetchingExpectedTotals } = useExpectedTotalsQuery(currentSession?.id);
 
   const openRegisterMutation = useOpenRegisterMutation();
   const closeRegisterMutation = useCloseRegisterMutation();
@@ -134,6 +134,8 @@ export default function CashRegister() {
     logout();
   };
 
+  const showCashOverlay = !loadingSession && (fetchingSession || fetchingRecentSessions || fetchingExpectedTotals || loading);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <TopNav user={user} onLogout={handleLogout} currentPage="Caja" />
@@ -145,11 +147,22 @@ export default function CashRegister() {
           <p className="text-slate-500">Gestioná tus aperturas y cierres de caja</p>
         </div>
 
-        {loadingSession ? (
+        {loadingSession && (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
-        ) : currentSession ? (
+        )}
+        {!loadingSession && (
+          <div className="relative">
+            {showCashOverlay && (
+              <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/50">
+                <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Cargando…
+                </div>
+              </div>
+            )}
+            {currentSession ? (
           /* Open Session View */
           <div className="space-y-6">
             {/* Status Card */}
@@ -372,6 +385,8 @@ export default function CashRegister() {
               </Collapsible>
             )}
           </div>
+          )}
+        </div>
         )}
       </div>
 
