@@ -120,7 +120,9 @@ export default function Reports() {
   const { data: categories = [] } = useReportCategoriesQuery(businessId);
 
   const summary = salesSummary?.summary || {};
-  const totalsByPaymentMethod = salesSummary?.totals_by_payment_method || [];
+  const totalsByPaymentMethod = (salesSummary?.totals_by_payment_method || []).slice().sort(
+    (a, b) => (parseFloat(b.total_amount) || 0) - (parseFloat(a.total_amount) || 0)
+  );
   const totalsByCategory = (salesSummary?.totals_by_category || []).filter(
     (category) => (parseFloat(category.total_amount) || 0) > 0
   );
@@ -132,15 +134,11 @@ export default function Reports() {
 
     return '#64748B';
   };
-
-  const paymentTotals = totalsByPaymentMethod.reduce((acc, method) => {
-    acc[method.code] = parseFloat(method.total_amount) || 0;
-    return acc;
-  }, {});
-
   const visiblePaymentMethodTotals = totalsByPaymentMethod.filter(
     (method) => (parseFloat(method.total_amount) || 0) > 0
   );
+  const topPaymentMethods = visiblePaymentMethodTotals.slice(0, 4);
+  const topCategories = totalsByCategory.slice(0, 6);
 
   const paymentMethodLookup = paymentMethods.reduce((acc, method) => {
     if (method.code) {
@@ -462,15 +460,16 @@ export default function Reports() {
               </div>
 
               {/* Bottom Row: Payment Methods */}
-              <div className="grid grid-cols-4 gap-4">
-                {visiblePaymentMethodTotals.slice(0, 4).map((methodTotal) => {
-                  const methodCode = methodTotal.code || methodTotal.type;
-                  const method = paymentMethodLookup[methodCode] || {};
-                  const methodColor = method.color || '#6B7280';
-                  const methodName = method.name || methodTotal.code || 'Unknown';
-                  const MethodIcon = getPaymentMethodIcon(method.icon || methodCode);
-                  return (
-                    <div key={methodCode} className="flex flex-col gap-2 p-4 rounded-lg border-2" style={{
+              {topPaymentMethods.length > 0 && (
+                <div className="flex flex-wrap gap-4 sm:flex-nowrap">
+                  {topPaymentMethods.map((methodTotal) => {
+                    const methodCode = methodTotal.code || methodTotal.type;
+                    const method = paymentMethodLookup[methodCode] || {};
+                    const methodColor = method.color || '#6B7280';
+                    const methodName = method.name || methodTotal.code || 'Unknown';
+                    const MethodIcon = getPaymentMethodIcon(method.icon || methodCode);
+                    return (
+                    <div key={methodCode} className="min-w-0 flex-1 basis-[calc(50%-0.5rem)] sm:basis-0 flex flex-col gap-2 p-4 rounded-lg border-2" style={{
                       borderColor: methodColor + '40',
                       backgroundColor: methodColor + '10'
                     }}>
@@ -489,24 +488,25 @@ export default function Reports() {
                         </p>
                       </div>
                       <p className="text-xl font-bold text-slate-900">
-                        {formatPrice(paymentTotals[methodTotal.code] || 0, currentBusiness)}
+                        {formatPrice(parseFloat(methodTotal.total_amount) || 0, currentBusiness)}
                       </p>
                     </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
 
 
-              {totalsByCategory.length > 0 && (
+              {topCategories.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Ventas por categoría</p>
-                  <div className="grid grid-cols-4 gap-4 lg:grid-cols-6">
-                    {totalsByCategory.map((category) => {
+                  <div className="flex flex-wrap gap-4 lg:flex-nowrap">
+                    {topCategories.map((category) => {
                       const categoryColor = resolveCategoryColor(category);
                       return (
                         <div
                           key={category.id ?? `uncategorized-${category.name}`}
-                          className="flex flex-col gap-1.5 rounded-lg border p-3"
+                          className="min-w-0 flex-1 basis-[calc(50%-0.5rem)] sm:basis-[calc(33.333%-0.666rem)] lg:basis-0 flex flex-col gap-1.5 rounded-lg border p-3"
                           style={{
                             borderColor: `${categoryColor}40`,
                             backgroundColor: `${categoryColor}10`
