@@ -58,7 +58,9 @@ class CatalogQueryService
             return $query->cursorPaginate($perPage);
         }
 
-        return $query->paginate($perPage);
+        $page = isset($filters['page']) ? max(1, (int) $filters['page']) : null;
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
 
     private function buildCatalogQuery(int $businessId, bool $sepaEnabled, string $source, array $filters): EloquentBuilder|QueryBuilder

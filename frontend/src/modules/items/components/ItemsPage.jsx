@@ -494,24 +494,23 @@ export default function Items() {
               <p className="text-lg font-medium">No se encontraron items</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
+            <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12">
+                    <TableHead className="w-12 px-4">
                       <Checkbox 
                         checked={selectedItems.length === items.length && items.length > 0}
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead>Marca</TableHead>
-                    <TableHead>Presentación</TableHead>
-                    <TableHead className="text-right">Precio</TableHead>
-                    <TableHead className="text-center">Stock</TableHead>
-                    <TableHead>Origen</TableHead>
-                    <TableHead className="w-12"></TableHead>
+                    <TableHead className="px-4">Item</TableHead>
+                    <TableHead className="px-4">Categoría</TableHead>
+                    <TableHead className="px-4">Marca</TableHead>
+                    <TableHead className="px-4">Presentación</TableHead>
+                    <TableHead className="px-4 text-right">Precio</TableHead>
+                    <TableHead className="px-4 text-center">Stock</TableHead>
+                    <TableHead className="px-4">Origen</TableHead>
+                    <TableHead className="w-12 px-4"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -528,7 +527,6 @@ export default function Items() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
           )}
 
           <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200">
