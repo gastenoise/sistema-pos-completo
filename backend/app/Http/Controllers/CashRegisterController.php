@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Actions\CashRegister\CloseCashRegisterAction;
 use App\Actions\CashRegister\OpenCashRegisterAction;
+use App\Http\Resources\CashRegisterSessionResource;
 use App\Models\CashRegisterSession;
 use App\Models\PaymentMethod;
 use App\Models\SalePayment;
-use App\Http\Resources\CashRegisterSessionResource;
 use App\Services\BusinessContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -44,12 +44,11 @@ class CashRegisterController extends Controller
     public function getExpectedTotals($sessionId)
     {
         $session = CashRegisterSession::findOrFail($sessionId);
-        
-        // Sumar pagos agrupados por metodo para esta sesión
-        // Unimos SalePayments -> Sales -> Session
-        $totals = SalePayment::whereHas('sale', function($q) use ($sessionId) {
-                $q->where('cash_register_session_id', $sessionId)
-                  ->where('status', '!=', 'voided'); // Ignorar anuladas
+
+        $totals = SalePayment::query()
+            ->whereHas('sale', function ($query) use ($session) {
+                $query->where('cash_register_session_id', $session->id)
+                    ->where('status', 'closed');
             })
             ->selectRaw('payment_method_id, sum(amount) as total')
             ->groupBy('payment_method_id')
@@ -68,8 +67,8 @@ class CashRegisterController extends Controller
             $cashTotal = (float) ($totals->firstWhere('payment_method_id', $cashMethod->id)?->total ?? 0);
         }
 
-        $salesCount = $session->sales()->where('status', '!=', 'voided')->count();
-        $totalSales = $session->sales()->where('status', '!=', 'voided')->sum('total_amount');
+        $salesCount = $session->closedSales()->count();
+        $totalSales = $session->closedSales()->sum('total_amount');
 
         return response()->json([
             'success' => true,
@@ -119,9 +118,7 @@ class CashRegisterController extends Controller
             ->paginate(20);
 
         $sessions->getCollection()->transform(function (CashRegisterSession $session) {
-            $session->total_sales = (float) $session->sales()
-                ->where('status', '!=', 'voided')
-                ->sum('total_amount');
+            $session->total_sales = (float) $session->closedSales()->sum('total_amount');
 
             $latestClosure = $session->closures->sortByDesc('created_at')->first();
             $session->real_cash = (float) ($latestClosure?->real_cash ?? 0);

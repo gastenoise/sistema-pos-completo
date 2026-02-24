@@ -29,6 +29,11 @@ class CashRegisterSession extends Model
         return $this->hasMany(Sale::class);
     }
 
+    public function closedSales(): HasMany
+    {
+        return $this->sales()->where('status', 'closed');
+    }
+
     public function closures(): HasMany
     {
         return $this->hasMany(CashClosure::class);
