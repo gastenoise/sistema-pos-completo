@@ -545,6 +545,8 @@ function POSContent() {
               onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
               categories={categories}
               inputClassName="h-12"
+              searchInputClassName="flex-1 min-w-[240px]"
+              barcodeInputClassName="sm:w-44 md:w-52"
               rightContent={<QuickAddForm onAdd={handleQuickAdd} categories={categories} />}
             />
           </div>

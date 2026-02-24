@@ -33,13 +33,18 @@ export default function ItemsFiltersDialog({
   searchInputRef,
   rightContent = null,
   inputClassName = '',
+  searchInputClassName = '',
+  barcodeInputClassName = '',
 }) {
   const [open, setOpen] = useState(false);
+
+  const searchSizeClassName = searchInputClassName || 'flex-1 min-w-[220px]';
+  const barcodeSizeClassName = barcodeInputClassName || 'sm:w-44 md:w-52';
 
   return (
     <>
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        <div className="relative flex-1">
+        <div className={`relative ${searchSizeClassName}`.trim()}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
             ref={searchInputRef}
@@ -54,9 +59,10 @@ export default function ItemsFiltersDialog({
         <Input
           type="text"
           placeholder="por barcode o sku"
+          inputMode="numeric"
           value={barcodeOrSkuValue}
           onChange={(e) => onBarcodeOrSkuChange(e.target.value)}
-          className={inputClassName}
+          className={`${barcodeSizeClassName} ${inputClassName}`.trim()}
         />
 
         <Dialog open={open} onOpenChange={setOpen}>
