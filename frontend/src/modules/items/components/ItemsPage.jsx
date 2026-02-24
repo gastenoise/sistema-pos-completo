@@ -505,10 +505,10 @@ export default function Items() {
                       />
                     </TableHead>
                     <TableHead>Item</TableHead>
-                    <TableHead>Category</TableHead>
+                    <TableHead>Categoría</TableHead>
                     <TableHead>Marca</TableHead>
                     <TableHead>Presentación</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-right">Precio</TableHead>
                     <TableHead className="text-center">Stock</TableHead>
                     <TableHead>Origen</TableHead>
                     <TableHead className="w-12"></TableHead>

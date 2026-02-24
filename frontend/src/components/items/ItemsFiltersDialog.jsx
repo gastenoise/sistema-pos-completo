@@ -130,11 +130,11 @@ export default function ItemsFiltersDialog({
                   checked={draftOnlyPriceUpdated}
                   onCheckedChange={(checked) => setDraftOnlyPriceUpdated(Boolean(checked))}
                 />
-                precio actualizado
+                Con precio actualizado
               </label>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-700">categoría</p>
+                <p className="text-sm font-medium text-slate-700">Categoría</p>
                 <Select value={draftCategory} onValueChange={setDraftCategory}>
                   <SelectTrigger>
                     <SelectValue placeholder="Categorías" />
@@ -150,7 +150,7 @@ export default function ItemsFiltersDialog({
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-700">fuente</p>
+                <p className="text-sm font-medium text-slate-700">Fuente</p>
                 <Select value={draftSource} onValueChange={setDraftSource}>
                   <SelectTrigger>
                     <SelectValue placeholder="Origen" />

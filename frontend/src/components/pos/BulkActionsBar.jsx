@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Tag, TrendingUp, Loader2 } from 'lucide-react';
+import { X, Tag, TrendingUp, Loader2, BadgeDollarSign } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -48,7 +48,7 @@ export default function BulkActionsBar({
     <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium text-blue-900">
-          {selectedCount} item{selectedCount !== 1 ? 's' : ''} selected
+          {selectedCount} item{selectedCount !== 1 ? 's' : ''} seleccionado{selectedCount !== 1 ? 's' : ''}
         </span>
         <Button 
           variant="ghost" 
@@ -57,7 +57,7 @@ export default function BulkActionsBar({
           className="text-blue-700 hover:text-blue-900"
         >
           <X className="w-4 h-4 mr-1" />
-          Clear
+          Cancelar selección
         </Button>
       </div>
 
@@ -67,18 +67,18 @@ export default function BulkActionsBar({
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" disabled={loading}>
               <Tag className="w-4 h-4 mr-2" />
-              Assign Category
+              Asignar categoría
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-56">
             <div className="space-y-2">
-              <p className="text-sm font-medium">Select category</p>
+              <p className="text-sm font-medium">Seleccionar categoría</p>
               <Select onValueChange={(value) => onAssignCategory(value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Choose..." />
+                  <SelectValue placeholder="Elegí..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No category</SelectItem>
+                  <SelectItem value="none">Sin categoría</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
                   ))}
@@ -93,8 +93,8 @@ export default function BulkActionsBar({
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" disabled={loading}>
-              <TrendingUp className="w-4 h-4 mr-2" />
-              Set Price
+              <BadgeDollarSign className="w-4 h-4 mr-2" />
+              Cambiar precio
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-64">
@@ -130,7 +130,7 @@ export default function BulkActionsBar({
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" disabled={loading}>
               <TrendingUp className="w-4 h-4 mr-2" />
-              Price Increase
+              Aumentar precio
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-64">
