@@ -49,10 +49,42 @@ class ItemCatalogPaginationTest extends TestCase
 
         $response
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.meta.current_page', 1)
-            ->assertJsonPath('data.meta.per_page', 1)
-            ->assertJsonPath('data.meta.total', 2)
-            ->assertJsonPath('data.meta.last_page', 2);
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.per_page', 1)
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonPath('meta.last_page', 2);
+    }
+
+
+    public function test_index_honors_requested_page_number(): void
+    {
+        [$user, $business] = $this->createAuthenticatedOwner();
+
+        Item::query()->create([
+            'business_id' => $business->id,
+            'name' => 'Producto A',
+            'barcode' => '1111111111111',
+            'price' => 100,
+        ]);
+
+        Item::query()->create([
+            'business_id' => $business->id,
+            'name' => 'Producto B',
+            'barcode' => '2222222222222',
+            'price' => 120,
+        ]);
+
+        Sanctum::actingAs($user, ['front']);
+
+        $response = $this->withHeader('X-Business-Id', (string) $business->id)
+            ->getJson('/protected/items?source=local&per_page=1&page=2')
+            ->assertOk();
+
+        $response
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonPath('meta.per_page', 1)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('data.0.name', 'Producto B');
     }
 
     public function test_source_all_includes_local_and_sepa_in_total_when_sepa_enabled(): void
@@ -93,16 +125,16 @@ class ItemCatalogPaginationTest extends TestCase
         Sanctum::actingAs($user, ['front']);
 
         $response = $this->withHeader('X-Business-Id', (string) $business->id)
-            ->getJson('/protected/items?source=all&per_page=2')
+            ->getJson('/protected/items?source=all&per_page=10')
             ->assertOk();
 
         $response
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.meta.total', 4)
-            ->assertJsonPath('data.meta.per_page', 2)
-            ->assertJsonPath('data.meta.last_page', 2);
+            ->assertJsonPath('meta.total', 4)
+            ->assertJsonPath('meta.per_page', 10)
+            ->assertJsonPath('meta.last_page', 1);
 
-        $sources = collect($response->json('data.data'))->pluck('source')->unique()->all();
+        $sources = collect($response->json('data'))->pluck('source')->unique()->all();
         $this->assertContains('local', $sources);
         $this->assertContains('sepa', $sources);
     }

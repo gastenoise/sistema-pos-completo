@@ -247,6 +247,7 @@ class ItemController extends Controller
             'only_sepa_price_overridden' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'only_price_updated' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'barcode_or_sku' => ['nullable', 'string', 'max:255'],
+            'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'cursor_paginate' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'recent_first' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
@@ -254,7 +255,8 @@ class ItemController extends Controller
 
         $items = $catalogQueryService->list($validated);
 
-        return response()->json(['success' => true, 'data' => ItemResource::collection($items)]);
+        return ItemResource::collection($items)
+            ->additional(['success' => true]);
     }
 
     public function store(ItemStoreRequest $request)
