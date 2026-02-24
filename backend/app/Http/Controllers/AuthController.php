@@ -60,12 +60,16 @@ class AuthController extends Controller
         }
 
         $user = User::with('businesses')->findOrFail(Auth::id());
-        if (!empty($user->allowed_login_ip) && $request->ip() !== $user->allowed_login_ip) {
+        $allowedLoginIp = is_string($user->allowed_login_ip)
+            ? trim($user->allowed_login_ip)
+            : $user->allowed_login_ip;
+
+        if (!empty($allowedLoginIp) && $request->ip() !== $allowedLoginIp) {
             Log::warning('Auth login blocked by IP restriction', [
                 'event' => 'auth.login.ip_not_allowed',
                 'user_id' => $user->id,
                 'request_ip_hash' => hash('sha256', (string) $request->ip()),
-                'allowed_ip_hash' => hash('sha256', (string) $user->allowed_login_ip),
+                'allowed_ip_hash' => hash('sha256', (string) $allowedLoginIp),
             ]);
 
             Auth::guard('web')->logout();
@@ -166,8 +170,14 @@ class AuthController extends Controller
             // No validar contraseña aquí
         ]);
 
-        if (array_key_exists('allowed_login_ip', $validated) && blank($validated['allowed_login_ip'])) {
-            $validated['allowed_login_ip'] = null;
+        if (array_key_exists('allowed_login_ip', $validated)) {
+            $allowedLoginIp = is_string($validated['allowed_login_ip'])
+                ? trim($validated['allowed_login_ip'])
+                : $validated['allowed_login_ip'];
+
+            $validated['allowed_login_ip'] = blank($allowedLoginIp)
+                ? null
+                : $allowedLoginIp;
         }
 
         $user = User::findOrFail($authUser->id);
