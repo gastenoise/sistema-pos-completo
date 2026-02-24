@@ -59,10 +59,28 @@ class AuthController extends Controller
             ], 429);
         }
 
+        $user = User::with('businesses')->findOrFail(Auth::id());
+        if (!empty($user->allowed_login_ip) && $request->ip() !== $user->allowed_login_ip) {
+            Log::warning('Auth login blocked by IP restriction', [
+                'event' => 'auth.login.ip_not_allowed',
+                'user_id' => $user->id,
+                'request_ip_hash' => hash('sha256', (string) $request->ip()),
+                'allowed_ip_hash' => hash('sha256', (string) $user->allowed_login_ip),
+            ]);
+
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return response()->json([
+                'success' => false,
+                'code' => 'auth.ip_not_allowed',
+                'message' => 'El acceso desde esta red no está permitido para tu cuenta.',
+            ], 403);
+        }
+
         RateLimiter::clear($throttleKey);
         $request->session()->regenerate();
-
-        $user = User::with('businesses')->findOrFail(Auth::id());
 
         // Revoca tokens legacy para forzar migración a sesión + cookie HttpOnly.
         $user->tokens()->delete();
@@ -144,8 +162,13 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'phone' => 'sometimes|nullable|string|max:30',
+            'allowed_login_ip' => 'sometimes|nullable|ip',
             // No validar contraseña aquí
         ]);
+
+        if (array_key_exists('allowed_login_ip', $validated) && blank($validated['allowed_login_ip'])) {
+            $validated['allowed_login_ip'] = null;
+        }
 
         $user = User::findOrFail($authUser->id);
 

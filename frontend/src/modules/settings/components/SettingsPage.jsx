@@ -52,7 +52,7 @@ import { TOAST_MESSAGES } from '@/lib/toastMessages';
 export default function Settings() {
   const { businessId, currentBusiness, refreshCurrentBusiness } = useBusiness();
   const queryClient = useQueryClient();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   
   const [businessData, setBusinessData] = useState({
     name: '',
@@ -67,6 +67,8 @@ export default function Settings() {
   const [savingBusinessInfo, setSavingBusinessInfo] = useState(false);
   const [savingCurrency, setSavingCurrency] = useState(false);
   const [savingBusinessParameters, setSavingBusinessParameters] = useState(false);
+  const [allowedLoginIp, setAllowedLoginIp] = useState('');
+  const [savingAllowedLoginIp, setSavingAllowedLoginIp] = useState(false);
   const businessInfoFormRef = useRef(null);
   
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -124,6 +126,10 @@ export default function Settings() {
       });
     }
   }, [currentBusiness]);
+
+  useEffect(() => {
+    setAllowedLoginIp(user?.allowed_login_ip || '');
+  }, [user?.allowed_login_ip]);
 
   const updateCategoryCache = (response) => {
     const list = mapCatalogIsActive(normalizeListResponse(response, 'categories'));
@@ -474,6 +480,34 @@ export default function Settings() {
     logout();
   };
 
+  const handleSaveAllowedLoginIp = async (event) => {
+    event?.preventDefault();
+    setSavingAllowedLoginIp(true);
+
+    try {
+      await updateUser({ allowed_login_ip: allowedLoginIp.trim() || null });
+      toast.success('Restricción de IP actualizada correctamente.');
+    } catch (error) {
+      toast.error(error?.message || 'No pudimos actualizar la restricción de IP.');
+    } finally {
+      setSavingAllowedLoginIp(false);
+    }
+  };
+
+  const handleClearAllowedLoginIp = async () => {
+    setSavingAllowedLoginIp(true);
+
+    try {
+      await updateUser({ allowed_login_ip: null });
+      setAllowedLoginIp('');
+      toast.success('Restricción de IP eliminada.');
+    } catch (error) {
+      toast.error(error?.message || 'No pudimos eliminar la restricción de IP.');
+    } finally {
+      setSavingAllowedLoginIp(false);
+    }
+  };
+
   const openEditCategory = (category) => {
     setEditingCategory(category);
     setCategoryData({ 
@@ -596,6 +630,45 @@ export default function Settings() {
                     )}
                     Guardar Información
                   </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Seguridad de cuenta</CardTitle>
+                <CardDescription>
+                  Permití el acceso solo desde una IP específica. Si lo dejás vacío, no se aplica restricción.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-4" onSubmit={handleSaveAllowedLoginIp}>
+                  <div>
+                    <Label>IP permitida (IPv4 o IPv6)</Label>
+                    <Input
+                      value={allowedLoginIp}
+                      onChange={(e) => setAllowedLoginIp(e.target.value)}
+                      placeholder="Ej: 203.0.113.5"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <Button type="submit" disabled={savingAllowedLoginIp}>
+                      {savingAllowedLoginIp ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      Guardar IP
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={savingAllowedLoginIp || !allowedLoginIp}
+                      onClick={handleClearAllowedLoginIp}
+                    >
+                      Quitar restricción
+                    </Button>
+                  </div>
                 </form>
               </CardContent>
             </Card>
