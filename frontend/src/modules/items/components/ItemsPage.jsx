@@ -434,6 +434,8 @@ export default function Items() {
             onlyPriceUpdated={onlyPriceUpdated}
             onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
             categories={categories}
+            searchInputClassName="flex-1 min-w-[240px]"
+            barcodeInputClassName="sm:w-44 md:w-52"
           />
         </div>
 
