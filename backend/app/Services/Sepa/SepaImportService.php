@@ -433,8 +433,20 @@ class SepaImportService
             return null;
         }
 
-        if (in_array($normalized, ['cm3'], true)) {
+        if (in_array($normalized, ['litro', 'l'], true)) {
+            return 'lt';
+        }
+
+        if (in_array($normalized, ['kilo', 'k'], true)) {
+            return 'kg';
+        }
+
+        if (in_array($normalized, ['cm3', 'cm'], true)) {
             return 'cc';
+        }
+
+        if (in_array($normalized, ['pc', 'pk', 'paque'], true)) {
+            return 'pck';
         }
 
         if (in_array($normalized, ['unidad', 'unida', 'pu', 'uni'], true)) {
