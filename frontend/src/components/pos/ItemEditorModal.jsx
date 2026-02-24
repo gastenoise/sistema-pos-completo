@@ -108,7 +108,7 @@ export default function ItemEditorModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="w-5 h-5" />
-            {item ? (isSepaItem ? 'Editar precio SEPA' : 'Edit Item') : 'Add New Item'}
+            {item ? (isSepaItem ? 'Editar Item SEPA' : 'Editar Item') : 'Agregar Nuevo Item'}
           </DialogTitle>
         </DialogHeader>
 
@@ -116,9 +116,9 @@ export default function ItemEditorModal({
           <div className="grid grid-cols-2 gap-4">
             {isSepaItem ? (
               <>
-                <div className="col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                {/* <div className="col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
                   Solo podés modificar el precio final para ítems con origen SEPA.
-                </div>
+                </div> */}
                 <div className="col-span-2">
                   <Label htmlFor="price">Precio final (vacío = precio original SEPA)</Label>
                   <Input
@@ -153,7 +153,7 @@ export default function ItemEditorModal({
             ) : (
               <>
             <div className="col-span-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">Nombre *</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -165,17 +165,7 @@ export default function ItemEditorModal({
             </div>
 
             <div>
-              <Label htmlFor="sku">SKU (auxiliar)</Label>
-              <Input
-                id="sku"
-                value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                placeholder="Opcional, para referencia interna"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="barcode">Código de barras</Label>
+              <Label htmlFor="barcode">Barcode (CB)</Label>
               <Input
                 id="barcode"
                 value={formData.barcode}
@@ -185,7 +175,18 @@ export default function ItemEditorModal({
             </div>
 
             <div>
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="sku">SKU</Label>
+              <Input
+                id="sku"
+                value={formData.sku}
+                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                placeholder="Opcional, para referencia interna"
+              />
+            </div>
+
+
+            <div>
+              <Label htmlFor="category">Categoría</Label>
               <Select 
                 value={formData.category_id} 
                 onValueChange={(value) => setFormData({ ...formData, category_id: value })}
@@ -194,7 +195,7 @@ export default function ItemEditorModal({
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_CATEGORY_VALUE}>No category</SelectItem>
+                  <SelectItem value={NO_CATEGORY_VALUE}>Sin categoría</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
                   ))}
@@ -203,7 +204,7 @@ export default function ItemEditorModal({
             </div>
 
             <div>
-              <Label htmlFor="price">Price *</Label>
+              <Label htmlFor="price">Precio *</Label>
               <Input
                 id="price"
                 type="number"
@@ -295,11 +296,11 @@ export default function ItemEditorModal({
             )}
             <div className="flex gap-3 ml-auto">
               <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
+                Cancelar
               </Button>
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {item ? (isSepaItem ? 'Guardar precio' : 'Update') : 'Create'}
+                {item ? (isSepaItem ? 'Guardar' : 'Actualizar') : 'Crear'}
               </Button>
             </div>
           </div>

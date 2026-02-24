@@ -173,18 +173,18 @@ export default function PaymentWizard({
 
         <div className="flex justify-between pt-4 border-t">
           <Button variant="outline" onClick={handleCancel}>
-            Cancel
+            Cancelar
           </Button>
 
           {step === 1 ? (
             <Button onClick={handleConfirmDivision} disabled={!isValidDivision || loading || paymentsDraft.length === 0}>
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Confirm Division
+              Confirmar División
             </Button>
           ) : (
             <Button onClick={handleCloseSale} disabled={!allConfirmed || loading}>
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Close Sale
+              Cerrar Venta
             </Button>
           )}
         </div>

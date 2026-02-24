@@ -41,19 +41,19 @@ export default function ProcessStep({
       <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
         <div className="grid grid-cols-3 gap-4 text-center text-sm">
           <div>
-            <p className="text-slate-500">Pending</p>
+            <p className="text-slate-500">Pendiente</p>
             <p className="text-lg font-bold text-amber-600">
               {payments.filter(p => p.status === 'pending').length}
             </p>
           </div>
           <div>
-            <p className="text-slate-500">Processing</p>
+            <p className="text-slate-500">Procesando</p>
             <p className="text-lg font-bold text-blue-600">
               {payments.filter(p => p.status === 'processing').length}
             </p>
           </div>
           <div>
-            <p className="text-slate-500">Confirmed</p>
+            <p className="text-slate-500">Confirmado</p>
             <p className="text-lg font-bold text-green-600">
               {payments.filter(p => p.status === 'confirmed').length}
             </p>

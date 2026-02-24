@@ -37,7 +37,7 @@ export default function DivisionStep({
     <div className="space-y-6">
       {/* Total Display */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-        <p className="text-sm text-blue-600 mb-1">Total to collect</p>
+        <p className="text-sm text-blue-600 mb-1">Total a cobrar</p>
         <p className="text-3xl font-bold text-blue-900">{formatPrice(total, currentBusiness)}</p>
       </div>
 
@@ -66,7 +66,7 @@ export default function DivisionStep({
           <SelectTrigger className="w-full">
             <div className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
-              <SelectValue placeholder="Add Payment Method" />
+              <SelectValue placeholder="Agregar método de pago" />
             </div>
           </SelectTrigger>
           <SelectContent>
