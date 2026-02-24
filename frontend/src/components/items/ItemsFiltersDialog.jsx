@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogFooter,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
@@ -29,6 +30,8 @@ export default function ItemsFiltersDialog({
   onSourceChange,
   onlyPriceUpdated,
   onOnlyPriceUpdatedChange,
+  onApplyFilters,
+  onClearFilters,
   categories = [],
   searchInputRef,
   rightContent = null,
@@ -37,6 +40,51 @@ export default function ItemsFiltersDialog({
   barcodeInputClassName = '',
 }) {
   const [open, setOpen] = useState(false);
+  const [draftCategory, setDraftCategory] = useState(String(categoryValue));
+  const [draftSource, setDraftSource] = useState(sourceValue);
+  const [draftOnlyPriceUpdated, setDraftOnlyPriceUpdated] = useState(Boolean(onlyPriceUpdated));
+
+  useEffect(() => {
+    if (!open) return;
+
+    setDraftCategory(String(categoryValue));
+    setDraftSource(sourceValue);
+    setDraftOnlyPriceUpdated(Boolean(onlyPriceUpdated));
+  }, [open, categoryValue, sourceValue, onlyPriceUpdated]);
+
+  const handleApplyFilters = () => {
+    const payload = {
+      category: draftCategory,
+      source: draftSource,
+      onlyPriceUpdated: draftOnlyPriceUpdated,
+    };
+
+    if (onApplyFilters) {
+      onApplyFilters(payload);
+    } else {
+      onCategoryChange(payload.category);
+      onSourceChange(payload.source);
+      onOnlyPriceUpdatedChange(payload.onlyPriceUpdated);
+    }
+
+    setOpen(false);
+  };
+
+  const handleClearFilters = () => {
+    if (onClearFilters) {
+      onClearFilters();
+      setOpen(false);
+      return;
+    }
+
+    setDraftCategory('all');
+    setDraftSource('all');
+    setDraftOnlyPriceUpdated(false);
+    onCategoryChange('all');
+    onSourceChange('all');
+    onOnlyPriceUpdatedChange(false);
+    setOpen(false);
+  };
 
   const searchSizeClassName = searchInputClassName || 'flex-1 min-w-[220px]';
   const barcodeSizeClassName = barcodeInputClassName || 'sm:w-44 md:w-52';
@@ -79,15 +127,15 @@ export default function ItemsFiltersDialog({
             <div className="space-y-4 pt-2">
               <label className="flex items-center gap-2 text-sm text-slate-600">
                 <Checkbox
-                  checked={onlyPriceUpdated}
-                  onCheckedChange={(checked) => onOnlyPriceUpdatedChange(Boolean(checked))}
+                  checked={draftOnlyPriceUpdated}
+                  onCheckedChange={(checked) => setDraftOnlyPriceUpdated(Boolean(checked))}
                 />
                 precio actualizado
               </label>
 
               <div className="space-y-2">
                 <p className="text-sm font-medium text-slate-700">categoría</p>
-                <Select value={String(categoryValue)} onValueChange={onCategoryChange}>
+                <Select value={draftCategory} onValueChange={setDraftCategory}>
                   <SelectTrigger>
                     <SelectValue placeholder="Categorías" />
                   </SelectTrigger>
@@ -103,7 +151,7 @@ export default function ItemsFiltersDialog({
 
               <div className="space-y-2">
                 <p className="text-sm font-medium text-slate-700">fuente</p>
-                <Select value={sourceValue} onValueChange={onSourceChange}>
+                <Select value={draftSource} onValueChange={setDraftSource}>
                   <SelectTrigger>
                     <SelectValue placeholder="Origen" />
                   </SelectTrigger>
@@ -115,6 +163,10 @@ export default function ItemsFiltersDialog({
                 </Select>
               </div>
             </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleClearFilters}>Eliminar filtros</Button>
+              <Button type="button" onClick={handleApplyFilters}>Aplicar filtros</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 

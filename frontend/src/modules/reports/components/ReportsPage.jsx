@@ -18,6 +18,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -82,6 +83,8 @@ export default function Reports() {
   const [selectedSale, setSelectedSale] = useState(null);
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [draftPaymentMethodFilter, setDraftPaymentMethodFilter] = useState('all');
+  const [draftCategoryFilter, setDraftCategoryFilter] = useState('all');
   const [isMoreFiltersOpen, setIsMoreFiltersOpen] = useState(false);
   const [statusTab, setStatusTab] = useState('closed');
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
@@ -204,6 +207,32 @@ export default function Reports() {
     setQuickDate('today');
     setPaymentMethodFilter('all');
     setCategoryFilter('all');
+    setDraftPaymentMethodFilter('all');
+    setDraftCategoryFilter('all');
+  };
+
+  const handleOpenMoreFilters = (open) => {
+    if (open) {
+      setDraftPaymentMethodFilter(paymentMethodFilter);
+      setDraftCategoryFilter(categoryFilter);
+    }
+
+    setIsMoreFiltersOpen(open);
+  };
+
+  const handleApplyMoreFilters = () => {
+    setPaymentMethodFilter(draftPaymentMethodFilter);
+    setCategoryFilter(draftCategoryFilter);
+    setIsMoreFiltersOpen(false);
+  };
+
+  const handleClearMoreFilters = () => {
+    // Reportes: limpiamos método/categoría y mantenemos el rango de fechas vigente.
+    setDraftPaymentMethodFilter('all');
+    setDraftCategoryFilter('all');
+    setPaymentMethodFilter('all');
+    setCategoryFilter('all');
+    setIsMoreFiltersOpen(false);
   };
 
   const handleExportCsv = async () => {
@@ -373,7 +402,7 @@ export default function Reports() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsMoreFiltersOpen(true)}
+                  onClick={() => handleOpenMoreFilters(true)}
                 >
                   Más Filtros
                 </Button>
@@ -392,7 +421,7 @@ export default function Reports() {
           </CardContent>
         </Card>
 
-        <Dialog open={isMoreFiltersOpen} onOpenChange={setIsMoreFiltersOpen}>
+        <Dialog open={isMoreFiltersOpen} onOpenChange={handleOpenMoreFilters}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Más Filtros</DialogTitle>
@@ -400,7 +429,7 @@ export default function Reports() {
             <div className="space-y-4">
               <div>
                 <Label className="text-sm">Método de pago</Label>
-                <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                <Select value={draftPaymentMethodFilter} onValueChange={setDraftPaymentMethodFilter}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Payment" />
                   </SelectTrigger>
@@ -415,7 +444,7 @@ export default function Reports() {
 
               <div>
                 <Label className="text-sm">Categoría</Label>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select value={draftCategoryFilter} onValueChange={setDraftCategoryFilter}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
@@ -429,6 +458,10 @@ export default function Reports() {
                 </Select>
               </div>
             </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleClearMoreFilters}>Eliminar filtros</Button>
+              <Button type="button" onClick={handleApplyMoreFilters}>Aplicar filtros</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
