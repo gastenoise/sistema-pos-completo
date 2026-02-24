@@ -20,6 +20,7 @@ export const normalizeUserProfile = (user) => {
     name: user.name ?? user.full_name ?? '',
     email: user.email ?? '',
     phone: user.phone ?? null,
+    allowed_login_ip: user.allowed_login_ip ?? null,
     email_verified_at: user.email_verified_at ?? null,
     created_at: user.created_at ?? user.created_date ?? null,
     updated_at: user.updated_at ?? null,

@@ -58,6 +58,10 @@ export default function Login() {
       const target = getRedirectTarget(location.search);
       navigate(target, { replace: true });
     } catch (err) {
+      if (err?.status === 403 && err?.data?.code === 'auth.ip_not_allowed') {
+        setError('Tu cuenta tiene una restricción de IP. Ingresá desde la red autorizada o actualizá la configuración de seguridad.');
+        return;
+      }
       setError(err?.message || 'No pudimos iniciar sesión. Intenta nuevamente.');
     } finally {
       setIsSubmitting(false);
