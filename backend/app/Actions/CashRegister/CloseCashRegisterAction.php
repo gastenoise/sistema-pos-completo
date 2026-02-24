@@ -6,7 +6,6 @@ use App\Models\CashClosure;
 use App\Models\CashRegisterExpectedTotal;
 use App\Models\CashRegisterSession;
 use App\Models\PaymentMethod;
-use App\Models\SalePayment;
 use Illuminate\Support\Facades\DB;
 
 class CloseCashRegisterAction
@@ -16,12 +15,11 @@ class CloseCashRegisterAction
         DB::transaction(function () use ($session, $userId, $realCash) {
             $cashMethod = PaymentMethod::where('code', 'cash')->first();
 
+            $closedSalePayments = $session->closedSalePayments();
+
             $salesCash = 0;
             if ($cashMethod) {
-                $salesCash = SalePayment::whereHas('sale', function ($query) use ($session) {
-                    $query->where('cash_register_session_id', $session->id)
-                        ->where('status', '!=', 'voided');
-                })
+                $salesCash = $closedSalePayments
                     ->where('payment_method_id', $cashMethod->id)
                     ->sum('amount');
             }
@@ -38,10 +36,7 @@ class CloseCashRegisterAction
                 'created_by' => $userId,
             ]);
 
-            $allTotals = SalePayment::whereHas('sale', function ($query) use ($session) {
-                $query->where('cash_register_session_id', $session->id)
-                    ->where('status', '!=', 'voided');
-            })
+            $allTotals = $session->closedSalePayments()
                 ->selectRaw('payment_method_id, sum(amount) as total')
                 ->groupBy('payment_method_id')
                 ->get();
