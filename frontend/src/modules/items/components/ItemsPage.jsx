@@ -129,9 +129,13 @@ export default function Items() {
   const items = itemsResponse?.items || [];
   const pagination = itemsResponse?.pagination || null;
   const totalLoaded = items.length;
-  const totalAvailable = pagination?.total ?? totalLoaded;
-  const totalPages = Number(pagination?.last_page || 1);
-  const currentPage = Number(pagination?.current_page || page);
+  const hasKnownTotal = pagination?.total !== null && pagination?.total !== undefined;
+  const totalAvailable = hasKnownTotal ? pagination.total : totalLoaded;
+  const hasOffsetPagination = pagination?.current_page !== null && pagination?.current_page !== undefined
+    && pagination?.last_page !== null && pagination?.last_page !== undefined;
+  const totalPages = hasOffsetPagination ? Number(pagination?.last_page || 1) : null;
+  const currentPage = hasOffsetPagination ? Number(pagination?.current_page || page) : Number(page);
+  const hasNextCursor = Boolean(pagination?.next_cursor);
 
   // Create/Update mutation
   const itemMutation = useSaveItemMutation();
@@ -511,12 +515,23 @@ export default function Items() {
 
           <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200">
             <p className="text-sm text-slate-500">
-              Mostrando {totalLoaded} de {totalAvailable} ítems
+              {hasKnownTotal
+                ? `Mostrando ${totalLoaded} de ${totalAvailable} ítems`
+                : `Mostrando ${totalLoaded} ítems`}
             </p>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage(Math.max(1, currentPage - 1))}>Anterior</Button>
-              <span className="text-sm text-slate-600">Página {currentPage} de {totalPages}</span>
-              <Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setPage(Math.min(totalPages, currentPage + 1))}>Siguiente</Button>
+              <span className="text-sm text-slate-600">
+                {hasOffsetPagination ? `Página ${currentPage} de ${totalPages}` : `Página ${currentPage}`}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={hasOffsetPagination ? currentPage >= totalPages : !hasNextCursor}
+                onClick={() => setPage(hasOffsetPagination ? Math.min(totalPages, currentPage + 1) : currentPage + 1)}
+              >
+                Siguiente
+              </Button>
             </div>
           </div>
         </div>
