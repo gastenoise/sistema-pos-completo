@@ -69,9 +69,9 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1">
+        <Button variant="outline" type="button">
           <Plus className="w-4 h-4" />
-          Item Rápido
+          Item rápido
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm">
