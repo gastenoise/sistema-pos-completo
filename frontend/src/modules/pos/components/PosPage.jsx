@@ -512,6 +512,18 @@ function POSContent() {
     logout();
   };
 
+  const handleApplyCatalogFilters = ({ category, source, onlyPriceUpdated: priceUpdated }) => {
+    setCategoryFilter(category);
+    setSourceFilter(source);
+    setOnlyPriceUpdated(Boolean(priceUpdated));
+  };
+
+  const handleClearCatalogFilters = () => {
+    setCategoryFilter('all');
+    setSourceFilter('all');
+    setOnlyPriceUpdated(false);
+  };
+
   const getItemIcon = (item) => {
     const category = categories.find(c => c.id === item.category_id);
     const IconComponent = getIconComponent(category?.icon);
@@ -543,6 +555,8 @@ function POSContent() {
               onSourceChange={setSourceFilter}
               onlyPriceUpdated={onlyPriceUpdated}
               onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
+              onApplyFilters={handleApplyCatalogFilters}
+              onClearFilters={handleClearCatalogFilters}
               categories={categories}
               inputClassName="h-12"
               rightContent={<QuickAddForm onAdd={handleQuickAdd} categories={categories} />}

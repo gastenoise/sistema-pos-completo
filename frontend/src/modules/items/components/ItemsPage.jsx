@@ -390,6 +390,23 @@ export default function Items() {
     logout();
   };
 
+  const handleApplyCatalogFilters = ({ category, source, onlyPriceUpdated: priceUpdated }) => {
+    if (category === 'all' || category === 'uncategorized') {
+      setCategoryFilter(category);
+    } else {
+      setCategoryFilter(Number(category));
+    }
+
+    setSourceFilter(source);
+    setOnlyPriceUpdated(Boolean(priceUpdated));
+  };
+
+  const handleClearCatalogFilters = () => {
+    setCategoryFilter('all');
+    setSourceFilter('all');
+    setOnlyPriceUpdated(false);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <TopNav user={user} onLogout={handleLogout} currentPage="Items" />
@@ -421,18 +438,13 @@ export default function Items() {
             barcodeOrSkuValue={barcodeOrSkuQuery}
             onBarcodeOrSkuChange={setBarcodeOrSkuQuery}
             categoryValue={String(categoryFilter)}
-            onCategoryChange={(value) => {
-              if (value === 'all' || value === 'uncategorized') {
-                setCategoryFilter(value);
-                return;
-              }
-
-              setCategoryFilter(Number(value));
-            }}
+            onCategoryChange={setCategoryFilter}
             sourceValue={sourceFilter}
             onSourceChange={setSourceFilter}
             onlyPriceUpdated={onlyPriceUpdated}
             onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
+            onApplyFilters={handleApplyCatalogFilters}
+            onClearFilters={handleClearCatalogFilters}
             categories={categories}
           />
         </div>
