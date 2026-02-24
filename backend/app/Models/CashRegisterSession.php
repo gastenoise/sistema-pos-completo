@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use App\Traits\HasBusiness;
 
 class CashRegisterSession extends Model
@@ -27,6 +28,21 @@ class CashRegisterSession extends Model
     public function sales(): HasMany
     {
         return $this->hasMany(Sale::class);
+    }
+
+    public function closedSales(): HasMany
+    {
+        return $this->sales()->where('status', 'closed');
+    }
+
+    public function salePayments(): HasManyThrough
+    {
+        return $this->hasManyThrough(SalePayment::class, Sale::class);
+    }
+
+    public function closedSalePayments(): HasManyThrough
+    {
+        return $this->salePayments()->where('sales.status', 'closed');
     }
 
     public function closures(): HasMany
