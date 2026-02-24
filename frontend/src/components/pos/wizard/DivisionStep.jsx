@@ -87,14 +87,14 @@ export default function DivisionStep({
             <span className="font-medium">{formatPrice(totalDraft, currentBusiness)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-slate-600">Remaining:</span>
+            <span className="text-slate-600">Restante:</span>
             <span className={`font-medium ${remaining < 0 ? 'text-red-600' : remaining > 0 ? 'text-amber-600' : 'text-green-600'}`}>
               {formatPrice(Math.abs(remaining), currentBusiness)}
             </span>
           </div>
           {remainingCents !== 0 && (
             <p className="text-xs text-amber-600 pt-2 border-t">
-              Adjust amounts to match the total exactly
+              Ajustá los montos para llegar al total a cobrar
             </p>
           )}
         </div>
