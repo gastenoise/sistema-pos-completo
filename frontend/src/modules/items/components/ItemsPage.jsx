@@ -176,10 +176,14 @@ export default function Items() {
         updateItemsCache(saved);
         toast.success(TOAST_MESSAGES.items.updated);
       } else {
-        const saved = await itemMutation.mutateAsync(itemData);
-        updateItemsCache(saved);
+        await itemMutation.mutateAsync(itemData);
+        if (page !== 1) {
+          setPage(1);
+        }
         toast.success(TOAST_MESSAGES.items.created);
       }
+
+      await queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setShowEditorModal(false);
       setEditingItem(null);
     } catch (error) {
