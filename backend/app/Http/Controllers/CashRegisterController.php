@@ -8,14 +8,30 @@ use App\Http\Resources\CashRegisterSessionResource;
 use App\Models\CashRegisterSession;
 use App\Models\PaymentMethod;
 use App\Models\SalePayment;
+use App\Services\Authorization\BusinessPermissionResolver;
 use App\Services\BusinessContext;
+use App\Support\PermissionCatalog;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CashRegisterController extends Controller
 {
+    public function __construct(
+        private readonly BusinessContext $businessContext,
+        private readonly BusinessPermissionResolver $permissionResolver,
+    ) {}
+
     public function status()
     {
+        if ($response = $this->denyUnlessHasPermission(
+            PermissionCatalog::CASH_REGISTER_VIEW,
+            'No tienes permisos para consultar el estado de caja.',
+            'CASH_REGISTER_VIEW_FORBIDDEN'
+        )) {
+            return $response;
+        }
+
         $session = CashRegisterSession::where('status', 'open')
             ->where('opened_by', Auth::id())
             ->with('opener')
@@ -30,6 +46,14 @@ class CashRegisterController extends Controller
 
     public function open(Request $request, OpenCashRegisterAction $openCashRegisterAction)
     {
+        if ($response = $this->denyUnlessHasPermission(
+            PermissionCatalog::CASH_REGISTER_OPEN,
+            'No tienes permisos para abrir la caja.',
+            'CASH_REGISTER_OPEN_FORBIDDEN'
+        )) {
+            return $response;
+        }
+
         $validated = $request->validate(['amount' => 'required|numeric|min:0']);
 
         $session = $openCashRegisterAction->execute(Auth::id(), (float) $validated['amount']);
@@ -43,6 +67,14 @@ class CashRegisterController extends Controller
 
     public function getExpectedTotals($sessionId)
     {
+        if ($response = $this->denyUnlessHasPermission(
+            PermissionCatalog::CASH_REGISTER_VIEW,
+            'No tienes permisos para consultar los totales esperados de caja.',
+            'CASH_REGISTER_VIEW_FORBIDDEN'
+        )) {
+            return $response;
+        }
+
         $session = CashRegisterSession::findOrFail($sessionId);
 
         $totals = SalePayment::query()
@@ -85,6 +117,14 @@ class CashRegisterController extends Controller
 
     public function close(Request $request, CloseCashRegisterAction $closeCashRegisterAction)
     {
+        if ($response = $this->denyUnlessHasPermission(
+            PermissionCatalog::CASH_REGISTER_CLOSE,
+            'No tienes permisos para cerrar la caja.',
+            'CASH_REGISTER_CLOSE_FORBIDDEN'
+        )) {
+            return $response;
+        }
+
         $validated = $request->validate([
             'real_cash' => 'required|numeric|min:0',
         ]);
@@ -104,6 +144,14 @@ class CashRegisterController extends Controller
 
     public function closedSessions(Request $request)
     {
+        if ($response = $this->denyUnlessHasPermission(
+            PermissionCatalog::CASH_REGISTER_VIEW,
+            'No tienes permisos para consultar los cierres de caja.',
+            'CASH_REGISTER_VIEW_FORBIDDEN'
+        )) {
+            return $response;
+        }
+
         $businessId = app(BusinessContext::class)->getBusinessId();
 
         $sessions = CashRegisterSession::where('status', 'closed')
@@ -128,5 +176,31 @@ class CashRegisterController extends Controller
         });
 
         return response()->json(['success' => true, 'data' => $sessions]);
+    }
+
+    private function denyUnlessHasPermission(string $permissionKey, string $message, string $code): ?JsonResponse
+    {
+        $businessId = $this->businessContext->getBusinessId();
+        $user = Auth::user();
+
+        if (!$businessId || !$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo validar el contexto de autorización para esta acción.',
+                'code' => 'AUTHORIZATION_CONTEXT_REQUIRED',
+            ], 403);
+        }
+
+        $this->permissionResolver->resolve($user, $businessId);
+
+        if ($this->permissionResolver->can($permissionKey)) {
+            return null;
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+            'code' => $code,
+        ], 403);
     }
 }
