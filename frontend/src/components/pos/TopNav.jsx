@@ -24,11 +24,13 @@ export default function TopNav({ user, onLogout, currentPage }) {
   const { can } = useAuthorization();
   const { isOnline: _isOnline, offlineQueue: _offlineQueue } = useCart();
 
+  const canViewCashRegister = can('cash_register.view');
+
   const navItems = [
     { name: 'POS', href: createPageUrl('POS'), icon: ShoppingCart },
     { name: 'Items', href: createPageUrl('Items'), icon: Package },
     { name: 'Reportes', href: createPageUrl('Reports'), icon: BarChart3 },
-    { name: 'Caja', href: createPageUrl('CashRegister'), icon: CreditCard, requiredPermission: 'cash_register.view' },
+    ...(canViewCashRegister ? [{ name: 'Caja', href: createPageUrl('CashRegister'), icon: CreditCard }] : []),
     { name: 'Ajustes', href: createPageUrl('Settings'), icon: Settings, requiredPermission: 'settings.permissions.manage' },
   ].filter((item) => !item.requiredPermission || can(item.requiredPermission));
 

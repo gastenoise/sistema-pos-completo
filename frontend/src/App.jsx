@@ -4,6 +4,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -21,6 +22,7 @@ import {
   DialogTitle,
   DialogDescription
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -29,6 +31,25 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
+
+const PermissionGuard = ({
+  canAccess,
+  redirectTo = '/POS',
+  message = 'No tenés permisos para acceder a esta sección.',
+  children,
+}) => {
+  useEffect(() => {
+    if (!canAccess) {
+      toast.error(message);
+    }
+  }, [canAccess, message]);
+
+  if (!canAccess) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  return children;
+};
 
 const AuthenticatedApp = () => {
   const {
@@ -80,6 +101,7 @@ const AuthenticatedApp = () => {
   }
 
 
+  // Frontend guard is UX-only; backend permission checks remain the source of truth.
   const routePermissions = {
     CashRegister: 'cash_register.view',
     Settings: 'settings.permissions.manage',
@@ -120,7 +142,17 @@ const AuthenticatedApp = () => {
             key={path}
             path={`/${path}`}
             element={
-              canAccessRoute(path) ? (
+              path === 'CashRegister' ? (
+                <PermissionGuard
+                  canAccess={canAccessRoute(path)}
+                  redirectTo="/POS"
+                  message="No tenés permisos para ver Caja."
+                >
+                  <LayoutWrapper currentPageName={path}>
+                    <Page />
+                  </LayoutWrapper>
+                </PermissionGuard>
+              ) : canAccessRoute(path) ? (
                 <LayoutWrapper currentPageName={path}>
                   <Page />
                 </LayoutWrapper>

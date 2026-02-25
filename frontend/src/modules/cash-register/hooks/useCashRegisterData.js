@@ -7,22 +7,22 @@ import {
   openCashRegister
 } from '@/api/cash-register';
 
-export const useCashStatusQuery = (businessId) => useQuery({
+export const useCashStatusQuery = (businessId, isEnabled = true) => useQuery({
   queryKey: ['cashSession', businessId],
   queryFn: getCashRegisterStatus,
-  enabled: Boolean(businessId)
+  enabled: Boolean(businessId) && isEnabled
 });
 
-export const useClosedSessionsQuery = (businessId) => useQuery({
+export const useClosedSessionsQuery = (businessId, isEnabled = true) => useQuery({
   queryKey: ['recentSessions', businessId],
   queryFn: getClosedCashSessions,
-  enabled: Boolean(businessId)
+  enabled: Boolean(businessId) && isEnabled
 });
 
-export const useExpectedTotalsQuery = (sessionId) => useQuery({
+export const useExpectedTotalsQuery = (sessionId, isEnabled = true) => useQuery({
   queryKey: ['expectedTotals', sessionId],
   queryFn: () => getExpectedTotals(sessionId),
-  enabled: Boolean(sessionId)
+  enabled: Boolean(sessionId) && isEnabled
 });
 
 export const useOpenRegisterMutation = () => useMutation({ mutationFn: openCashRegister });
