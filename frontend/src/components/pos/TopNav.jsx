@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { useBusiness } from './BusinessContext';
 import { useCart } from './CartContext';
+import { useAuthorization } from '@/components/auth/AuthorizationContext';
 import { 
   Menu, X, ChevronDown, Store, LogOut, Settings, 
   BarChart3, Package, ShoppingCart,
@@ -20,15 +21,16 @@ import {
 export default function TopNav({ user, onLogout, currentPage }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentBusiness, businesses, selectBusiness } = useBusiness();
+  const { can } = useAuthorization();
   const { isOnline: _isOnline, offlineQueue: _offlineQueue } = useCart();
 
   const navItems = [
     { name: 'POS', href: createPageUrl('POS'), icon: ShoppingCart },
     { name: 'Items', href: createPageUrl('Items'), icon: Package },
     { name: 'Reportes', href: createPageUrl('Reports'), icon: BarChart3 },
-    { name: 'Caja', href: createPageUrl('CashRegister'), icon: CreditCard },
-    { name: 'Ajustes', href: createPageUrl('Settings'), icon: Settings },
-  ];
+    { name: 'Caja', href: createPageUrl('CashRegister'), icon: CreditCard, requiredPermission: 'cash_register.view' },
+    { name: 'Ajustes', href: createPageUrl('Settings'), icon: Settings, requiredPermission: 'settings.permissions.manage' },
+  ].filter((item) => !item.requiredPermission || can(item.requiredPermission));
 
   const isCurrentPage = (itemName) => {
     if (!currentPage) return false;

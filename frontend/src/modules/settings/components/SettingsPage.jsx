@@ -48,6 +48,7 @@ import IconPickerField from '@/components/common/IconPickerField';
 import { DEFAULT_COLOR_HEX, normalizeHexColor } from '@/lib/colors';
 import { DEFAULT_ICON_NAME, getIconComponent, resolveIconId, resolveIconName } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
+import { BUSINESS_PERMISSIONS_QUERY_KEY } from '@/hooks/useBusinessPermissions';
 
 export default function Settings() {
   const { businessId, currentBusiness, refreshCurrentBusiness } = useBusiness();
@@ -283,6 +284,7 @@ export default function Settings() {
       const updatedBusiness = normalizeEntityResponse(updated);
       const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
       syncBusinessState(mergedBusiness);
+      queryClient.invalidateQueries({ queryKey: [BUSINESS_PERMISSIONS_QUERY_KEY] });
       toast.success(TOAST_MESSAGES.settings.businessInfoSaved);
     } catch (error) {
       toast.error(TOAST_MESSAGES.settings.businessInfoSaveError);
@@ -304,6 +306,7 @@ export default function Settings() {
       const updatedBusiness = normalizeEntityResponse(updated);
       const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
       syncBusinessState(mergedBusiness);
+      queryClient.invalidateQueries({ queryKey: [BUSINESS_PERMISSIONS_QUERY_KEY] });
       toast.success(TOAST_MESSAGES.settings.businessOptionsSaved);
     } catch (error) {
       toast.error(TOAST_MESSAGES.settings.businessOptionsSaveError);
