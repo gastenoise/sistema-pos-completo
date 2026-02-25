@@ -64,6 +64,7 @@ import IconPickerField from '@/components/common/IconPickerField';
 import { DEFAULT_COLOR_HEX, normalizeHexColor } from '@/lib/colors';
 import { DEFAULT_ICON_NAME, getIconComponent, resolveIconId, resolveIconName } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
+import { canViewPermissionsTab } from '@/lib/authorizationGuards';
 
 const CASH_REGISTER_PERMISSION_KEYS = [
   'cash_register.view',
@@ -543,7 +544,7 @@ export default function Settings() {
 
   useEffect(() => {
     const loadRolePermissions = async () => {
-      if (!businessId || !['owner', 'admin'].includes(role)) {
+      if (!businessId || !canViewPermissionsTab(role)) {
         return;
       }
 
@@ -650,7 +651,7 @@ export default function Settings() {
               <Mail className="w-4 h-4" />
               Integraciones
             </TabsTrigger>
-            {['owner', 'admin'].includes(role) && (
+            {canViewPermissionsTab(role) && (
               <TabsTrigger value="permissions" className="gap-2">
                 <Lock className="w-4 h-4" />
                 Permisos
@@ -1144,7 +1145,7 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          {['owner', 'admin'].includes(role) && (
+          {canViewPermissionsTab(role) && (
             <TabsContent value="permissions">
               <Card>
                 <CardHeader>

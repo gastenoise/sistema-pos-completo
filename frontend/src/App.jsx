@@ -23,6 +23,7 @@ import {
   DialogDescription
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { canAccessRoute } from '@/lib/authorizationGuards';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -102,15 +103,7 @@ const AuthenticatedApp = () => {
 
 
   // Frontend guard is UX-only; backend permission checks remain the source of truth.
-  const routePermissions = {
-    CashRegister: 'cash_register.view',
-    Settings: 'settings.permissions.manage',
-  };
-
-  const canAccessRoute = (path) => {
-    const requiredPermission = routePermissions[path];
-    return !requiredPermission || can(requiredPermission);
-  };
+  const userCanAccessRoute = (path) => canAccessRoute(path, can);
 
   // Render the main app
   return (
@@ -144,7 +137,7 @@ const AuthenticatedApp = () => {
             element={
               path === 'CashRegister' ? (
                 <PermissionGuard
-                  canAccess={canAccessRoute(path)}
+                  canAccess={userCanAccessRoute(path)}
                   redirectTo="/POS"
                   message="No tenés permisos para ver Caja."
                 >
@@ -152,7 +145,7 @@ const AuthenticatedApp = () => {
                     <Page />
                   </LayoutWrapper>
                 </PermissionGuard>
-              ) : canAccessRoute(path) ? (
+              ) : userCanAccessRoute(path) ? (
                 <LayoutWrapper currentPageName={path}>
                   <Page />
                 </LayoutWrapper>
