@@ -1,8 +1,8 @@
-import { request } from './client';
-import { normalizeListResponse } from '@/lib/normalizeResponse';
+import { apiClient } from './client';
+import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
 
 export const getCashRegisterStatus = async () => {
-  const response = await request('/protected/cash-register/status');
+  const response = await apiClient.get('/protected/cash-register/status');
   const status = response?.status || (response?.data?.is_open ? 'open' : 'closed');
   const session = response?.session || response?.data?.session;
   if (status === 'open' && session) {
@@ -11,22 +11,10 @@ export const getCashRegisterStatus = async () => {
   return null;
 };
 
-export const getClosedCashSessions = async () => {
-  const response = await request('/protected/cash-register/sessions/closed');
-  return normalizeListResponse(response, 'sessions');
-};
+export const getClosedCashSessions = async () => normalizeListResponse(await apiClient.get('/protected/cash-register/sessions/closed'), 'sessions');
 
-export const getExpectedTotals = async (sessionId) => {
-  const response = await request(`/protected/cash-register/${sessionId}/expected-totals`);
-  return response?.data ?? response ?? {};
-};
+export const getExpectedTotals = async (sessionId) => normalizeEntityResponse(await apiClient.get(`/protected/cash-register/${sessionId}/expected-totals`)) ?? {};
 
-export const openCashRegister = async (amount) => request('/protected/cash-register/open', {
-  method: 'POST',
-  body: { amount: Number(amount) || 0 }
-});
+export const openCashRegister = (amount) => apiClient.post('/protected/cash-register/open', { amount: Number(amount) || 0 });
 
-export const closeCashRegister = async (realCash) => request('/protected/cash-register/close', {
-  method: 'POST',
-  body: { real_cash: Number(realCash) || 0 }
-});
+export const closeCashRegister = (realCash) => apiClient.post('/protected/cash-register/close', { real_cash: Number(realCash) || 0 });

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '@/api/client';
 import { createPageUrl } from '@/utils';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { Store, ChevronRight, Loader2 } from 'lucide-react';
@@ -7,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { toast } from 'sonner';
 
 import { useBusiness } from '../components/pos/BusinessContext';
-import { normalizeListResponse } from '@/lib/normalizeResponse';
+import { getBusinesses, selectBusiness as selectBusinessApi } from '@/modules/business/api';
 
 export default function BusinessSelect() {
   const { selectBusiness, setBusinesses } = useBusiness();
@@ -21,8 +20,7 @@ export default function BusinessSelect() {
 
   const loadData = async () => {
     try {
-      const response = await apiClient.get('/protected/businesses');
-      const list = normalizeListResponse(response, 'businesses');
+      const list = await getBusinesses();
       setLocalBusinesses(list);
       setBusinesses(list);
 
@@ -44,7 +42,7 @@ export default function BusinessSelect() {
   const handleSelectBusiness = async (business) => {
     try {
       setSelectingId(business.id);
-      await apiClient.post('/protected/businesses/select', { business_id: business.id });
+      await selectBusinessApi(business.id);
       selectBusiness({
         ...business,
         business_id: business.business_id ?? business.id
