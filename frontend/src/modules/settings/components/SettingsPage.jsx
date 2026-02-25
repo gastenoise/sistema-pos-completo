@@ -1,6 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { apiClient } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useBusinessPermissions } from '@/hooks/useBusinessPermissions';
+import {
+  getCategories,
+  getPaymentMethods,
+  getBankAccount,
+  getSmtpConfig,
+  updateBusiness,
+  updateCategory,
+  createCategory,
+  deleteCategory,
+  updatePaymentMethods,
+  updateBankAccount,
+  updateSmtpConfig,
+  testSmtpConfig,
+  getRolePermissions,
+  updateRolePermissions,
+} from '@/modules/settings/api';
 import { 
   Store, Tag, CreditCard, Plus, Pencil, Trash2, 
   Loader2, Save, Package, Lock, ShoppingBag, Coffee,
@@ -48,12 +64,24 @@ import IconPickerField from '@/components/common/IconPickerField';
 import { DEFAULT_COLOR_HEX, normalizeHexColor } from '@/lib/colors';
 import { DEFAULT_ICON_NAME, getIconComponent, resolveIconId, resolveIconName } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
-import { BUSINESS_PERMISSIONS_QUERY_KEY } from '@/hooks/useBusinessPermissions';
+
+const CASH_REGISTER_PERMISSION_KEYS = [
+  'cash_register.view',
+  'cash_register.open',
+  'cash_register.close',
+];
+
+const CASH_REGISTER_PERMISSION_LABELS = {
+  'cash_register.view': 'Ver caja',
+  'cash_register.open': 'Abrir caja',
+  'cash_register.close': 'Cerrar caja',
+};
 
 export default function Settings() {
   const { businessId, currentBusiness, refreshCurrentBusiness } = useBusiness();
   const queryClient = useQueryClient();
   const { user, logout, updateUser } = useAuth();
+  const { role } = useBusinessPermissions(businessId);
   
   const [businessData, setBusinessData] = useState({
     name: '',
@@ -112,6 +140,8 @@ export default function Settings() {
     analytics: false,
     loyalty: false,
   });
+  const [rolePermissions, setRolePermissions] = useState({ admin: {}, cashier: {} });
+  const [savingRolePermissions, setSavingRolePermissions] = useState(false);
 
   useEffect(() => {
     if (currentBusiness) {
@@ -161,7 +191,7 @@ export default function Settings() {
     queryKey: ['categories', businessId],
     queryFn: async () => {
       if (!businessId) return [];
-      const response = await apiClient.get('/protected/categories');
+      const response = await getCategories();
       return mapCatalogIsActive(normalizeListResponse(response, 'categories'));
     },
     enabled: !!businessId
@@ -172,7 +202,7 @@ export default function Settings() {
     queryKey: ['paymentMethods', businessId],
     queryFn: async () => {
       if (!businessId) return [];
-      const response = await apiClient.get('/protected/payment-methods');
+      const response = await getPaymentMethods();
       return normalizeListResponse(response, 'payment_methods').map((method) => {
         const normalizedMethod = withCatalogIsActive(method);
         return {
@@ -190,7 +220,7 @@ export default function Settings() {
     queryKey: ['bankAccount', businessId],
     queryFn: async () => {
       if (!businessId) return null;
-      const response = await apiClient.get('/protected/banks');
+      const response = await getBankAccount();
       return response?.data ?? response;
     },
     enabled: !!businessId
@@ -201,7 +231,7 @@ export default function Settings() {
     queryKey: ['smtpConfig', businessId],
     queryFn: async () => {
       if (!businessId) return null;
-      const response = await apiClient.get('/protected/business/smtp');
+      const response = await getSmtpConfig();
       return response?.data || response;
     },
     enabled: !!businessId
@@ -280,11 +310,11 @@ export default function Settings() {
         color: normalizeHexColor(businessData.color),
         email: businessData.business_email || undefined,
       };
-      const updated = await apiClient.put('/protected/business', payload);
+      const updated = await updateBusiness(payload);
       const updatedBusiness = normalizeEntityResponse(updated);
       const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
       syncBusinessState(mergedBusiness);
-      queryClient.invalidateQueries({ queryKey: [BUSINESS_PERMISSIONS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['business-permissions'] });
       toast.success(TOAST_MESSAGES.settings.businessInfoSaved);
     } catch (error) {
       toast.error(TOAST_MESSAGES.settings.businessInfoSaveError);
@@ -302,11 +332,11 @@ export default function Settings() {
         business_parameters: businessData.business_parameters,
         currency: businessData.currency
       };
-      const updated = await apiClient.put('/protected/business', payload);
+      const updated = await updateBusiness(payload);
       const updatedBusiness = normalizeEntityResponse(updated);
       const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
       syncBusinessState(mergedBusiness);
-      queryClient.invalidateQueries({ queryKey: [BUSINESS_PERMISSIONS_QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['business-permissions'] });
       toast.success(TOAST_MESSAGES.settings.businessOptionsSaved);
     } catch (error) {
       toast.error(TOAST_MESSAGES.settings.businessOptionsSaveError);
@@ -324,11 +354,11 @@ export default function Settings() {
       };
 
       if (editingCategory) {
-        const response = await apiClient.put(`/protected/categories/${editingCategory.id}`, categoryPayload);
+        const response = await updateCategory(editingCategory.id, categoryPayload);
         updateCategoryCache(response);
         toast.success(TOAST_MESSAGES.settings.categoryUpdated);
       } else {
-        const response = await apiClient.post('/protected/categories', { ...categoryPayload, is_active: true });
+        const response = await createCategory({ ...categoryPayload, is_active: true });
         updateCategoryCache(response);
         toast.success(TOAST_MESSAGES.settings.categoryCreated);
       }
@@ -345,7 +375,7 @@ export default function Settings() {
 
   const handleDeleteCategory = async (category) => {
     try {
-      const response = await apiClient.delete(`/protected/categories/${category.id}`);
+      const response = await deleteCategory(category.id);
       updateCategoryCache(response);
       queryClient.invalidateQueries({ queryKey: ['categories', businessId] });
       toast.success(TOAST_MESSAGES.settings.categoryDeleted);
@@ -361,7 +391,7 @@ export default function Settings() {
         acc[method.id] = !!paymentStates[method.id];
         return acc;
       }, {});
-      await apiClient.post('/protected/payment-methods', {
+      await updatePaymentMethods({
         methods,
         preferred_payment_method_id: defaultPaymentId
       });
@@ -390,7 +420,7 @@ export default function Settings() {
     }
     setSavingBank(true);
     try {
-      await apiClient.put('/protected/banks', bankData);
+      await updateBankAccount(bankData);
       toast.success(TOAST_MESSAGES.settings.bankAccountSaved);
       queryClient.invalidateQueries({ queryKey: ['bankAccount', businessId] });
     } catch (error) {
@@ -422,7 +452,7 @@ export default function Settings() {
         from_name: smtpData.from_name?.trim() || currentBusiness?.name || '',
         from_email: smtpData.from_email?.trim() || fallbackEmail
       };
-      await apiClient.put('/protected/business/smtp', payload);
+      await updateSmtpConfig(payload);
       toast.success(TOAST_MESSAGES.settings.smtpConfigSaved);
       queryClient.invalidateQueries({ queryKey: ['smtpConfig', businessId] });
       queryClient.invalidateQueries({ queryKey: ['smtpStatus', businessId] });
@@ -460,7 +490,7 @@ export default function Settings() {
       } else if (fallbackEmail) {
         payload.from_email = fallbackEmail;
       }
-      const response = await apiClient.post('/protected/business/smtp/test', payload);
+      const response = await testSmtpConfig(payload);
       toast.success(response?.message || TOAST_MESSAGES.settings.smtpTestSuccess);
     } catch (error) {
       const message = error?.data?.message || error?.message || 'SMTP test failed';
@@ -508,6 +538,66 @@ export default function Settings() {
       toast.error(error?.message || 'No pudimos eliminar la restricción de IP.');
     } finally {
       setSavingAllowedLoginIp(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadRolePermissions = async () => {
+      if (!businessId || !['owner', 'admin'].includes(role)) {
+        return;
+      }
+
+      try {
+        const response = await getRolePermissions();
+        const payload = response?.data ?? response;
+        const cashRegisterRows = payload?.permissions?.cash_register ?? [];
+
+        const nextPermissions = { admin: {}, cashier: {} };
+
+        cashRegisterRows.forEach((item) => {
+          const key = item?.permission_key;
+          if (!CASH_REGISTER_PERMISSION_KEYS.includes(key)) return;
+          nextPermissions.admin[key] = Boolean(item?.allowed_by_role?.admin);
+          nextPermissions.cashier[key] = Boolean(item?.allowed_by_role?.cashier);
+        });
+
+        setRolePermissions(nextPermissions);
+      } catch (error) {
+        toast.error('No pudimos cargar la configuración de permisos.');
+      }
+    };
+
+    loadRolePermissions();
+  }, [businessId, role]);
+
+  const handleRolePermissionChange = (targetRole, permissionKey, checked) => {
+    setRolePermissions((prev) => ({
+      ...prev,
+      [targetRole]: {
+        ...(prev[targetRole] || {}),
+        [permissionKey]: checked,
+      },
+    }));
+  };
+
+  const handleSaveRolePermissions = async () => {
+    setSavingRolePermissions(true);
+
+    try {
+      const matrixRows = ['admin', 'cashier'].flatMap((targetRole) => (
+        CASH_REGISTER_PERMISSION_KEYS.map((permissionKey) => ({
+          role: targetRole,
+          permission_key: permissionKey,
+          allowed: Boolean(rolePermissions?.[targetRole]?.[permissionKey]),
+        }))
+      ));
+
+      await updateRolePermissions({ role_permissions: matrixRows });
+      toast.success('Permisos actualizados correctamente.');
+    } catch (error) {
+      toast.error('No pudimos guardar los permisos.');
+    } finally {
+      setSavingRolePermissions(false);
     }
   };
 
@@ -560,6 +650,12 @@ export default function Settings() {
               <Mail className="w-4 h-4" />
               Integraciones
             </TabsTrigger>
+            {['owner', 'admin'].includes(role) && (
+              <TabsTrigger value="permissions" className="gap-2">
+                <Lock className="w-4 h-4" />
+                Permisos
+              </TabsTrigger>
+            )}
             <TabsTrigger value="modules" className="gap-2">
               <Package className="w-4 h-4" />
               Módulos
@@ -1047,6 +1143,59 @@ export default function Settings() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {['owner', 'admin'].includes(role) && (
+            <TabsContent value="permissions">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Permisos por perfil</CardTitle>
+                  <CardDescription>
+                    Definí qué acciones de caja puede realizar cada perfil operativo.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[480px] text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="px-3 py-2 text-left font-medium text-slate-600">Perfil</th>
+                          {CASH_REGISTER_PERMISSION_KEYS.map((permissionKey) => (
+                            <th key={permissionKey} className="px-3 py-2 text-left font-medium text-slate-600">
+                              {CASH_REGISTER_PERMISSION_LABELS[permissionKey]}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {['admin', 'cashier'].map((targetRole) => (
+                          <tr key={targetRole} className="border-b last:border-0">
+                            <td className="px-3 py-3 font-medium uppercase text-slate-900">{targetRole}</td>
+                            {CASH_REGISTER_PERMISSION_KEYS.map((permissionKey) => (
+                              <td key={`${targetRole}-${permissionKey}`} className="px-3 py-3">
+                                <Switch
+                                  checked={Boolean(rolePermissions?.[targetRole]?.[permissionKey])}
+                                  onCheckedChange={(checked) => handleRolePermissionChange(targetRole, permissionKey, checked)}
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <Button onClick={handleSaveRolePermissions} disabled={savingRolePermissions}>
+                    {savingRolePermissions ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Guardar permisos
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Modules Tab */}
           <TabsContent value="modules">
