@@ -1,85 +1,84 @@
 # API alignment plan (protected/public + frontend)
 
-## Source of truth y alcance
+## 1) Contrato API: inventario y “source of truth”
 
-- **Rutas reales del backend:** `backend/routes/api.php`.
-- **Contratos OpenAPI actuales:**
-  - `backend/resources/openapi/protected.json`
-  - `backend/resources/openapi/public.json`
-- **Cliente HTTP del frontend:** `frontend/src/api/client.js`.
+**Source of truth actual**
+- Rutas reales en backend: `routes/api.php` define todo lo expuesto para `protected` y `public`.【F:backend/src/routes/api.php†L1-L189】
+- OpenAPI disponible para `protected` en `resources/openapi/protected.json` (sirve como base para documentación y pruebas).【F:backend/src/resources/openapi/protected.json†L1-L156】
 
-> Nota: este documento reemplaza referencias antiguas del tipo `backend/src/routes/api.php`.
+**Inventario mínimo sugerido (por contexto de negocio)**
+- **Protected (sin business)**: auth (login/register/me/updates), selección de negocio, info y payment-methods (all).【F:backend/src/routes/api.php†L25-L66】
+- **Protected (business-scoped)**: business update, api-keys, categories, banks, payment-methods, items, items-import, navigation-events, cash-register, sales, reports.【F:backend/src/routes/api.php†L70-L141】
+- **Public (API key)**: payment-methods/all, info, categories, banks, payment-methods, items, items-import, cash-register, sales, reports.【F:backend/src/routes/api.php†L151-L189】
 
-## Inventario vigente de endpoints
+**Entregable**
+- Mantener esta tabla y las rutas completas (método + path + auth + contexto + payload/response) en este documento y/o extenderla en un README dedicado para el backend.
 
-### Protected (sesión/token)
+## 2) Corregir inconsistencias de rutas entre backend y frontend
 
-Prefijo base: `/protected`
+**Caja – sesiones cerradas**
+- Backend expone `GET /protected/cash-register/sessions/closed`.【F:backend/src/routes/api.php†L111-L117】
+- Frontend estaba consumiendo `GET /protected/cash-register/closed-sessions`, por lo que se alineó a `sessions/closed`.【F:frontend/src/pages/CashRegister.jsx†L59-L66】
 
-- **Auth (sin business):**
-  - `POST /auth/login`
-  - `POST /auth/register`
-  - `GET /auth/me`
-  - `PUT /auth/me`
-  - `POST /auth/logout`
-  - `PUT /auth/change-password`
-- **Contexto de negocio (sin `resolve.business`):**
-  - `GET /businesses`
-  - `POST /businesses/select`
-  - `POST /navigation-events`
-  - `GET /payment-methods/all`
-  - `GET /info/colors`
-  - `GET /info/payment-methods`
-- **Business-scoped (`resolve.business`):**
-  - `GET /auth/permissions`
-  - `PUT /business`
-  - `GET|PUT /business/smtp`
-  - `GET /business/smtp/status`
-  - `POST /business/smtp/test`
-  - `GET|PUT /business/role-permissions`
-  - `GET|POST|DELETE /api-keys`
-  - `categories` (resource)
-  - `GET|PUT /banks`
-  - `GET|POST|PUT /payment-methods`
-  - `PATCH /items/bulk`
-  - `PUT /sepa-items/{sepaItem}/price`
-  - `items` (resource parcial)
-  - `POST /items-import/preview|preview/full|confirm`
-  - `cash-register`: `status`, `open`, `close`, `sessions/closed`, `{session}/expected-totals`
-  - `sales`: `start`, `latest-closed`, CRUD operativo de items/pagos, `qr`, `close`, `void`, ticket + email + whatsapp
-  - `reports`: `daily-summary`, `sales`, `summary`, `export`
+**Bancos**
+- Backend sólo expone `GET /protected/banks` y `PUT /protected/banks`.【F:backend/src/routes/api.php†L86-L88】
+- Frontend ahora usa únicamente `PUT /protected/banks` para crear/actualizar (el backend crea si no existe).【F:frontend/src/pages/Settings.jsx†L300-L315】
 
-### Public (API Key)
+## 3) Estándar de contexto de negocio (X-Business-Id)
 
-Prefijo base: `/public` (middleware `auth.apikey`)
+**Frontend**
+- El cliente agrega `X-Business-Id` cuando hay negocio seleccionado, junto con el token si existe.【F:frontend/src/api/client.js†L73-L113】
 
-- `payment-methods/all`
-- `info/colors`, `info/payment-methods`
-- `categories` (resource)
-- `GET|PUT banks`
-- `GET|POST|PUT payment-methods`
-- `items` (resource parcial)
-- `items-import/preview|preview/full|confirm`
-- `cash-register/status|open|close|{session}/expected-totals`
-- `sales` (flujo operativo + ticket)
-- `reports/daily-summary|sales|summary|export`
+**Backend**
+- `resolve.business` exige `X-Business-Id` y valida pertenencia del usuario, devolviendo 403 si falta o es inválido.【F:backend/src/app/Http/Middleware/ResolveBusiness.php†L21-L57】
 
-## Correcciones realizadas en documentación
+**Acción recomendada**
+- Mantener mensajes de error consistentes para 403/401 entre protected/public y en UI mapearlos a un fallback claro (re-selección de negocio o login).
 
-1. Se corrigieron rutas de archivo obsoletas (`backend/src/...` → `backend/...`).
-2. Se consolidó el inventario de endpoints según `backend/routes/api.php` vigente.
-3. Se dejó explícito que el cliente frontend usa `X-Business-Id` desde `frontend/src/api/client.js` para rutas business-scoped.
+## 4) Paridad y disponibilidad en API pública
 
-## Regla operativa: **doc update required**
+**Cobertura actual**
+- La API pública ya incluye endpoints clave de POS: items, categorías, ventas, caja, reportes, payment-methods y bancos.【F:backend/src/routes/api.php†L151-L189】
+- Usa API key con `X-Api-Key` (o `Authorization: ApiKey`) y setea business_id automáticamente.【F:backend/src/app/Http/Middleware/AuthenticateApiKey.php†L15-L58】
 
-Cuando se cambie alguno de estos elementos, el PR **debe** incluir actualización documental en el mismo commit/PR:
+**Acción recomendada**
+- Documentar explícitamente qué endpoints quedan fuera de `public` (por seguridad o negocio) y registrar el rationale.
+- Asegurar que los mensajes de error para API key faltante/ inválida o business context sean consistentes.
 
-- paths de archivos públicos de referencia (ej. rutas, módulos, controllers clave),
-- endpoints (path, método, middleware o contrato request/response),
-- encabezados/estrategia de autenticación (`X-Business-Id`, API Key, cookies CSRF).
+## 5) Ajustes del frontend para consumo correcto de protected
 
-Checklist mínima de PR:
+**Acciones completadas**
+- Rutas corregidas para caja (sessions/closed) y bancos (PUT).【F:frontend/src/pages/CashRegister.jsx†L59-L66】【F:frontend/src/pages/Settings.jsx†L300-L315】
 
-- [ ] `backend/docs/api-alignment-plan.md` actualizado (si cambió API/paths backend).
-- [ ] `frontend/README.md` actualizado (si cambió arquitectura frontend, módulos, rutas o integración API).
-- [ ] OpenAPI (`protected.json`/`public.json`) actualizado si cambió contrato.
+**Checklist adicional (payloads/errores)**
+- Verificar payloads esperados en: `items-import/preview|confirm`, `sales` + `payments`, `cash-register open/close`.
+- Revisar manejo de errores 401/403 y redirección limpia (login/selección de negocio) en el frontend.
+
+## 6) Validación final
+
+**Checklist manual sugerido**
+- Login → selección de negocio → POS (items, ventas, caja)
+- Settings (bancos, categorías, métodos de pago)
+- Reportes (export)
+
+**Pruebas opcionales**
+- Smoke test con llamadas mínimas a endpoints protected/public (script local o colección Postman) usando el contrato anterior.
+
+
+## 7) Diferencias explícitas protected vs public (rutas exclusivas)
+
+Con el registro modular por dominio, las rutas compartidas viven en registrars reutilizables y las diferencias quedan declaradas con flags (`includeProtectedOnly`).
+
+**Exclusivas de `protected` (no se exponen en `public`)**
+- `GET /protected/cash-register/sessions/closed`
+- `PATCH /protected/items/bulk`
+- `PUT /protected/sepa-items/{sepaItem}/price`
+- `POST /protected/sales/{sale}/ticket/email`
+- `GET /protected/sales/{sale}/ticket/email-status/{requestId}`
+- `POST /protected/sales/{sale}/ticket/share/whatsapp/file`
+- `POST /protected/sales/{sale}/ticket/share/whatsapp`
+- Rutas de autenticación de usuario final, selección de negocio, permisos de rol y administración de API keys.
+
+**Fuente única OpenAPI**
+- `resources/openapi/source.json` define la especificación base.
+- `DocumentationController` filtra por prefijo (`/public/` o `/protected/`) para servir `/openapi/public.json` y `/openapi/protected.json` desde el mismo archivo origen.

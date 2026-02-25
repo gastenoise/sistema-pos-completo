@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "API Pública - OpenVenta",
+    "title": "API OpenVenta (source of truth)",
     "version": "1.0.0",
-    "description": "Documentación OpenAPI para integraciones externas usando API Key."
+    "description": "Fuente única OpenAPI para prefijos public y protected."
   },
   "servers": [
     {
@@ -50,72 +50,30 @@
     }
   ],
   "paths": {
-    "/public/info/colors": {
+    "/public/banks": {
       "get": {
         "tags": [
-          "Info"
+          "Banks"
         ],
-        "summary": "Listar colores disponibles",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/public/info/payment-methods": {
-      "get": {
-        "tags": [
-          "Info"
-        ],
-        "summary": "Listar métodos de pago disponibles",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/public/payment-methods/all": {
-      "get": {
-        "tags": [
-          "Payment Methods"
-        ],
-        "summary": "Listar métodos de pago del sistema",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/public/payment-methods": {
-      "get": {
-        "tags": [
-          "Payment Methods"
-        ],
-        "summary": "Listar métodos de pago activos para el negocio",
+        "summary": "Obtener cuenta bancaria del negocio",
         "responses": {
           "200": {
             "description": "OK"
           }
         }
       },
-      "post": {
+      "put": {
         "tags": [
-          "Payment Methods"
+          "Banks"
         ],
-        "summary": "Ocultar/mostrar métodos de pago en bulk y elegir preferido",
+        "summary": "Actualizar cuenta bancaria del negocio",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "example": {
-                "methods": {
-                  "1": true,
-                  "2": false
-                },
-                "preferred_payment_method_id": 1
+                "alias": "nuevo.alias.bancario",
+                "bank_name": "Banco Provincia"
               }
             }
           }
@@ -127,15 +85,74 @@
         }
       }
     },
-    "/public/payment-methods/{paymentMethod}": {
-      "put": {
+    "/public/cash-register/close": {
+      "post": {
         "tags": [
-          "Payment Methods"
+          "Cash Register"
         ],
-        "summary": "Cambiar visibilidad de un método de pago y elegir preferido",
+        "summary": "Cerrar caja",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "real_cash": 1250.5
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/cash-register/open": {
+      "post": {
+        "tags": [
+          "Cash Register"
+        ],
+        "summary": "Abrir caja",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "amount": 1000
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/cash-register/status": {
+      "get": {
+        "tags": [
+          "Cash Register"
+        ],
+        "summary": "Estado de caja",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/cash-register/{session}/expected-totals": {
+      "get": {
+        "tags": [
+          "Cash Register"
+        ],
+        "summary": "Totales esperados de caja",
         "parameters": [
           {
-            "name": "paymentMethod",
+            "name": "session",
             "in": "path",
             "required": true,
             "schema": {
@@ -143,17 +160,6 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "example": {
-                "active": true,
-                "preferred": true
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "OK"
@@ -272,34 +278,25 @@
         }
       }
     },
-    "/public/banks": {
+    "/public/info/colors": {
       "get": {
         "tags": [
-          "Banks"
+          "Info"
         ],
-        "summary": "Obtener cuenta bancaria del negocio",
+        "summary": "Listar colores disponibles",
         "responses": {
           "200": {
             "description": "OK"
           }
         }
-      },
-      "put": {
+      }
+    },
+    "/public/info/payment-methods": {
+      "get": {
         "tags": [
-          "Banks"
+          "Info"
         ],
-        "summary": "Actualizar cuenta bancaria del negocio",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "example": {
-                "alias": "nuevo.alias.bancario",
-                "bank_name": "Banco Provincia"
-              }
-            }
-          }
-        },
+        "summary": "Listar métodos de pago disponibles",
         "responses": {
           "200": {
             "description": "OK"
@@ -340,6 +337,66 @@
         "responses": {
           "201": {
             "description": "Created"
+          }
+        }
+      }
+    },
+    "/public/items-import/confirm": {
+      "post": {
+        "tags": [
+          "Items Import"
+        ],
+        "summary": "Confirmar importación de items",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "items": [
+                  {
+                    "name": "Producto 1",
+                    "price": 10.99,
+                    "sku": "SKU001",
+                    "type": "product"
+                  }
+                ],
+                "sync_by_sku": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/items-import/preview": {
+      "post": {
+        "tags": [
+          "Items Import"
+        ],
+        "summary": "Previsualizar importación de items",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -420,91 +477,33 @@
         }
       }
     },
-    "/public/items-import/preview": {
-      "post": {
-        "tags": [
-          "Items Import"
-        ],
-        "summary": "Previsualizar importación de items",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/public/items-import/confirm": {
-      "post": {
-        "tags": [
-          "Items Import"
-        ],
-        "summary": "Confirmar importación de items",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "example": {
-                "items": [
-                  {
-                    "name": "Producto 1",
-                    "price": 10.99,
-                    "sku": "SKU001",
-                    "type": "product"
-                  }
-                ],
-                "sync_by_sku": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/public/cash-register/status": {
+    "/public/payment-methods": {
       "get": {
         "tags": [
-          "Cash Register"
+          "Payment Methods"
         ],
-        "summary": "Estado de caja",
+        "summary": "Listar métodos de pago activos para el negocio",
         "responses": {
           "200": {
             "description": "OK"
           }
         }
-      }
-    },
-    "/public/cash-register/open": {
+      },
       "post": {
         "tags": [
-          "Cash Register"
+          "Payment Methods"
         ],
-        "summary": "Abrir caja",
+        "summary": "Ocultar/mostrar métodos de pago en bulk y elegir preferido",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "example": {
-                "amount": 1000
+                "methods": {
+                  "1": true,
+                  "2": false
+                },
+                "preferred_payment_method_id": 1
               }
             }
           }
@@ -516,42 +515,105 @@
         }
       }
     },
-    "/public/cash-register/close": {
-      "post": {
-        "tags": [
-          "Cash Register"
-        ],
-        "summary": "Cerrar caja",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "example": {
-                "real_cash": 1250.5
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/public/cash-register/{session}/expected-totals": {
+    "/public/payment-methods/all": {
       "get": {
         "tags": [
-          "Cash Register"
+          "Payment Methods"
         ],
-        "summary": "Totales esperados de caja",
+        "summary": "Listar métodos de pago del sistema",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/payment-methods/{paymentMethod}": {
+      "put": {
+        "tags": [
+          "Payment Methods"
+        ],
+        "summary": "Cambiar visibilidad de un método de pago y elegir preferido",
         "parameters": [
           {
-            "name": "session",
+            "name": "paymentMethod",
             "in": "path",
             "required": true,
             "schema": {
               "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "active": true,
+                "preferred": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/reports/daily-summary": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Resumen diario",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2024-01-15"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/reports/export": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Exportar reportes",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2024-01-01"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2024-01-31"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "sales"
             }
           }
         ],
@@ -609,6 +671,39 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/sales/{sale}/close": {
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Cerrar venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "notes": "Venta completada"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -740,39 +835,6 @@
         }
       }
     },
-    "/public/sales/{sale}/close": {
-      "post": {
-        "tags": [
-          "Sales"
-        ],
-        "summary": "Cerrar venta",
-        "parameters": [
-          {
-            "name": "sale",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "example": {
-                "notes": "Venta completada"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/public/sales/{sale}/void": {
       "post": {
         "tags": [
@@ -799,68 +861,6 @@
             }
           }
         },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/public/reports/daily-summary": {
-      "get": {
-        "tags": [
-          "Reports"
-        ],
-        "summary": "Resumen diario",
-        "parameters": [
-          {
-            "name": "date",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "example": "2024-01-15"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/public/reports/export": {
-      "get": {
-        "tags": [
-          "Reports"
-        ],
-        "summary": "Exportar reportes",
-        "parameters": [
-          {
-            "name": "start_date",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "example": "2024-01-01"
-            }
-          },
-          {
-            "name": "end_date",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "example": "2024-01-31"
-            }
-          },
-          {
-            "name": "type",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "example": "sales"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "OK"
