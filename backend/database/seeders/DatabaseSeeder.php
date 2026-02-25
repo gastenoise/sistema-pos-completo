@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Actions\Business\BootstrapBusinessRolePermissionsAction;
 use App\Models\User;
 use App\Models\Business;
 use App\Models\ApiKey;
@@ -86,6 +87,8 @@ class DatabaseSeeder extends Seeder
                 'preferred_payment_method_id' => $defaultPreferredPaymentMethodId,
             ]));
             $createdBusinesses[] = $business;
+
+            app(BootstrapBusinessRolePermissionsAction::class)->execute($business->id);
 
             // 4. Vincular Usuario Admin con Negocio como Owner
             $user->businesses()->attach($business->id, ['role' => 'owner']);

@@ -100,6 +100,12 @@ class Business extends Model
             ->all();
     }
 
+
+    public function rolePermissions(): HasMany
+    {
+        return $this->hasMany(BusinessRolePermission::class);
+    }
+
     public function preferredPaymentMethod()
     {
         return $this->belongsTo(PaymentMethod::class, 'preferred_payment_method_id');
