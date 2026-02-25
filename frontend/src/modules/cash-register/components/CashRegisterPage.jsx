@@ -26,6 +26,7 @@ import { formatDateTimeLocal } from '@/lib/dateTime';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
+import { useAuthorization } from '@/components/auth/AuthorizationContext';
 import { useAuth } from '@/lib/AuthContext';
 import TopNav from '@/components/pos/TopNav';
 import CashRegisterOpenModal from '@/components/pos/CashRegisterOpenModal';
@@ -41,6 +42,8 @@ export default function CashRegister() {
   const { businessId, currentBusiness } = useBusiness();
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
+  const { can } = useAuthorization();
+  const canViewCashRegister = can('cash_register.view');
   
   const [showOpenDialog, setShowOpenDialog] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
@@ -48,11 +51,11 @@ export default function CashRegister() {
   const [loading, setLoading] = useState(false);
   const [showRecentSessions, setShowRecentSessions] = useState(false);
 
-  const { data: currentSession, isLoading: loadingSession, isFetching: fetchingSession, refetch: refetchSession } = useCashStatusQuery(businessId);
+  const { data: currentSession, isLoading: loadingSession, isFetching: fetchingSession, refetch: refetchSession } = useCashStatusQuery(businessId, canViewCashRegister);
 
-  const { data: recentSessions = [], isFetching: fetchingRecentSessions } = useClosedSessionsQuery(businessId);
+  const { data: recentSessions = [], isFetching: fetchingRecentSessions } = useClosedSessionsQuery(businessId, canViewCashRegister);
 
-  const { data: expectedTotals, isFetching: fetchingExpectedTotals } = useExpectedTotalsQuery(currentSession?.id);
+  const { data: expectedTotals, isFetching: fetchingExpectedTotals } = useExpectedTotalsQuery(currentSession?.id, canViewCashRegister);
 
   const openRegisterMutation = useOpenRegisterMutation();
   const closeRegisterMutation = useCloseRegisterMutation();
@@ -136,6 +139,24 @@ export default function CashRegister() {
   };
 
   const showCashOverlay = !loadingSession && (fetchingSession || fetchingRecentSessions || fetchingExpectedTotals || loading);
+
+  if (!canViewCashRegister) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <TopNav user={user} onLogout={handleLogout} currentPage="Caja" />
+        <div className="max-w-4xl mx-auto p-4 lg:p-6">
+          <Card className="border-amber-200 bg-amber-50">
+            <CardHeader>
+              <CardTitle className="text-amber-900">Acceso restringido</CardTitle>
+              <CardDescription className="text-amber-800">
+                No tenés permisos para ver ni operar la caja registradora.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
