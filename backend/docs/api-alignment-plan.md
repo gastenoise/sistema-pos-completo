@@ -63,3 +63,22 @@
 
 **Pruebas opcionales**
 - Smoke test con llamadas mínimas a endpoints protected/public (script local o colección Postman) usando el contrato anterior.
+
+
+## 7) Diferencias explícitas protected vs public (rutas exclusivas)
+
+Con el registro modular por dominio, las rutas compartidas viven en registrars reutilizables y las diferencias quedan declaradas con flags (`includeProtectedOnly`).
+
+**Exclusivas de `protected` (no se exponen en `public`)**
+- `GET /protected/cash-register/sessions/closed`
+- `PATCH /protected/items/bulk`
+- `PUT /protected/sepa-items/{sepaItem}/price`
+- `POST /protected/sales/{sale}/ticket/email`
+- `GET /protected/sales/{sale}/ticket/email-status/{requestId}`
+- `POST /protected/sales/{sale}/ticket/share/whatsapp/file`
+- `POST /protected/sales/{sale}/ticket/share/whatsapp`
+- Rutas de autenticación de usuario final, selección de negocio, permisos de rol y administración de API keys.
+
+**Fuente única OpenAPI**
+- `resources/openapi/source.json` define la especificación base.
+- `DocumentationController` filtra por prefijo (`/public/` o `/protected/`) para servir `/openapi/public.json` y `/openapi/protected.json` desde el mismo archivo origen.

@@ -14,14 +14,26 @@ class DocumentationController extends Controller
 
     public function openApiPublic(): JsonResponse
     {
-        return response()->json($this->loadSpec('public'));
+        return response()->json($this->loadSpecForPrefix('/public/'));
     }
 
-    private function loadSpec(string $name): array
+    public function openApiProtected(): JsonResponse
     {
-        $path = resource_path(sprintf('openapi/%s.json', $name));
+        return response()->json($this->loadSpecForPrefix('/protected/'));
+    }
 
-        return json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+    private function loadSpecForPrefix(string $prefix): array
+    {
+        $path = resource_path('openapi/source.json');
+        $spec = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+
+        $spec['paths'] = array_filter(
+            $spec['paths'] ?? [],
+            static fn (string $routePath): bool => str_starts_with($routePath, $prefix),
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        return $spec;
     }
 
     private function renderDocs(string $title, string $openapiUrl): View
