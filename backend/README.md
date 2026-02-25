@@ -174,3 +174,10 @@ class SaleFlowTest extends TestCase
     }
 }
 ```
+
+
+## Convención de migraciones
+
+- Las migraciones base están separadas por bounded context para evitar archivos monolíticos.
+- Referencia y reglas de naming/granularidad: `database/migrations/README.md`.
+- Toda contribución nueva debe seguir el esquema incremental por contexto y evitar "mega migraciones".
