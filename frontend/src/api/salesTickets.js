@@ -1,31 +1,11 @@
-import { apiClient } from './client';
-
-const resolveResponseData = (response) => response?.data ?? response;
-
-export const getSaleTicket = async (saleId) => {
-  const response = await apiClient.get(`/protected/sales/${saleId}/ticket`);
-  return resolveResponseData(response);
-};
-
-export const sendSaleTicketEmail = async (saleId, formData) => {
-  const response = await apiClient.post(`/protected/sales/${saleId}/ticket/email`, formData);
-  return resolveResponseData(response);
-};
-
-export const uploadSaleTicketWhatsappFile = async (saleId, pdfFile) => {
-  const formData = new FormData();
-  formData.append('pdf_file', pdfFile);
-
-  const response = await apiClient.post(`/protected/sales/${saleId}/ticket/share/whatsapp/file`, formData);
-  return resolveResponseData(response);
-};
-
-export const getSaleTicketWhatsappShare = async (saleId, payload = {}) => {
-  const response = await apiClient.post(`/protected/sales/${saleId}/ticket/share/whatsapp`, payload);
-  return resolveResponseData(response);
-};
-
-export const getSaleTicketEmailStatus = async (saleId, requestId) => {
-  const response = await apiClient.get(`/protected/sales/${saleId}/ticket/email-status/${requestId}`);
-  return resolveResponseData(response);
-};
+/**
+ * @deprecated Use '@/modules/pos/api' directly.
+ * Temporary barrel kept for backward compatibility.
+ */
+export {
+  getSaleTicket,
+  getSaleTicketEmailStatus,
+  getSaleTicketWhatsappShare,
+  sendSaleTicketEmail,
+  uploadSaleTicketWhatsappFile
+} from '@/modules/pos/api';

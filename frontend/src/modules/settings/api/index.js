@@ -1,29 +1,40 @@
-import { apiClient } from '@/api/client';
+import { request } from '@/api/client';
 
-export const getCategories = () => apiClient.get('/protected/categories');
+export const getCategories = () => request('/protected/categories');
 
-export const getPaymentMethods = () => apiClient.get('/protected/payment-methods');
+export const getPaymentMethods = () => request('/protected/payment-methods');
 
-export const getBankAccount = () => apiClient.get('/protected/banks');
+export const getBankAccount = () => request('/protected/banks');
 
-export const getSmtpConfig = () => apiClient.get('/protected/business/smtp');
+export const getSmtpConfig = () => request('/protected/business/smtp');
 
-export const updateBusiness = (payload) => apiClient.put('/protected/business', payload);
+export const getSmtpStatus = async () => {
+  const response = await request('/protected/business/smtp/status');
+  return response?.data || response;
+};
 
-export const updateCategory = (categoryId, payload) => apiClient.put(`/protected/categories/${categoryId}`, payload);
+export const updateBusiness = (payload) => request('/protected/business', { method: 'PUT', body: payload });
 
-export const createCategory = (payload) => apiClient.post('/protected/categories', payload);
+export const updateCategory = (categoryId, payload) => request(`/protected/categories/${categoryId}`, {
+  method: 'PUT',
+  body: payload
+});
 
-export const deleteCategory = (categoryId) => apiClient.delete(`/protected/categories/${categoryId}`);
+export const createCategory = (payload) => request('/protected/categories', { method: 'POST', body: payload });
 
-export const updatePaymentMethods = (payload) => apiClient.post('/protected/payment-methods', payload);
+export const deleteCategory = (categoryId) => request(`/protected/categories/${categoryId}`, { method: 'DELETE' });
 
-export const updateBankAccount = (payload) => apiClient.put('/protected/banks', payload);
+export const updatePaymentMethods = (payload) => request('/protected/payment-methods', { method: 'POST', body: payload });
 
-export const updateSmtpConfig = (payload) => apiClient.put('/protected/business/smtp', payload);
+export const updateBankAccount = (payload) => request('/protected/banks', { method: 'PUT', body: payload });
 
-export const testSmtpConfig = (payload) => apiClient.post('/protected/business/smtp/test', payload);
+export const updateSmtpConfig = (payload) => request('/protected/business/smtp', { method: 'PUT', body: payload });
 
-export const getRolePermissions = () => apiClient.get('/protected/role-permissions');
+export const testSmtpConfig = (payload) => request('/protected/business/smtp/test', { method: 'POST', body: payload });
 
-export const updateRolePermissions = (payload) => apiClient.put('/protected/role-permissions', payload);
+export const getRolePermissions = () => request('/protected/role-permissions');
+
+export const updateRolePermissions = (payload) => request('/protected/role-permissions', {
+  method: 'PUT',
+  body: payload
+});
