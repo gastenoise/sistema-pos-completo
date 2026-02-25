@@ -1,31 +1,23 @@
 import { apiClient } from './client';
+import { normalizeEntityResponse } from '@/lib/normalizeResponse';
 
-const resolveResponseData = (response) => response?.data ?? response;
+export const getSaleTicket = async (saleId) => normalizeEntityResponse(await apiClient.get(`/protected/sales/${saleId}/ticket`));
 
-export const getSaleTicket = async (saleId) => {
-  const response = await apiClient.get(`/protected/sales/${saleId}/ticket`);
-  return resolveResponseData(response);
-};
-
-export const sendSaleTicketEmail = async (saleId, formData) => {
-  const response = await apiClient.post(`/protected/sales/${saleId}/ticket/email`, formData);
-  return resolveResponseData(response);
-};
+export const sendSaleTicketEmail = async (saleId, formData) => normalizeEntityResponse(
+  await apiClient.post(`/protected/sales/${saleId}/ticket/email`, formData)
+);
 
 export const uploadSaleTicketWhatsappFile = async (saleId, pdfFile) => {
   const formData = new FormData();
   formData.append('pdf_file', pdfFile);
 
-  const response = await apiClient.post(`/protected/sales/${saleId}/ticket/share/whatsapp/file`, formData);
-  return resolveResponseData(response);
+  return normalizeEntityResponse(await apiClient.post(`/protected/sales/${saleId}/ticket/share/whatsapp/file`, formData));
 };
 
-export const getSaleTicketWhatsappShare = async (saleId, payload = {}) => {
-  const response = await apiClient.post(`/protected/sales/${saleId}/ticket/share/whatsapp`, payload);
-  return resolveResponseData(response);
-};
+export const getSaleTicketWhatsappShare = async (saleId, payload = {}) => normalizeEntityResponse(
+  await apiClient.post(`/protected/sales/${saleId}/ticket/share/whatsapp`, payload)
+);
 
-export const getSaleTicketEmailStatus = async (saleId, requestId) => {
-  const response = await apiClient.get(`/protected/sales/${saleId}/ticket/email-status/${requestId}`);
-  return resolveResponseData(response);
-};
+export const getSaleTicketEmailStatus = async (saleId, requestId) => normalizeEntityResponse(
+  await apiClient.get(`/protected/sales/${saleId}/ticket/email-status/${requestId}`)
+);
