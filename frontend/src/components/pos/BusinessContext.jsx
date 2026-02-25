@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { setBusinessContext } from '@/api/client';
 import { getSmtpStatus } from '@/api/business';
+import { BUSINESS_PERMISSIONS_QUERY_KEY } from '@/hooks/useBusinessPermissions';
 
 const BusinessContext = createContext(null);
 
@@ -27,6 +28,7 @@ const writeStorage = (key, value) => {
 };
 
 export const BusinessProvider = ({ children }) => {
+  const queryClient = useQueryClient();
   const [businesses, setBusinessesState] = useState(() => readStorage(STORAGE_BUSINESSES) || []);
   const [currentBusiness, setCurrentBusiness] = useState(() => readStorage(STORAGE_CURRENT));
 
@@ -40,6 +42,7 @@ export const BusinessProvider = ({ children }) => {
       : business;
     setCurrentBusiness(normalizedBusiness);
     writeStorage(STORAGE_CURRENT, normalizedBusiness);
+    queryClient.invalidateQueries({ queryKey: [BUSINESS_PERMISSIONS_QUERY_KEY] });
   };
 
   const setBusinesses = (nextBusinesses) => {

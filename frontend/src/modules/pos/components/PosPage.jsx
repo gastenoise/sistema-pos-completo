@@ -20,8 +20,7 @@ import { formatPrice } from '@/lib/formatPrice';
 import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
 import { getIconComponent } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
-import { canVoidSales as canVoidSalesByRole } from '@/lib/canVoidSales';
-import { useUserBusinessContext } from '@/hooks/useUserBusinessContext';
+import { useAuthorization } from '@/components/auth/AuthorizationContext';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useCart, CartProvider } from '@/components/pos/CartContext';
@@ -62,7 +61,7 @@ function POSContent() {
   const [isLastSaleDialogOpen, setIsLastSaleDialogOpen] = useState(false);
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
   const [isProcessingItemsAction, setIsProcessingItemsAction] = useState(false);
-  const userContext = useUserBusinessContext(businessId);
+  const { role } = useAuthorization();
   
   const searchInputRef = useRef(null);
 
@@ -146,13 +145,13 @@ function POSContent() {
     return acc;
   }, {});
 
+
   const selectedBusiness = businesses.find((business) => {
     const id = business?.business_id ?? business?.id;
     return String(id) === String(businessId);
   });
 
-  const canVoidSales = canVoidSalesByRole(currentBusiness, businesses, userContext)
-    || canVoidSalesByRole(selectedBusiness, businesses, userContext);
+  const canVoidSales = role === 'owner' || role === 'admin';
 
   const currentBusinessParameters = {
     ...normalizeBusinessParameters(selectedBusiness),

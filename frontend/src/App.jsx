@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { BusinessProvider } from '@/components/pos/BusinessContext';
 import { CartProvider } from '@/components/pos/CartContext';
+import { AuthorizationProvider, useAuthorization } from '@/components/auth/AuthorizationContext';
 import { useBusiness } from '@/components/pos/BusinessContext';
 import Login from './pages/Login';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ const AuthenticatedApp = () => {
   } = useAuth();
   const location = useLocation();
   const { businessId } = useBusiness();
+  const { can, isLoading: isLoadingAuthorization } = useAuthorization();
   const isLoginRoute = location.pathname === '/login';
   const isHomeRoute = location.pathname === '/Home';
   const isBusinessSelectRoute = location.pathname === '/BusinessSelect';
@@ -57,8 +59,8 @@ const AuthenticatedApp = () => {
     return <Navigate to="/Home" replace />;
   }
 
-  // Show loading spinner while checking app public settings or auth
-  if (!isLoginRoute && (isLoadingPublicSettings || isLoadingAuth)) {
+  // Show loading spinner while checking app public settings, auth, or authorization
+  if (!isLoginRoute && (isLoadingPublicSettings || isLoadingAuth || (requiresBusinessContext && isLoadingAuthorization))) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
@@ -76,6 +78,17 @@ const AuthenticatedApp = () => {
       return null;
     }
   }
+
+
+  const routePermissions = {
+    CashRegister: 'cash_register.view',
+    Settings: 'settings.permissions.manage',
+  };
+
+  const canAccessRoute = (path) => {
+    const requiredPermission = routePermissions[path];
+    return !requiredPermission || can(requiredPermission);
+  };
 
   // Render the main app
   return (
@@ -107,9 +120,11 @@ const AuthenticatedApp = () => {
             key={path}
             path={`/${path}`}
             element={
-              <LayoutWrapper currentPageName={path}>
-                <Page />
-              </LayoutWrapper>
+              canAccessRoute(path) ? (
+                <LayoutWrapper currentPageName={path}>
+                  <Page />
+                </LayoutWrapper>
+              ) : <Navigate to="/POS" replace />
             }
           />
         ))}
@@ -126,13 +141,15 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <BusinessProvider>
-          <CartProvider>
-            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-              <NavigationTracker />
-              <GlobalLoadingOverlay />
-              <AuthenticatedApp />
-            </Router>
-          </CartProvider>
+          <AuthorizationProvider>
+            <CartProvider>
+              <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <NavigationTracker />
+                <GlobalLoadingOverlay />
+                <AuthenticatedApp />
+              </Router>
+            </CartProvider>
+          </AuthorizationProvider>
         </BusinessProvider>
         <Toaster />
       </QueryClientProvider>
