@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from 'sonner';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
+import { mapApiErrorMessage } from '@/api/errorMapping';
 import {
   useBulkItemsMutation,
   useConfirmItemsImportMutation,
@@ -218,7 +219,7 @@ export default function Items() {
       setEditingItem(null);
       setSelectedItems((prev) => prev.filter((key) => key !== getItemSelectionKey(item)));
     } catch (error) {
-      toast.error(error?.message || TOAST_MESSAGES.items.deleteError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.items.deleteError));
     }
   };
 
@@ -249,10 +250,10 @@ export default function Items() {
       });
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
-      const updatedCount = response?.data?.updated_count || selectedItems.length;
+      const updatedCount = response?.updated_count || selectedItems.length;
       toast.success(TOAST_MESSAGES.items.categoryAssignSuccess(updatedCount));
     } catch (error) {
-      toast.error(error?.message || TOAST_MESSAGES.items.categoryAssignError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.items.categoryAssignError));
     } finally {
       setBulkLoading(false);
     }
@@ -269,10 +270,10 @@ export default function Items() {
       });
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
-      const updatedCount = response?.data?.updated_count || selectedItems.length;
+      const updatedCount = response?.updated_count || selectedItems.length;
       toast.success(TOAST_MESSAGES.items.priceUpdated(updatedCount));
     } catch (error) {
-      toast.error(error?.message || TOAST_MESSAGES.items.setPriceError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.items.setPriceError));
     } finally {
       setBulkLoading(false);
     }
@@ -288,10 +289,10 @@ export default function Items() {
       });
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setSelectedItems([]);
-      const updatedCount = response?.data?.updated_count || selectedItems.length;
+      const updatedCount = response?.updated_count || selectedItems.length;
       toast.success(TOAST_MESSAGES.items.increasePriceSuccess(percent, updatedCount));
     } catch (error) {
-      toast.error(error?.message || TOAST_MESSAGES.items.updatePricesError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.items.updatePricesError));
     } finally {
       setBulkLoading(false);
     }
@@ -308,7 +309,7 @@ export default function Items() {
       setImportFile(file);
       setImportPreviewData(previewPayload);
     } catch (error) {
-      toast.error(TOAST_MESSAGES.items.previewImportError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.items.previewImportError));
     } finally {
       setImportLoading(false);
     }
@@ -376,19 +377,18 @@ export default function Items() {
         sync_by_barcode: true
       });
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
-      const importedCount = response?.data?.imported_count
-        || response?.imported_count
+      const importedCount = response?.imported_count
         || response?.count
         || response?.items?.length
         || importPreviewData?.total_rows;
-      const createdCount = response?.data?.created_count ?? response?.created_count ?? 0;
-      const updatedCount = response?.data?.updated_count ?? response?.updated_count ?? 0;
+      const createdCount = response?.created_count ?? 0;
+      const updatedCount = response?.updated_count ?? 0;
       toast.success(TOAST_MESSAGES.items.importSuccess(importedCount, createdCount, updatedCount));
       setShowImportWizard(false);
       setImportPreviewData(null);
       setImportFile(null);
     } catch (error) {
-      toast.error(TOAST_MESSAGES.items.importError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.items.importError));
     } finally {
       setImportLoading(false);
     }

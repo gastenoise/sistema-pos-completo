@@ -1,29 +1,37 @@
 import { apiClient } from '@/api/client';
+import { mapCatalogIsActive, withCatalogIsActive } from '@/lib/catalogNaming';
+import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
 
-export const getCategories = () => apiClient.get('/protected/categories');
+export const getCategories = async () => mapCatalogIsActive(normalizeListResponse(await apiClient.get('/protected/categories'), 'categories'));
 
-export const getPaymentMethods = () => apiClient.get('/protected/payment-methods');
+export const getPaymentMethods = async () => normalizeListResponse(await apiClient.get('/protected/payment-methods'), 'payment_methods').map((method) => {
+  const normalizedMethod = withCatalogIsActive(method);
+  return {
+    ...normalizedMethod,
+    type: method.type || method.code,
+    is_default: method.is_default ?? method.preferred
+  };
+});
 
-export const getBankAccount = () => apiClient.get('/protected/banks');
+export const getBankAccount = async () => normalizeEntityResponse(await apiClient.get('/protected/banks'));
+export const getSmtpConfig = async () => normalizeEntityResponse(await apiClient.get('/protected/business/smtp'));
 
-export const getSmtpConfig = () => apiClient.get('/protected/business/smtp');
+export const updateBusiness = async (payload) => normalizeEntityResponse(await apiClient.put('/protected/business', payload));
 
-export const updateBusiness = (payload) => apiClient.put('/protected/business', payload);
+export const updateCategory = async (categoryId, payload) => normalizeEntityResponse(await apiClient.put(`/protected/categories/${categoryId}`, payload));
 
-export const updateCategory = (categoryId, payload) => apiClient.put(`/protected/categories/${categoryId}`, payload);
+export const createCategory = async (payload) => normalizeEntityResponse(await apiClient.post('/protected/categories', payload));
 
-export const createCategory = (payload) => apiClient.post('/protected/categories', payload);
-
-export const deleteCategory = (categoryId) => apiClient.delete(`/protected/categories/${categoryId}`);
+export const deleteCategory = async (categoryId) => normalizeEntityResponse(await apiClient.delete(`/protected/categories/${categoryId}`));
 
 export const updatePaymentMethods = (payload) => apiClient.post('/protected/payment-methods', payload);
 
-export const updateBankAccount = (payload) => apiClient.put('/protected/banks', payload);
+export const updateBankAccount = async (payload) => normalizeEntityResponse(await apiClient.put('/protected/banks', payload));
 
-export const updateSmtpConfig = (payload) => apiClient.put('/protected/business/smtp', payload);
+export const updateSmtpConfig = async (payload) => normalizeEntityResponse(await apiClient.put('/protected/business/smtp', payload));
 
-export const testSmtpConfig = (payload) => apiClient.post('/protected/business/smtp/test', payload);
+export const testSmtpConfig = async (payload) => normalizeEntityResponse(await apiClient.post('/protected/business/smtp/test', payload));
 
-export const getRolePermissions = () => apiClient.get('/protected/role-permissions');
+export const getRolePermissions = async () => normalizeEntityResponse(await apiClient.get('/protected/role-permissions'));
 
-export const updateRolePermissions = (payload) => apiClient.put('/protected/role-permissions', payload);
+export const updateRolePermissions = async (payload) => normalizeEntityResponse(await apiClient.put('/protected/role-permissions', payload));
