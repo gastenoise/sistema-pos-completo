@@ -1,6 +1,5 @@
-import { apiClient } from '@/api/client';
-
-export const getSmtpStatus = async () => {
-  const response = await apiClient.get('/protected/business/smtp/status');
-  return response?.data || response;
-};
+/**
+ * @deprecated Use '@/modules/settings/api' directly.
+ * Temporary barrel kept for backward compatibility.
+ */
+export { getSmtpStatus } from '@/modules/settings/api';

@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { getCategories } from '@/api/items';
-import { getCashRegisterStatus } from '@/api/cash-register';
-import { getLatestClosedSale, getPaymentMethods, getPosItems } from '@/api/sales';
-import { request } from '@/api/client';
+import { getCashRegisterStatus } from '@/modules/cash-register/api';
+import { getBanks, getLatestClosedSale, getPaymentMethods, getPosItems } from '@/modules/pos/api';
+import { getCategories } from '@/modules/items/api';
 
 export const usePosItemsQuery = (businessId, { search = '', barcode = '', limit = 20 } = {}) => useQuery({
   queryKey: ['pos-items', businessId, search, barcode, limit],
@@ -30,10 +29,7 @@ export const useLatestClosedSaleQuery = (businessId) => useQuery({
 
 export const useBanksQuery = (businessId) => useQuery({
   queryKey: ['banks', businessId],
-  queryFn: async () => {
-    const response = await request('/protected/banks');
-    return response?.data ?? response;
-  },
+  queryFn: getBanks,
   enabled: Boolean(businessId)
 });
 

@@ -5,7 +5,7 @@ import {
   getClosedCashSessions,
   getExpectedTotals,
   openCashRegister
-} from '@/api/cash-register';
+} from '@/modules/cash-register/api';
 
 export const useCashStatusQuery = (businessId, isEnabled = true) => useQuery({
   queryKey: ['cashSession', businessId],

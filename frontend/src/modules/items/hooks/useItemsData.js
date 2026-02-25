@@ -9,7 +9,7 @@ import {
   previewItemsImportPage,
   saveItem,
   saveSepaItemPrice
-} from '@/api/items';
+} from '@/modules/items/api';
 
 export const ITEMS_PER_PAGE = 20;
 
