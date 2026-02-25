@@ -9,6 +9,7 @@ import {
   BarChart3, Package, ShoppingCart,
   CreditCard, User
 } from 'lucide-react';
+import { buildTopNavItems } from '@/components/pos/topNav.permissions';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,15 +25,18 @@ export default function TopNav({ user, onLogout, currentPage }) {
   const { can } = useAuthorization();
   const { isOnline: _isOnline, offlineQueue: _offlineQueue } = useCart();
 
-  const canViewCashRegister = can('cash_register.view');
+  const iconByKey = {
+    ShoppingCart,
+    Package,
+    BarChart3,
+    CreditCard,
+    Settings,
+  };
 
-  const navItems = [
-    { name: 'POS', href: createPageUrl('POS'), icon: ShoppingCart },
-    { name: 'Items', href: createPageUrl('Items'), icon: Package },
-    { name: 'Reportes', href: createPageUrl('Reports'), icon: BarChart3 },
-    ...(canViewCashRegister ? [{ name: 'Caja', href: createPageUrl('CashRegister'), icon: CreditCard }] : []),
-    { name: 'Ajustes', href: createPageUrl('Settings'), icon: Settings, requiredPermission: 'settings.permissions.manage' },
-  ].filter((item) => !item.requiredPermission || can(item.requiredPermission));
+  const navItems = buildTopNavItems(can, createPageUrl).map((item) => ({
+    ...item,
+    icon: iconByKey[item.iconKey],
+  }));
 
   const isCurrentPage = (itemName) => {
     if (!currentPage) return false;
