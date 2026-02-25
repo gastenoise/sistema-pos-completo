@@ -1,23 +1,22 @@
 <?php
 
+use App\Http\Controllers\ApiKeyController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BankAccountController;
+use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\CashRegisterController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\InformationController;
+use App\Http\Controllers\ItemController;
+use App\Http\Controllers\MercadoPagoController;
+use App\Http\Controllers\NavigationEventController;
+use App\Http\Controllers\PaymentMethodController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RolePermissionController;
+use App\Http\Controllers\SaleController;
+use App\Http\Controllers\SalePaymentController;
+use App\Http\Controllers\SaleTicketController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\{
-    AuthController,
-    ApiKeyController,
-    BankAccountController,
-    BusinessController, 
-    ItemController, 
-    CategoryController,
-    SaleController, 
-    CashRegisterController, 
-    ReportController,
-    MercadoPagoController,
-    PaymentMethodController,
-    InformationController,
-    NavigationEventController,
-    SalePaymentController,
-    SaleTicketController
-};
 
 /*
 |--------------------------------------------------------------------------
@@ -66,12 +65,16 @@ Route::prefix('protected')->group(function () {
             |----------------------------------------------------------------------
             */
             Route::middleware('resolve.business')->group(function () {
+                Route::get('auth/permissions', [RolePermissionController::class, 'authPermissions']);
+
                 Route::prefix('business')->group(function () {
                     Route::get('smtp', [BusinessController::class, 'getSmtpSettings']);
                     Route::get('smtp/status', [BusinessController::class, 'smtpStatus']);
                     Route::put('smtp', [BusinessController::class, 'updateSmtpSettings']);
                     Route::post('smtp/test', [BusinessController::class, 'testSmtpSettings']);
                     Route::put('/', [BusinessController::class, 'update']);
+                    Route::get('role-permissions', [RolePermissionController::class, 'index']);
+                    Route::put('role-permissions', [RolePermissionController::class, 'update']);
                 });
 
                 Route::get('api-keys', [ApiKeyController::class, 'index'])
@@ -102,7 +105,6 @@ Route::prefix('protected')->group(function () {
                     Route::post('preview/full', [ItemController::class, 'importPreviewFull']);
                     Route::post('confirm', [ItemController::class, 'importConfirm']);
                 });
-
 
                 // Caja (Cash Register)
                 Route::prefix('cash-register')->group(function () {
@@ -166,20 +168,20 @@ Route::prefix('public')->middleware(['auth.apikey', 'throttle:public-api'])->gro
     Route::put('payment-methods/{paymentMethod}', [PaymentMethodController::class, 'toggleHideForBusiness']);
 
     Route::apiResource('items', ItemController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
-    Route::prefix('items-import')->group(function() {
+    Route::prefix('items-import')->group(function () {
         Route::post('preview', [ItemController::class, 'importPreview']);
         Route::post('preview/full', [ItemController::class, 'importPreviewFull']);
         Route::post('confirm', [ItemController::class, 'importConfirm']);
     });
 
-    Route::prefix('cash-register')->group(function() {
+    Route::prefix('cash-register')->group(function () {
         Route::get('status', [CashRegisterController::class, 'status']);
         Route::post('open', [CashRegisterController::class, 'open']);
         Route::post('close', [CashRegisterController::class, 'close']);
         Route::get('{session}/expected-totals', [CashRegisterController::class, 'getExpectedTotals']);
     });
 
-    Route::prefix('sales')->scopeBindings()->group(function() {
+    Route::prefix('sales')->scopeBindings()->group(function () {
         Route::post('/', [SaleController::class, 'store']);
         Route::post('start', [SaleController::class, 'start']);
         Route::get('latest-closed', [SaleController::class, 'latestClosed']);
