@@ -208,7 +208,7 @@ export const clearBusinessContext = () => {
   businessContext = null;
 };
 
-export const request = async (path, options = {}) => {
+const request = async (path, options = {}) => {
   const token = getToken();
   const normalizedOptions = normalizeBody(options);
   const headers = new Headers(normalizedOptions.headers || {});

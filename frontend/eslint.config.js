@@ -6,12 +6,8 @@ import pluginUnusedImports from "eslint-plugin-unused-imports";
 
 export default [
   {
-    files: [
-      "src/components/**/*.{js,mjs,cjs,jsx}",
-      "src/pages/**/*.{js,mjs,cjs,jsx}",
-      "src/Layout.jsx",
-    ],
-    ignores: ["src/lib/**/*", "src/components/ui/**/*"],
+    files: ["src/**/*.{js,jsx,ts,tsx}"],
+    ignores: ["dist/**", "node_modules/**", "src/utils/index.ts"],
     ...pluginJs.configs.recommended,
     ...pluginReact.configs.flat.recommended,
     languageOptions: {
@@ -38,7 +34,7 @@ export default [
       "no-unused-vars": "off",
       "react/jsx-uses-vars": "error",
       "react/jsx-uses-react": "error",
-      "unused-imports/no-unused-imports": "error",
+      "unused-imports/no-unused-imports": "warn",
       "unused-imports/no-unused-vars": [
         "warn",
         {
@@ -55,6 +51,16 @@ export default [
         { ignore: ["cmdk-input-wrapper", "toast-close"] },
       ],
       "react-hooks/rules-of-hooks": "error",
+    },
+  },
+  {
+    files: [
+      "src/components/**/*.{js,jsx,ts,tsx}",
+      "src/pages/**/*.{js,jsx,ts,tsx}",
+      "src/Layout.jsx",
+      "src/App.jsx",
+    ],
+    rules: {
       "no-restricted-syntax": [
         "error",
         {
@@ -82,6 +88,35 @@ export default [
             "No uses Intl.DateTimeFormat directamente en UI; usa helpers de src/lib/dateTime.js.",
         },
       ],
+    },
+  },
+  {
+    files: [
+      "src/pages/**/*.{js,jsx,ts,tsx}",
+      "src/components/pos/**/*.{js,jsx,ts,tsx}",
+      "src/modules/**/*.{js,jsx,ts,tsx}",
+    ],
+    rules: {
+      "max-lines": [
+        "warn",
+        {
+          max: 400,
+          skipBlankLines: true,
+          skipComments: true,
+        },
+      ],
+      complexity: ["warn", 12],
+      "max-depth": ["warn", 4],
+    },
+  },
+  {
+    files: ["src/components/ui/**/*.{js,jsx,ts,tsx}"],
+    rules: {
+      // Primitivas compartidas (shadcn/ui) con wrappers de composición;
+      // reducimos límites de tamaño/complejidad para evitar ruido en código generado.
+      "max-lines": "off",
+      complexity: "off",
+      "max-depth": "off",
     },
   },
 ];

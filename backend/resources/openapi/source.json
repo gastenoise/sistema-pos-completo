@@ -1,0 +1,2068 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "API OpenVenta (source of truth)",
+    "version": "1.0.0",
+    "description": "Fuente única OpenAPI para prefijos public y protected."
+  },
+  "servers": [
+    {
+      "url": "https://api.dominio.com",
+      "description": "Producción"
+    },
+    {
+      "url": "http://localhost:8080",
+      "description": "Local"
+    }
+  ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Info"
+    },
+    {
+      "name": "Payment Methods"
+    },
+    {
+      "name": "Categories"
+    },
+    {
+      "name": "Banks"
+    },
+    {
+      "name": "Items"
+    },
+    {
+      "name": "Items Import"
+    },
+    {
+      "name": "Cash Register"
+    },
+    {
+      "name": "Sales"
+    },
+    {
+      "name": "Reports"
+    }
+  ],
+  "paths": {
+    "/protected/api-keys": {
+      "get": {
+        "tags": [
+          "api-keys"
+        ],
+        "summary": "Lista API keys",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "api-keys"
+        ],
+        "summary": "Crea API key",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/api-keys/{apiKey}": {
+      "delete": {
+        "tags": [
+          "api-keys"
+        ],
+        "summary": "Elimina API key",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/auth/change-password": {
+      "put": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Cambia contraseña",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logout",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Usuario autenticado",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Actualiza perfil",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/auth/permissions": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Permisos del usuario autenticado",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Registro",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/banks": {
+      "get": {
+        "tags": [
+          "Banks"
+        ],
+        "summary": "Obtener cuenta bancaria del negocio",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Banks"
+        ],
+        "summary": "Actualizar cuenta bancaria del negocio",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "alias": "nuevo.alias.bancario",
+                "bank_name": "Banco Provincia"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/business/": {
+      "put": {
+        "tags": [
+          "business"
+        ],
+        "summary": "Actualiza negocio",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/business/role-permissions": {
+      "get": {
+        "tags": [
+          "business"
+        ],
+        "summary": "Lista permisos por rol",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "business"
+        ],
+        "summary": "Actualiza permisos por rol",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/business/smtp": {
+      "get": {
+        "tags": [
+          "business"
+        ],
+        "summary": "Obtiene configuración SMTP",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "business"
+        ],
+        "summary": "Actualiza configuración SMTP",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/business/smtp/status": {
+      "get": {
+        "tags": [
+          "business"
+        ],
+        "summary": "Estado SMTP",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/business/smtp/test": {
+      "post": {
+        "tags": [
+          "business"
+        ],
+        "summary": "Prueba SMTP",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/businesses": {
+      "get": {
+        "tags": [
+          "business"
+        ],
+        "summary": "Lista negocios del usuario",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/businesses/select": {
+      "post": {
+        "tags": [
+          "business"
+        ],
+        "summary": "Selecciona negocio activo",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/cash-register/close": {
+      "post": {
+        "tags": [
+          "Cash Register"
+        ],
+        "summary": "Cerrar caja",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "real_cash": 1250.5
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/cash-register/open": {
+      "post": {
+        "tags": [
+          "Cash Register"
+        ],
+        "summary": "Abrir caja",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "amount": 1000
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/cash-register/sessions/closed": {
+      "get": {
+        "tags": [
+          "cash-register"
+        ],
+        "summary": "Lista sesiones cerradas de caja",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/cash-register/status": {
+      "get": {
+        "tags": [
+          "Cash Register"
+        ],
+        "summary": "Estado de caja",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/cash-register/{session}/expected-totals": {
+      "get": {
+        "tags": [
+          "Cash Register"
+        ],
+        "summary": "Totales esperados de caja",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/categories": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Listar categorías",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Crear categoría",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Cigarrillos",
+                "color": "66"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/protected/categories/{category}": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Obtener categoría",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Actualizar categoría",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Categoría Actualizada",
+                "description": "Descripción actualizada"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Eliminar categoría",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/protected/info/colors": {
+      "get": {
+        "tags": [
+          "Info"
+        ],
+        "summary": "Listar colores disponibles",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/info/payment-methods": {
+      "get": {
+        "tags": [
+          "Info"
+        ],
+        "summary": "Listar métodos de pago disponibles",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/items": {
+      "get": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Listar items",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Crear item",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Producto 1",
+                "price": 10.99,
+                "sku": "SKU001",
+                "type": "product"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/protected/items-import/confirm": {
+      "post": {
+        "tags": [
+          "Items Import"
+        ],
+        "summary": "Confirmar importación de items",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "items": [
+                  {
+                    "name": "Producto 1",
+                    "price": 10.99,
+                    "sku": "SKU001",
+                    "type": "product"
+                  }
+                ],
+                "sync_by_sku": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/items-import/preview": {
+      "post": {
+        "tags": [
+          "Items Import"
+        ],
+        "summary": "Previsualizar importación de items",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/items/bulk": {
+      "patch": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Actualización masiva de ítems",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/items/{item}": {
+      "get": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Obtener item",
+        "parameters": [
+          {
+            "name": "item",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Actualizar item",
+        "parameters": [
+          {
+            "name": "item",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Producto actualizado",
+                "price": 12.99
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Eliminar item",
+        "parameters": [
+          {
+            "name": "item",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/protected/mercadopago/preferencia": {
+      "post": {
+        "tags": [
+          "mercadopago"
+        ],
+        "summary": "Crea preferencia MercadoPago",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/mercadopago/test": {
+      "get": {
+        "tags": [
+          "mercadopago"
+        ],
+        "summary": "Prueba configuración MercadoPago",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/navigation-events": {
+      "post": {
+        "tags": [
+          "telemetry"
+        ],
+        "summary": "Registra evento de navegación",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/payment-methods": {
+      "get": {
+        "tags": [
+          "Payment Methods"
+        ],
+        "summary": "Listar métodos de pago activos para el negocio",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Payment Methods"
+        ],
+        "summary": "Ocultar/mostrar métodos de pago en bulk y elegir preferido",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "methods": {
+                  "1": true,
+                  "2": false
+                },
+                "preferred_payment_method_id": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/payment-methods/all": {
+      "get": {
+        "tags": [
+          "Payment Methods"
+        ],
+        "summary": "Listar métodos de pago del sistema",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/payment-methods/{paymentMethod}": {
+      "put": {
+        "tags": [
+          "Payment Methods"
+        ],
+        "summary": "Cambiar visibilidad de un método de pago y elegir preferido",
+        "parameters": [
+          {
+            "name": "paymentMethod",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "active": true,
+                "preferred": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/reports/daily-summary": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Resumen diario",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2024-01-15"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/reports/export": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Exportar reportes",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2024-01-01"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2024-01-31"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "sales"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/sales": {
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Crear venta",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "customer_name": "Cliente Ejemplo",
+                "customer_email": "cliente@example.com",
+                "items": [
+                  {
+                    "item_id": 1,
+                    "quantity": 2,
+                    "unit_price": 99.99
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/protected/sales/{sale}": {
+      "get": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Obtener venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/sales/{sale}/close": {
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Cerrar venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "notes": "Venta completada"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/sales/{sale}/items": {
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Agregar item a venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "item_id": 1,
+                "quantity": 1,
+                "unit_price": 49.99
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/sales/{sale}/items/{saleItem}": {
+      "delete": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Quitar item de venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "saleItem",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/protected/sales/{sale}/payments": {
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Agregar pago a venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "amount": 199.98,
+                "payment_method": "cash",
+                "reference": "PAGO-001"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/sales/{sale}/qr": {
+      "get": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Obtener QR de pago",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/sales/{sale}/ticket/email": {
+      "post": {
+        "tags": [
+          "sales"
+        ],
+        "summary": "Envía ticket por email",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/sales/{sale}/ticket/email-status/{requestId}": {
+      "get": {
+        "tags": [
+          "sales"
+        ],
+        "summary": "Consulta estado de envío de email del ticket",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/sales/{sale}/ticket/share/whatsapp": {
+      "post": {
+        "tags": [
+          "sales"
+        ],
+        "summary": "Comparte ticket por WhatsApp",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/sales/{sale}/ticket/share/whatsapp/file": {
+      "post": {
+        "tags": [
+          "sales"
+        ],
+        "summary": "Carga archivo para compartir ticket por WhatsApp",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/sales/{sale}/void": {
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Anular venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "reason": "Error en la venta"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/protected/sepa-items/{sepaItem}/price": {
+      "put": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Actualiza precio de ítem SEPA",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/banks": {
+      "get": {
+        "tags": [
+          "Banks"
+        ],
+        "summary": "Obtener cuenta bancaria del negocio",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Banks"
+        ],
+        "summary": "Actualizar cuenta bancaria del negocio",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "alias": "nuevo.alias.bancario",
+                "bank_name": "Banco Provincia"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/cash-register/close": {
+      "post": {
+        "tags": [
+          "Cash Register"
+        ],
+        "summary": "Cerrar caja",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "real_cash": 1250.5
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/cash-register/open": {
+      "post": {
+        "tags": [
+          "Cash Register"
+        ],
+        "summary": "Abrir caja",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "amount": 1000
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/cash-register/status": {
+      "get": {
+        "tags": [
+          "Cash Register"
+        ],
+        "summary": "Estado de caja",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/cash-register/{session}/expected-totals": {
+      "get": {
+        "tags": [
+          "Cash Register"
+        ],
+        "summary": "Totales esperados de caja",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/categories": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Listar categorías",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Crear categoría",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Cigarrillos",
+                "color": "66"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/public/categories/{category}": {
+      "get": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Obtener categoría",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Actualizar categoría",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Categoría Actualizada",
+                "description": "Descripción actualizada"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Categories"
+        ],
+        "summary": "Eliminar categoría",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/public/info/colors": {
+      "get": {
+        "tags": [
+          "Info"
+        ],
+        "summary": "Listar colores disponibles",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/info/payment-methods": {
+      "get": {
+        "tags": [
+          "Info"
+        ],
+        "summary": "Listar métodos de pago disponibles",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/items": {
+      "get": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Listar items",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Crear item",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Producto 1",
+                "price": 10.99,
+                "sku": "SKU001",
+                "type": "product"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/public/items-import/confirm": {
+      "post": {
+        "tags": [
+          "Items Import"
+        ],
+        "summary": "Confirmar importación de items",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "items": [
+                  {
+                    "name": "Producto 1",
+                    "price": 10.99,
+                    "sku": "SKU001",
+                    "type": "product"
+                  }
+                ],
+                "sync_by_sku": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/items-import/preview": {
+      "post": {
+        "tags": [
+          "Items Import"
+        ],
+        "summary": "Previsualizar importación de items",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/items/{item}": {
+      "get": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Obtener item",
+        "parameters": [
+          {
+            "name": "item",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Actualizar item",
+        "parameters": [
+          {
+            "name": "item",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Producto actualizado",
+                "price": 12.99
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Items"
+        ],
+        "summary": "Eliminar item",
+        "parameters": [
+          {
+            "name": "item",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/public/payment-methods": {
+      "get": {
+        "tags": [
+          "Payment Methods"
+        ],
+        "summary": "Listar métodos de pago activos para el negocio",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Payment Methods"
+        ],
+        "summary": "Ocultar/mostrar métodos de pago en bulk y elegir preferido",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "methods": {
+                  "1": true,
+                  "2": false
+                },
+                "preferred_payment_method_id": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/payment-methods/all": {
+      "get": {
+        "tags": [
+          "Payment Methods"
+        ],
+        "summary": "Listar métodos de pago del sistema",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/payment-methods/{paymentMethod}": {
+      "put": {
+        "tags": [
+          "Payment Methods"
+        ],
+        "summary": "Cambiar visibilidad de un método de pago y elegir preferido",
+        "parameters": [
+          {
+            "name": "paymentMethod",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "active": true,
+                "preferred": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/reports/daily-summary": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Resumen diario",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2024-01-15"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/reports/export": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Exportar reportes",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2024-01-01"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2024-01-31"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "sales"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/sales": {
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Crear venta",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "customer_name": "Cliente Ejemplo",
+                "customer_email": "cliente@example.com",
+                "items": [
+                  {
+                    "item_id": 1,
+                    "quantity": 2,
+                    "unit_price": 99.99
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/public/sales/{sale}": {
+      "get": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Obtener venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/sales/{sale}/close": {
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Cerrar venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "notes": "Venta completada"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/sales/{sale}/items": {
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Agregar item a venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "item_id": 1,
+                "quantity": 1,
+                "unit_price": 49.99
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/sales/{sale}/items/{saleItem}": {
+      "delete": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Quitar item de venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "saleItem",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/public/sales/{sale}/payments": {
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Agregar pago a venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "amount": 199.98,
+                "payment_method": "cash",
+                "reference": "PAGO-001"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/sales/{sale}/qr": {
+      "get": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Obtener QR de pago",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/public/sales/{sale}/void": {
+      "post": {
+        "tags": [
+          "Sales"
+        ],
+        "summary": "Anular venta",
+        "parameters": [
+          {
+            "name": "sale",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "reason": "Error en la venta"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Api-Key"
+      }
+    }
+  }
+}

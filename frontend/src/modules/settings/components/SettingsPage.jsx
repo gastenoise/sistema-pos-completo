@@ -51,8 +51,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { toast } from 'sonner';
-import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
-import { mapCatalogIsActive, withCatalogIsActive } from '@/lib/catalogNaming';
+import { withCatalogIsActive } from '@/lib/catalogNaming';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
@@ -65,6 +64,7 @@ import { DEFAULT_COLOR_HEX, normalizeHexColor } from '@/lib/colors';
 import { DEFAULT_ICON_NAME, getIconComponent, resolveIconId, resolveIconName } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { canViewPermissionsTab } from '@/lib/authorizationGuards';
+import { mapApiErrorMessage } from '@/api/errorMapping';
 
 const CASH_REGISTER_PERMISSION_KEYS = [
   'cash_register.view',
@@ -164,14 +164,8 @@ export default function Settings() {
   }, [user?.allowed_login_ip]);
 
   const updateCategoryCache = (response) => {
-    const list = mapCatalogIsActive(normalizeListResponse(response, 'categories'));
-    if (list.length > 0) {
-      queryClient.setQueryData(['categories', businessId], list);
-      return true;
-    }
-    const entity = normalizeEntityResponse(response);
-    if (entity?.id) {
-      const normalizedEntity = withCatalogIsActive(entity);
+    if (response?.id) {
+      const normalizedEntity = withCatalogIsActive(response);
       queryClient.setQueryData(['categories', businessId], (prev = []) => {
         const safePrev = Array.isArray(prev) ? prev : [];
         const exists = safePrev.find((category) => category.id === normalizedEntity.id);
@@ -192,8 +186,7 @@ export default function Settings() {
     queryKey: ['categories', businessId],
     queryFn: async () => {
       if (!businessId) return [];
-      const response = await getCategories();
-      return mapCatalogIsActive(normalizeListResponse(response, 'categories'));
+      return getCategories();
     },
     enabled: !!businessId
   });
@@ -203,15 +196,7 @@ export default function Settings() {
     queryKey: ['paymentMethods', businessId],
     queryFn: async () => {
       if (!businessId) return [];
-      const response = await getPaymentMethods();
-      return normalizeListResponse(response, 'payment_methods').map((method) => {
-        const normalizedMethod = withCatalogIsActive(method);
-        return {
-          ...normalizedMethod,
-          type: method.type || method.code,
-          is_default: method.is_default ?? method.preferred
-        };
-      });
+      return getPaymentMethods();
     },
     enabled: !!businessId
   });
@@ -221,8 +206,7 @@ export default function Settings() {
     queryKey: ['bankAccount', businessId],
     queryFn: async () => {
       if (!businessId) return null;
-      const response = await getBankAccount();
-      return response?.data ?? response;
+      return getBankAccount();
     },
     enabled: !!businessId
   });
@@ -232,8 +216,7 @@ export default function Settings() {
     queryKey: ['smtpConfig', businessId],
     queryFn: async () => {
       if (!businessId) return null;
-      const response = await getSmtpConfig();
-      return response?.data || response;
+      return getSmtpConfig();
     },
     enabled: !!businessId
   });
@@ -312,13 +295,12 @@ export default function Settings() {
         email: businessData.business_email || undefined,
       };
       const updated = await updateBusiness(payload);
-      const updatedBusiness = normalizeEntityResponse(updated);
-      const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
+      const mergedBusiness = { ...currentBusiness, ...updated };
       syncBusinessState(mergedBusiness);
       queryClient.invalidateQueries({ queryKey: ['business-permissions'] });
       toast.success(TOAST_MESSAGES.settings.businessInfoSaved);
     } catch (error) {
-      toast.error(TOAST_MESSAGES.settings.businessInfoSaveError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.settings.businessInfoSaveError));
     } finally {
       setSavingBusinessInfo(false);
     }
@@ -334,13 +316,12 @@ export default function Settings() {
         currency: businessData.currency
       };
       const updated = await updateBusiness(payload);
-      const updatedBusiness = normalizeEntityResponse(updated);
-      const mergedBusiness = { ...currentBusiness, ...updatedBusiness };
+      const mergedBusiness = { ...currentBusiness, ...updated };
       syncBusinessState(mergedBusiness);
       queryClient.invalidateQueries({ queryKey: ['business-permissions'] });
       toast.success(TOAST_MESSAGES.settings.businessOptionsSaved);
     } catch (error) {
-      toast.error(TOAST_MESSAGES.settings.businessOptionsSaveError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.settings.businessOptionsSaveError));
     } finally {
       setSavingBusinessParameters(false);
     }
@@ -368,7 +349,7 @@ export default function Settings() {
       setEditingCategory(null);
       setCategoryData({ name: '', color: DEFAULT_COLOR_HEX, icon: DEFAULT_ICON_NAME });
     } catch (error) {
-      toast.error(TOAST_MESSAGES.settings.categorySaveError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.settings.categorySaveError));
     } finally {
       setSavingCategory(false);
     }
@@ -381,7 +362,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ['categories', businessId] });
       toast.success(TOAST_MESSAGES.settings.categoryDeleted);
     } catch (error) {
-      toast.error(TOAST_MESSAGES.settings.categoryDeleteError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.settings.categoryDeleteError));
     }
   };
 
@@ -399,7 +380,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ['paymentMethods', businessId] });
       toast.success(TOAST_MESSAGES.settings.paymentMethodsSaved);
     } catch (error) {
-      toast.error(TOAST_MESSAGES.settings.paymentMethodsSaveError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.settings.paymentMethodsSaveError));
     } finally {
       setSavingPayments(false);
     }
@@ -425,7 +406,7 @@ export default function Settings() {
       toast.success(TOAST_MESSAGES.settings.bankAccountSaved);
       queryClient.invalidateQueries({ queryKey: ['bankAccount', businessId] });
     } catch (error) {
-      toast.error(TOAST_MESSAGES.settings.bankAccountSaveError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.settings.bankAccountSaveError));
     } finally {
       setSavingBank(false);
     }
@@ -458,7 +439,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ['smtpConfig', businessId] });
       queryClient.invalidateQueries({ queryKey: ['smtpStatus', businessId] });
     } catch (error) {
-      toast.error(TOAST_MESSAGES.settings.smtpConfigSaveError);
+      toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.settings.smtpConfigSaveError));
     } finally {
       setSavingSmtp(false);
     }
@@ -536,7 +517,7 @@ export default function Settings() {
       setAllowedLoginIp('');
       toast.success('Restricción de IP eliminada.');
     } catch (error) {
-      toast.error(error?.message || 'No pudimos eliminar la restricción de IP.');
+      toast.error(mapApiErrorMessage(error, 'No pudimos eliminar la restricción de IP.'));
     } finally {
       setSavingAllowedLoginIp(false);
     }
@@ -550,8 +531,7 @@ export default function Settings() {
 
       try {
         const response = await getRolePermissions();
-        const payload = response?.data ?? response;
-        const cashRegisterRows = payload?.permissions?.cash_register ?? [];
+        const cashRegisterRows = response?.permissions?.cash_register ?? [];
 
         const nextPermissions = { admin: {}, cashier: {} };
 
@@ -564,7 +544,7 @@ export default function Settings() {
 
         setRolePermissions(nextPermissions);
       } catch (error) {
-        toast.error('No pudimos cargar la configuración de permisos.');
+        toast.error(mapApiErrorMessage(error, 'No pudimos cargar la configuración de permisos.'));
       }
     };
 
@@ -596,7 +576,7 @@ export default function Settings() {
       await updateRolePermissions({ role_permissions: matrixRows });
       toast.success('Permisos actualizados correctamente.');
     } catch (error) {
-      toast.error('No pudimos guardar los permisos.');
+      toast.error(mapApiErrorMessage(error, 'No pudimos guardar los permisos.'));
     } finally {
       setSavingRolePermissions(false);
     }

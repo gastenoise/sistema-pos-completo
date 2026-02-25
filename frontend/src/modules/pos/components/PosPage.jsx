@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { apiClient } from '@/api/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   Package, Loader2, ShoppingBag, Coffee,
@@ -14,8 +13,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
-import { mapCatalogIsActive } from '@/lib/catalogNaming';
 import { formatPrice } from '@/lib/formatPrice';
 import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
 import { getIconComponent } from '@/lib/iconCatalog';
@@ -35,6 +32,21 @@ import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import TicketActions from '@/components/sales/TicketActions';
 import ItemsFiltersDialog from '@/components/items/ItemsFiltersDialog';
 import { useItemFilters } from '@/modules/items/hooks/useItemFilters';
+import { openCashRegister } from '@/api/cash-register';
+import {
+  closeSale,
+  confirmSalePayment,
+  createItem,
+  extractSaleId,
+  getBankAccount,
+  getLatestClosedSale,
+  getPosCashRegisterStatus,
+  getPosCategories,
+  getPosItems,
+  getPosPaymentMethods,
+  getSaleById,
+  startSale
+} from '@/modules/pos/api';
 
 function POSContent() {
   const { businessId, currentBusiness, businesses } = useBusiness();
@@ -70,35 +82,13 @@ function POSContent() {
     queryKey: ['items', businessId, searchQuery, barcodeOrSkuQuery, sourceFilter, categoryFilter, onlyPriceUpdated],
     queryFn: async () => {
       if (!businessId) return [];
-      const query = new URLSearchParams();
-      query.set('source', sourceFilter);
-      query.set('per_page', '24');
-      const trimmedSearch = searchQuery.trim();
-      const trimmedBarcodeOrSku = barcodeOrSkuQuery.trim();
-      if (trimmedSearch) {
-        query.set('search', trimmedSearch);
-      }
-      if (trimmedBarcodeOrSku) {
-        query.set('barcode_or_sku', trimmedBarcodeOrSku);
-      }
-      if (categoryFilter !== 'all') {
-        query.set('category', categoryFilter);
-      }
-      if (onlyPriceUpdated) {
-        query.set('only_price_updated', 'true');
-      }
-      if (!trimmedSearch && !trimmedBarcodeOrSku && sourceFilter === 'all' && categoryFilter === 'all') {
-        query.set('recent_first', 'true');
-      }
-
-      const response = await apiClient.get(`/protected/items?${query.toString()}`);
-      return mapCatalogIsActive(normalizeListResponse(response, 'items'))
-        .map((item) => ({
-          ...item,
-          category_id: item.category_id !== null && item.category_id !== undefined
-            ? Number(item.category_id)
-            : null
-        }));
+      return getPosItems({
+        searchQuery,
+        barcodeOrSkuQuery,
+        sourceFilter,
+        categoryFilter,
+        onlyPriceUpdated
+      });
     },
     enabled: !!businessId
   });
@@ -108,11 +98,7 @@ function POSContent() {
     queryKey: ['categories', businessId],
     queryFn: async () => {
       if (!businessId) return [];
-      const response = await apiClient.get('/protected/categories');
-      return mapCatalogIsActive(normalizeListResponse(response, 'categories')).map((category) => ({
-        ...category,
-        id: Number(category.id)
-      }));
+      return getPosCategories();
     },
     enabled: !!businessId
   });
@@ -122,14 +108,7 @@ function POSContent() {
     queryKey: ['paymentMethods', businessId],
     queryFn: async () => {
       if (!businessId) return [];
-      const response = await apiClient.get('/protected/payment-methods');
-      const methods = normalizeListResponse(response, 'payment_methods');
-      return methods
-        .map((method) => ({
-          ...method,
-          type: method.type || method.code
-        }))
-        .filter((method) => (method.is_active ?? method.active) !== false);
+      return getPosPaymentMethods();
     },
     enabled: !!businessId
   });
@@ -166,8 +145,7 @@ function POSContent() {
     queryKey: ['latest-closed-sale', businessId],
     queryFn: async () => {
       if (!businessId) return null;
-      const response = await apiClient.get('/protected/sales/latest-closed');
-      return normalizeEntityResponse(response);
+      return getLatestClosedSale();
     },
     enabled: !!businessId
   });
@@ -177,8 +155,7 @@ function POSContent() {
     queryKey: ['bankAccount', businessId],
     queryFn: async () => {
       if (!businessId) return null;
-      const response = await apiClient.get('/protected/banks');
-      return response?.data ?? response;
+      return getBankAccount();
     },
     enabled: !!businessId
   });
@@ -188,31 +165,10 @@ function POSContent() {
     queryKey: ['cashRegisterStatus', businessId],
     queryFn: async () => {
       if (!businessId) return null;
-      const response = await apiClient.get('/protected/cash-register/status');
-      const status = response?.status
-        || (response?.data?.is_open ? 'open' : 'closed');
-      const session = response?.session || response?.data?.session;
-      if (status === 'open' && session) {
-        return { status, ...session };
-      }
-      if (status) {
-        return { status };
-      }
-      return response || { status: 'closed' };
+      return getPosCashRegisterStatus();
     },
     enabled: !!businessId
   });
-
-  const extractSaleId = (response) => {
-    return (
-      response?.id
-      || response?.sale?.id
-      || response?.data?.id
-      || response?.data?.sale?.id
-      || response?.sale_id
-      || null
-    );
-  };
 
   const mapSalePayments = (payments = []) => {
     return payments.map((payment) => ({
@@ -224,7 +180,7 @@ function POSContent() {
   };
 
   const startSaleWithItemsAndPayments = async ({ cashRegisterSessionId, items, payments }) => {
-    const saleResponse = await apiClient.post('/protected/sales/start', {
+    const saleResponse = await startSale({
       cash_register_session_id: cashRegisterSessionId,
       items: items.map((item) => ({
         ...(item.is_quick_item
@@ -254,19 +210,18 @@ function POSContent() {
       throw new Error('Sale ID missing from response');
     }
 
-    const saleEntity = normalizeEntityResponse(saleResponse);
+    const saleEntity = saleResponse;
     const salePayments = mapSalePayments(saleEntity?.payments || []);
 
     return { saleId, salePayments };
   };
 
   const closeSaleFlow = async (saleId) => {
-    await apiClient.post(`/protected/sales/${saleId}/close`, {
+    await closeSale(saleId, {
       notes: 'Venta completada'
     });
 
-    const saleDetailResponse = await apiClient.get(`/protected/sales/${saleId}`);
-    const saleDetail = normalizeEntityResponse(saleDetailResponse);
+    const saleDetail = await getSaleById(saleId);
 
     return { saleId, saleDetail };
   };
@@ -282,7 +237,7 @@ function POSContent() {
       createdPayments
         .filter((payment, index) => (payments[index]?.status || 'pending') === 'confirmed')
         .map((payment, index) =>
-          apiClient.post(`/protected/sales/${saleId}/payments/${payment.id}/confirm`, {
+          confirmSalePayment(saleId, payment.id, {
             ...(payments[index]?.payment_reference && { transaction_reference: payments[index].payment_reference })
           })
         )
@@ -363,9 +318,7 @@ function POSContent() {
   const handleOpenCashRegister = async (openingAmount) => {
     setIsOpeningCashRegister(true);
     try {
-      await apiClient.post('/protected/cash-register/open', {
-        amount: openingAmount
-      });
+      await openCashRegister(openingAmount);
       await refetchCashStatus();
 
       const shouldContinuePayment = Boolean(pendingPayment);
@@ -404,11 +357,9 @@ function POSContent() {
       return null;
     }
 
-    const response = await apiClient.post(`/protected/sales/${saleId}/payments/${paymentId}/confirm`, {
+    const confirmed = await confirmSalePayment(saleId, paymentId, {
       ...(reference && { transaction_reference: reference })
     });
-
-    const confirmed = normalizeEntityResponse(response);
 
     return {
       ...confirmed,
@@ -446,8 +397,7 @@ function POSContent() {
           ...(itemData.category_id !== undefined && { category_id: itemData.category_id }),
         };
 
-        const createdResponse = await apiClient.post('/protected/items', payload);
-        const createdItem = normalizeEntityResponse(createdResponse);
+        const createdItem = await createItem(payload);
 
         if (!createdItem?.id) {
           throw new Error('No se pudo crear el item en catálogo');

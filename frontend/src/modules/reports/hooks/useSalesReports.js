@@ -1,7 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { getCategories } from '@/api/items';
-import { getPaymentMethods } from '@/api/sales';
-import { getSalesReport, getSalesSummary } from '@/api/reports';
+import {
+  getReportCategories,
+  getReportPaymentMethods,
+  getSalesReport,
+  getSalesSummary
+} from '@/modules/reports/api';
 
 export const useSalesQuery = ({ businessId, dateFrom, dateTo, status, paymentMethod, categoryId }) => useQuery({
   queryKey: ['sales', businessId, dateFrom, dateTo, status, paymentMethod, categoryId],
@@ -17,13 +20,13 @@ export const useSalesSummaryQuery = ({ businessId, dateFrom, dateTo, paymentMeth
 
 export const useReportPaymentMethodsQuery = (businessId) => useQuery({
   queryKey: ['paymentMethods', businessId],
-  queryFn: getPaymentMethods,
+  queryFn: getReportPaymentMethods,
   enabled: Boolean(businessId)
 });
 
 export const useReportCategoriesQuery = (businessId) => useQuery({
   queryKey: ['report-categories', businessId],
-  queryFn: getCategories,
+  queryFn: getReportCategories,
   enabled: Boolean(businessId)
 });
 
