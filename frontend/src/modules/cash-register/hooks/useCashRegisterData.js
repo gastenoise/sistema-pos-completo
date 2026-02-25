@@ -6,12 +6,11 @@ import {
   getExpectedTotals,
   openCashRegister
 } from '@/api/cash-register';
+import { buildCashStatusQueryOptions, cashStatusQueryKey, invalidateCashRegisterQueries } from './cashRegisterQueryOptions';
 
-export const useCashStatusQuery = (businessId, isEnabled = true) => useQuery({
-  queryKey: ['cashSession', businessId],
-  queryFn: getCashRegisterStatus,
-  enabled: Boolean(businessId) && isEnabled
-});
+export { buildCashStatusQueryOptions, cashStatusQueryKey, invalidateCashRegisterQueries };
+
+export const useCashStatusQuery = (businessId, isEnabled = true) => useQuery(buildCashStatusQueryOptions(businessId, isEnabled, { getCashRegisterStatus }));
 
 export const useClosedSessionsQuery = (businessId, isEnabled = true) => useQuery({
   queryKey: ['recentSessions', businessId],

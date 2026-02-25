@@ -3,12 +3,11 @@ import { getCategories } from '@/api/items';
 import { getCashRegisterStatus } from '@/api/cash-register';
 import { getLatestClosedSale, getPaymentMethods, getPosItems } from '@/api/sales';
 import { request } from '@/api/client';
+import { buildPosItemsQueryOptions, invalidatePosQueries, posItemsQueryKey } from './posQueryOptions';
 
-export const usePosItemsQuery = (businessId, { search = '', barcode = '', limit = 20 } = {}) => useQuery({
-  queryKey: ['pos-items', businessId, search, barcode, limit],
-  queryFn: () => getPosItems({ search, barcode, limit }),
-  enabled: Boolean(businessId) && (search.trim().length > 0 || barcode.trim().length > 0)
-});
+export { buildPosItemsQueryOptions, invalidatePosQueries, posItemsQueryKey };
+
+export const usePosItemsQuery = (businessId, filters = {}) => useQuery(buildPosItemsQueryOptions(businessId, filters, { getPosItems }));
 
 export const usePosCategoriesQuery = (businessId) => useQuery({
   queryKey: ['pos-categories', businessId],

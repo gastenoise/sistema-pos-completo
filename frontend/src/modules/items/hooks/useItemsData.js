@@ -10,8 +10,9 @@ import {
   saveItem,
   saveSepaItemPrice
 } from '@/api/items';
+import { buildItemsQueryOptions, invalidateItemsQueries, ITEMS_PER_PAGE, itemsQueryKey } from './itemsQueryOptions';
 
-export const ITEMS_PER_PAGE = 20;
+export { ITEMS_PER_PAGE, buildItemsQueryOptions, invalidateItemsQueries, itemsQueryKey };
 
 export const useItemsQuery = ({
   businessId,
@@ -21,19 +22,10 @@ export const useItemsQuery = ({
   source,
   onlyPriceUpdated,
   page,
-}) => useQuery({
-  queryKey: ['items', businessId, searchQuery, barcodeOrSku, categoryFilter, source, onlyPriceUpdated, page],
-  queryFn: () => getItems({
-    search: searchQuery,
-    barcode_or_sku: barcodeOrSku,
-    category: categoryFilter,
-    source,
-    only_price_updated: onlyPriceUpdated,
-    page,
-    per_page: ITEMS_PER_PAGE
-  }),
-  enabled: Boolean(businessId)
-});
+}) => useQuery(buildItemsQueryOptions(
+  { businessId, searchQuery, barcodeOrSku, categoryFilter, source, onlyPriceUpdated, page },
+  { getItems }
+));
 
 export const useItemCategoriesQuery = (businessId) => useQuery({
   queryKey: ['categories', businessId],
