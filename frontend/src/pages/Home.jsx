@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { apiClient } from '@/api/client';
 import { createPageUrl } from '@/utils';
 import { Loader2 } from 'lucide-react';
 
 import { useBusiness } from '../components/pos/BusinessContext';
-import { normalizeListResponse } from '@/lib/normalizeResponse';
+import { getBusinesses, selectBusiness as selectBusinessApi } from '@/modules/business/api';
 
 export default function Home() {
   const { selectBusiness, setBusinesses } = useBusiness();
@@ -12,8 +11,7 @@ export default function Home() {
 
   const initializeApp = useCallback(async () => {
     try {
-      const response = await apiClient.get('/protected/businesses');
-      const businesses = normalizeListResponse(response, 'businesses');
+      const businesses = await getBusinesses();
       setBusinesses(businesses);
 
       if (businesses.length === 0) {
@@ -24,7 +22,7 @@ export default function Home() {
 
       if (businesses.length === 1) {
         const business = businesses[0];
-        await apiClient.post('/protected/businesses/select', { business_id: business.id });
+        await selectBusinessApi(business.id);
         selectBusiness({ ...business, business_id: business.business_id ?? business.id });
         window.location.href = createPageUrl('POS');
         return;

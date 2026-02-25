@@ -1,4 +1,5 @@
-import { request, ensureCsrfCookie } from './client';
+import { apiClient, ensureCsrfCookie } from './client';
+import { normalizeEntityResponse } from '@/lib/normalizeResponse';
 
 /** @typedef {import('@/types/user').CanonicalUserProfile} UserProfile */
 
@@ -39,37 +40,29 @@ export const clearToken = () => {
 
 export const login = async (email, password) => {
   await ensureCsrfCookie();
-  const data = await request('/protected/auth/login', {
-    method: 'POST',
-    body: { email, password }
-  });
+  const data = await apiClient.post('/protected/auth/login', { email, password });
   setToken(data?.success);
-  return data?.data ?? data;
+  return normalizeEntityResponse(data);
 };
 
-const authFetch = async (url, options = {}) => request(url, options);
-
 export const fetchMe = async () => {
-  const response = await authFetch('/protected/auth/me');
-  const user = response?.data?.user ?? response?.user ?? response;
+  const response = await apiClient.get('/protected/auth/me');
+  const user = response?.user ?? normalizeEntityResponse(response);
   setToken(Boolean(user));
   return normalizeUserProfile(user);
 };
 
 export const updateMe = async (updates) => {
   await ensureCsrfCookie();
-  const response = await authFetch('/protected/auth/me', {
-    method: 'PUT',
-    body: updates
-  });
-  const user = response?.data?.user ?? response?.user ?? response;
+  const response = await apiClient.put('/protected/auth/me', updates);
+  const user = response?.user ?? normalizeEntityResponse(response);
   return normalizeUserProfile(user);
 };
 
 export const logout = async () => {
   try {
     await ensureCsrfCookie();
-    await request('/protected/auth/logout', { method: 'POST' });
+    await apiClient.post('/protected/auth/logout', {});
   } finally {
     clearToken();
   }

@@ -1,5 +1,3 @@
-/**
- * @deprecated Use '@/modules/settings/api' directly.
- * Temporary barrel kept for backward compatibility.
- */
-export { getSmtpStatus } from '@/modules/settings/api';
+import { getSmtpStatus as getSmtpStatusByModule } from '@/modules/business/api';
+
+export const getSmtpStatus = () => getSmtpStatusByModule();

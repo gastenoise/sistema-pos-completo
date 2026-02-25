@@ -1,90 +1,73 @@
-import { request } from '@/api/client';
-import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
+import { apiClient } from '@/api/client';
 import { mapCatalogIsActive } from '@/lib/catalogNaming';
+import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeResponse';
 
-const resolveResponseData = (response) => response?.data ?? response;
-
-export const getPosItems = async ({ search = '', barcode = '', limit = 20 } = {}) => {
+export const getPosItems = async (filters) => {
   const query = new URLSearchParams();
-  query.set('source', 'all');
-  query.set('per_page', String(limit));
-  if (search) {
-    query.set('search', search);
-  }
-  if (barcode) {
-    query.set('barcode', barcode);
+  query.set('source', filters?.sourceFilter || 'all');
+  query.set('per_page', '24');
+
+  const trimmedSearch = filters?.searchQuery?.trim() || '';
+  const trimmedBarcodeOrSku = filters?.barcodeOrSkuQuery?.trim() || '';
+
+  if (trimmedSearch) query.set('search', trimmedSearch);
+  if (trimmedBarcodeOrSku) query.set('barcode_or_sku', trimmedBarcodeOrSku);
+  if (filters?.categoryFilter && filters.categoryFilter !== 'all') query.set('category', filters.categoryFilter);
+  if (filters?.onlyPriceUpdated) query.set('only_price_updated', 'true');
+
+  if (!trimmedSearch && !trimmedBarcodeOrSku && (filters?.sourceFilter || 'all') === 'all' && (filters?.categoryFilter || 'all') === 'all') {
+    query.set('recent_first', 'true');
   }
 
-  const response = await request(`/protected/items?${query.toString()}`);
-  return mapCatalogIsActive(normalizeListResponse(response, 'items'));
-};
-
-export const getPaymentMethods = async () => {
-  const response = await request('/protected/payment-methods');
-  return normalizeListResponse(response, 'payment_methods').map((method) => ({
-    ...method,
-    type: method.type || method.code
+  const response = await apiClient.get(`/protected/items?${query.toString()}`);
+  return mapCatalogIsActive(normalizeListResponse(response, 'items')).map((item) => ({
+    ...item,
+    category_id: item.category_id !== null && item.category_id !== undefined ? Number(item.category_id) : null
   }));
 };
 
-export const getLatestClosedSale = async () => {
-  const response = await request('/protected/sales/latest-closed');
-  return normalizeEntityResponse(response);
+export const getPosCategories = async () => {
+  const response = await apiClient.get('/protected/categories');
+  return mapCatalogIsActive(normalizeListResponse(response, 'categories')).map((category) => ({
+    ...category,
+    id: Number(category.id)
+  }));
 };
 
-export const getSaleById = async (saleId) => {
-  const response = await request(`/protected/sales/${saleId}`);
-  return normalizeEntityResponse(response);
+export const getPosPaymentMethods = async () => {
+  const response = await apiClient.get('/protected/payment-methods');
+  return normalizeListResponse(response, 'payment_methods')
+    .map((method) => ({ ...method, type: method.type || method.code }))
+    .filter((method) => (method.is_active ?? method.active) !== false);
 };
 
-export const startSale = async (payload) => normalizeEntityResponse(await request('/protected/sales/start', {
-  method: 'POST',
-  body: payload
-}));
+export const getLatestClosedSale = async () => normalizeEntityResponse(await apiClient.get('/protected/sales/latest-closed'));
 
-export const closeSale = async (saleId, payload) => request(`/protected/sales/${saleId}/close`, {
-  method: 'POST',
-  body: payload
-});
+export const getBankAccount = async () => normalizeEntityResponse(await apiClient.get('/protected/banks'));
 
-export const confirmSalePayment = async (saleId, paymentId, payload) => normalizeEntityResponse(await request(
+export const getPosCashRegisterStatus = async () => {
+  const response = await apiClient.get('/protected/cash-register/status');
+  const status = response?.status || (response?.data?.is_open ? 'open' : 'closed');
+  const session = response?.session || response?.data?.session;
+  if (status === 'open' && session) return { status, ...session };
+  if (status) return { status };
+  return { status: 'closed' };
+};
+
+export const startSale = (payload) => apiClient.post('/protected/sales/start', payload);
+export const closeSale = (saleId, payload) => apiClient.post(`/protected/sales/${saleId}/close`, payload);
+export const getSaleById = async (saleId) => normalizeEntityResponse(await apiClient.get(`/protected/sales/${saleId}`));
+export const confirmSalePayment = async (saleId, paymentId, payload) => normalizeEntityResponse(await apiClient.post(
   `/protected/sales/${saleId}/payments/${paymentId}/confirm`,
-  { method: 'POST', body: payload }
+  payload
 ));
+export const createItem = async (payload) => normalizeEntityResponse(await apiClient.post('/protected/items', payload));
 
-export const getBanks = async () => {
-  const response = await request('/protected/banks');
-  return resolveResponseData(response);
-};
-
-export const getSaleTicket = async (saleId) => {
-  const response = await request(`/protected/sales/${saleId}/ticket`);
-  return resolveResponseData(response);
-};
-
-export const sendSaleTicketEmail = async (saleId, formData) => {
-  const response = await request(`/protected/sales/${saleId}/ticket/email`, { method: 'POST', body: formData });
-  return resolveResponseData(response);
-};
-
-export const uploadSaleTicketWhatsappFile = async (saleId, pdfFile) => {
-  const formData = new FormData();
-  formData.append('pdf_file', pdfFile);
-
-  const response = await request(`/protected/sales/${saleId}/ticket/share/whatsapp/file`, {
-    method: 'POST',
-    body: formData
-  });
-
-  return resolveResponseData(response);
-};
-
-export const getSaleTicketWhatsappShare = async (saleId, payload = {}) => {
-  const response = await request(`/protected/sales/${saleId}/ticket/share/whatsapp`, { method: 'POST', body: payload });
-  return resolveResponseData(response);
-};
-
-export const getSaleTicketEmailStatus = async (saleId, requestId) => {
-  const response = await request(`/protected/sales/${saleId}/ticket/email-status/${requestId}`);
-  return resolveResponseData(response);
-};
+export const extractSaleId = (response) => (
+  response?.id
+  || response?.sale?.id
+  || response?.data?.id
+  || response?.data?.sale?.id
+  || response?.sale_id
+  || null
+);
