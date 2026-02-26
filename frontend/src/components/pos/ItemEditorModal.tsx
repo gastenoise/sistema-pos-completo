@@ -25,7 +25,7 @@ export default function ItemEditorModal({
   onSave,
   onDelete,
   loading = false
-}) {
+}: any) {
   const NO_CATEGORY_VALUE = 'none';
   const isSepaItem = item?.source === 'sepa';
   const [formData, setFormData] = useState({
@@ -98,8 +98,8 @@ export default function ItemEditorModal({
       presentation_unit: formData.presentation_unit?.trim() || null,
       brand: formData.brand?.trim() || null,
       list_price: formData.list_price ? parseFloat(formData.list_price) : null,
-      stock_quantity: parseInt(formData.stock_quantity) || 0
-    });
+      stock_quantity: (parseInt(formData.stock_quantity as any) || 0) as any
+    } as any);
   };
 
   return (
@@ -280,7 +280,7 @@ export default function ItemEditorModal({
                   type="number"
                   min="0"
                   value={formData.stock_quantity}
-                  onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value as any })}
                 />
               </div>
             )}

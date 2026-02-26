@@ -10,14 +10,14 @@ import WhatsappShareDialog from './WhatsappShareDialog';
 import { sanitizeEmailAddress, sanitizePhoneNumber } from '@/lib/sanitize';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
-const resolveBankAccountData = (bankAccountData = {}) => ({
+const resolveBankAccountData = (bankAccountData: any = {}) => ({
   bank_name: bankAccountData.bank_name || '',
   account_holder_name: bankAccountData.account_holder_name || '',
   cbu: bankAccountData.cbu || '',
   alias: bankAccountData.alias || '',
 });
 
-const buildTransferPlainText = (bankAccountData) => {
+const buildTransferPlainText = (bankAccountData: any) => {
   const lines = [
     'Datos bancarios para transferencia:',
     `Banco: ${bankAccountData.bank_name || 'No configurado'}`,
@@ -36,7 +36,7 @@ export default function BankTransferShareDialog({
   onConfirmReceived,
   isConfirming = false,
   confirmLabel = 'Confirmar pago recibido'
-}) {
+}: any) {
   const [isWhatsappDialogOpen, setIsWhatsappDialogOpen] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isSharingWhatsapp, setIsSharingWhatsapp] = useState(false);

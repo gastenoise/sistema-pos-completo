@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Actions\Business\BootstrapBusinessRolePermissionsAction;
 use App\Models\User;
 use App\Models\Business;
 use App\Models\ApiKey;
@@ -88,8 +87,6 @@ class DatabaseSeeder extends Seeder
             ]));
             $createdBusinesses[] = $business;
 
-            app(BootstrapBusinessRolePermissionsAction::class)->execute($business->id);
-
             // 4. Vincular Usuario Admin con Negocio como Owner
             $user->businesses()->attach($business->id, ['role' => 'owner']);
 
@@ -100,27 +97,6 @@ class DatabaseSeeder extends Seeder
 
             // 5. Asociar métodos de pago globales a cada negocio (tabla business_payment_method_hides se usa para esconder, no para asociar!)
             // Según la estructura, todos los métodos globales están activos para todos los negocios a menos que estén explícitamente ocultos.
-
-            // 6. Crear algunas categorías por defecto
-            $defaultCategories = [
-                ['name' => 'General',   'color' => '#3B82F6', 'icon' => 1],  // Package
-                ['name' => 'Alimentos', 'color' => '#10B981', 'icon' => 15], // Apple
-                ['name' => 'Bebidas',   'color' => '#F59E0B', 'icon' => 3],  // Coffee
-                ['name' => 'Limpieza',  'color' => '#8B5CF6', 'icon' => 22], // Scissors (closest match for cleaning)
-                ['name' => 'Servicio',  'color' => '#3B82F6', 'icon' => 9],  // Wrench
-                ['name' => 'Comisión',  'color' => '#F59E0B', 'icon' => 26], // Tag
-                ['name' => 'Otros',     'color' => '#EF4444', 'icon' => 24], // Star
-            ];
-
-            foreach ($defaultCategories as $category) {
-                Category::firstOrCreate([
-                    'business_id' => $business->id,
-                    'name' => $category['name'],
-                ], [
-                    'color' => $category['color'],
-                    'icon' => $category['icon'],
-                ]);
-            }
 
             // 7. Crear y asociar una cuenta bancaria al negocio
             $bankData = $bankAccountsInfo[$businessIndex];

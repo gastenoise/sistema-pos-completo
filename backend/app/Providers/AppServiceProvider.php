@@ -4,6 +4,10 @@ namespace App\Providers;
 
 use App\Events\ApiKeyAuthenticated;
 use App\Listeners\PersistApiKeyUsage;
+use App\Models\Business;
+use App\Models\User;
+use App\Observers\BusinessObserver;
+use App\Observers\UserObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -29,6 +33,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Business::observe(BusinessObserver::class);
+        User::observe(UserObserver::class);
+
         Gate::policy(\App\Models\ApiKey::class, \App\Policies\ApiKeyPolicy::class);
 
         Event::listen(ApiKeyAuthenticated::class, PersistApiKeyUsage::class);

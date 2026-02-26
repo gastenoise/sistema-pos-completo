@@ -39,7 +39,7 @@ export const useDeleteItemMutation = () => useMutation({ mutationFn: deleteItem 
 export const useBulkItemsMutation = () => useMutation({ mutationFn: bulkUpdateItems });
 export const usePreviewItemsImportMutation = () => useMutation({ mutationFn: previewItemsImport });
 export const usePreviewItemsImportPageMutation = () => useMutation({
-  mutationFn: ({ file, previewId, page, perPage }) => previewItemsImportPage({ file, previewId, page, perPage })
+  mutationFn: ({ file, previewId, page, perPage }: any) => previewItemsImportPage({ file, previewId, page, perPage })
 });
 export const useConfirmItemsImportMutation = () => useMutation({ mutationFn: confirmItemsImport });
 

@@ -68,7 +68,7 @@ export default function Items() {
 
   const buildBulkTargets = () => {
     const selectedSet = new Set(selectedItems);
-    return items
+    return (items as any[])
       .map((item) => {
         const key = getItemSelectionKey(item);
         if (!selectedSet.has(key)) return null;
@@ -85,12 +85,13 @@ export default function Items() {
     if (!entity?.id) return false;
     let updated = false;
 
-    queryClient.setQueriesData({ queryKey: ['items', businessId] }, (prev) => {
+    queryClient.setQueriesData({ queryKey: ['items', businessId] }, (prevData: any) => {
+      const prev = prevData as any;
       if (!prev || !Array.isArray(prev.items)) {
         return prev;
       }
 
-      const found = prev.items.some((item) => item.id === entity.id && item.source === (entity.source || 'local'));
+      const found = prev.items.some((item: any) => item.id === entity.id && item.source === (entity.source || 'local'));
       if (!found) {
         return prev;
       }
@@ -98,12 +99,12 @@ export default function Items() {
       updated = true;
       return {
         ...prev,
-        items: prev.items.map((item) => (
+        items: (prev.items as any[]).map((item: any) => (
           item.id === entity.id && item.source === (entity.source || 'local')
             ? { ...item, ...entity }
             : item
         )),
-      };
+      } as any;
     });
 
     return updated;
@@ -111,7 +112,7 @@ export default function Items() {
 
   // Fetch items
   const {
-    data: itemsResponse,
+    data: itemsResponseData,
     isLoading: loadingItems,
     isFetching: fetchingItems,
   } = useItemsQuery({
@@ -127,6 +128,7 @@ export default function Items() {
   // Fetch categories
   const { data: categories = [] } = useItemCategoriesQuery(businessId);
 
+  const itemsResponse = itemsResponseData as any;
   const items = itemsResponse?.items || [];
   const pagination = itemsResponse?.pagination || null;
   const totalLoaded = items.length;
@@ -184,7 +186,7 @@ export default function Items() {
         toast.success(TOAST_MESSAGES.items.created);
       }
 
-      await queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+      await queryClient.invalidateQueries({ queryKey: ['items', businessId] } as any);
       setShowEditorModal(false);
       setEditingItem(null);
     } catch (error) {
@@ -333,7 +335,7 @@ export default function Items() {
         previewId,
         page: currentPage,
         perPage
-      });
+      } as any);
       const pageRows = payload?.rows || [];
       const pagination = payload?.pagination || {};
 
@@ -345,7 +347,7 @@ export default function Items() {
     return rows;
   };
 
-  const handleImportConfirm = async (mapping, categoryId, options = {}) => {
+  const handleImportConfirm = async (mapping: any, categoryId: any, options: any = {}) => {
     const useListPriceAsPrice = Boolean(options?.useListPriceAsPrice);
     setImportLoading(true);
     try {
@@ -398,11 +400,11 @@ export default function Items() {
     logout();
   };
 
-  const handleApplyCatalogFilters = ({ category, source, onlyPriceUpdated: priceUpdated }) => {
+  const handleApplyCatalogFilters = ({ category, source, onlyPriceUpdated: priceUpdated }: any) => {
     if (category === 'all' || category === 'uncategorized') {
       setCategoryFilter(category);
     } else {
-      setCategoryFilter(Number(category));
+      setCategoryFilter(Number(category) as any);
     }
 
     setSourceFilter(source);
@@ -456,6 +458,7 @@ export default function Items() {
             categories={categories}
             searchInputClassName="flex-1 min-w-[240px]"
             barcodeInputClassName="sm:w-44 md:w-52"
+            searchInputRef={null as any}
           />
         </div>
 

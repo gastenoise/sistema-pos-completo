@@ -454,7 +454,7 @@ export default function Settings() {
         toast.error(TOAST_MESSAGES.settings.smtpRecipientRequired);
         return;
       }
-      const payload = {
+      const payload: any = {
         to_email: targetEmail
       };
       if (smtpData.host) payload.host = smtpData.host;

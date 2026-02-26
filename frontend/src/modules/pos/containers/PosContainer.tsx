@@ -66,7 +66,7 @@ function POSContent() {
   const searchInputRef = useRef(null);
 
   const {
-    items,
+    items: itemsData,
     loadingItems,
     fetchingItems,
     categories,
@@ -88,7 +88,7 @@ function POSContent() {
 
   const canVoidSales = role === 'owner' || role === 'admin';
 
-  const currentBusinessParameters = {
+  const currentBusinessParameters: any = {
     ...normalizeBusinessParameters(selectedBusiness),
     ...normalizeBusinessParameters(currentBusiness),
   };
@@ -464,6 +464,8 @@ function POSContent() {
     return { Icon: IconComponent, color: category?.color || '#94a3b8' };
   };
 
+  const items = itemsData as any[];
+
   const showItemsOverlay = !loadingItems && (fetchingItems || isProcessingItemsAction);
 
   const filteredItems = items;
@@ -527,7 +529,7 @@ function POSContent() {
                   const { Icon, color } = getItemIcon(item);
                   return (
                     <button
-                      key={`${item.source || 'local'}-${item.id}`}
+                      key={`${(item as any).source || 'local'}-${(item as any).id}`}
                       onClick={() => handleItemClick(item)}
                       className="bg-white rounded-xl p-3 text-left hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     >
@@ -613,11 +615,12 @@ function POSContent() {
         open={isLastSaleDialogOpen && !!lastCompletedSale}
         onOpenChange={setIsLastSaleDialogOpen}
         sale={lastCompletedSale}
+        customerEmail={(lastCompletedSale as any)?.customer?.email || ''}
         currentBusiness={currentBusiness}
         paymentMethodLookup={paymentMethodLookup}
         canVoid={canVoidSales}
         onVoided={() => {
-          queryClient.setQueryData(['latest-closed-sale', businessId], (prev) => (prev ? { ...prev, status: 'voided' } : prev));
+          queryClient.setQueryData(['latest-closed-sale', businessId] as any, (prev: any) => (prev ? { ...prev, status: 'voided' } : prev));
         }}
       />
 
@@ -633,7 +636,7 @@ function POSContent() {
             {syncedSaleIds.map((saleId) => (
               <div key={saleId} className="border rounded-lg p-3">
                 <p className="text-xs text-slate-500 mb-2">Venta #{saleId}</p>
-                <TicketActions saleId={saleId} />
+                <TicketActions saleId={saleId} customerEmail="" />
               </div>
             ))}
           </div>

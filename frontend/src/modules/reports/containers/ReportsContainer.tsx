@@ -67,7 +67,7 @@ function getTomorrowISODateLocal(referenceDate = new Date()) {
 }
 
 export default function Reports() {
-  const { businessId } = useBusiness();
+  const { businessId, currentBusiness } = useBusiness() as any;
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
 
@@ -101,7 +101,7 @@ export default function Reports() {
     categoryId: selectedCategory
   });
 
-  const { data: salesSummary = {}, isFetching: fetchingSummary } = useSalesSummaryQuery({
+  const { data: salesSummaryData = {}, isFetching: fetchingSummary } = useSalesSummaryQuery({
     businessId,
     dateFrom,
     dateTo,
@@ -109,6 +109,7 @@ export default function Reports() {
     categoryId: selectedCategory
   });
 
+  const salesSummary = salesSummaryData as any;
   const { data: paymentMethods = [] } = useReportPaymentMethodsQuery(businessId);
 
   const { data: categories = [] } = useReportCategoriesQuery(businessId);
@@ -228,7 +229,7 @@ export default function Reports() {
 
   const handleExportCsv = async () => {
     try {
-      const response = await exportSalesReport({ dateFrom, dateTo, status: statusTab });
+      const response: any = await exportSalesReport({ dateFrom, dateTo, status: statusTab });
 
       const contentDisposition = response.headers.get('content-disposition') || '';
       const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);

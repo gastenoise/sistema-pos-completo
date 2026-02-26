@@ -24,11 +24,11 @@ import { DEFAULT_COUNTRY_DIAL_CODE, normalizeWhatsappNumber } from '@/lib/whatsa
 import { sanitizeEmailAddress, sanitizePhoneNumber } from '@/lib/sanitize';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
-const resolveErrorMessage = (error, fallbackMessage) => {
+const resolveErrorMessage = (error: any, fallbackMessage: string) => {
   return error?.message || error?.data?.message || fallbackMessage;
 };
 
-const notifyTicketActionError = (fallbackMessage, error) => {
+const notifyTicketActionError = (fallbackMessage: string, error?: any) => {
   toast.error(resolveErrorMessage(error, fallbackMessage));
 };
 
@@ -82,7 +82,7 @@ function TicketEmailDialog({
   isSending,
   onSend,
   smtpMessage,
-}) {
+}: any) {
   const [form, setForm] = useState({
     to_email: defaultEmail || '',
     subject: defaultSubject || 'Tu ticket de compra',
@@ -166,7 +166,7 @@ function TicketEmailDialog({
 }
 
 // eslint-disable-next-line unused-imports/no-unused-vars -- componente reservado para uso futuro
-function TicketWhatsappDialog({ open, onOpenChange, isSharing, onConfirm }) {
+function TicketWhatsappDialog({ open, onOpenChange, isSharing, onConfirm }: any) {
   const [phoneForm, setPhoneForm] = useState({
     countryDialCode: DEFAULT_COUNTRY_DIAL_CODE,
     nationalNumber: '',
@@ -229,7 +229,7 @@ function TicketWhatsappDialog({ open, onOpenChange, isSharing, onConfirm }) {
   );
 }
 
-export default function TicketPreviewDialog({ open, onOpenChange, saleId, customerEmail }) {
+export default function TicketPreviewDialog({ open, onOpenChange, saleId, customerEmail }: any) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isLoadingWhatsapp, setIsLoadingWhatsapp] = useState(false);
   const [isWhatsappDialogOpen, setIsWhatsappDialogOpen] = useState(false);
@@ -498,7 +498,7 @@ export default function TicketPreviewDialog({ open, onOpenChange, saleId, custom
         defaultMessage="Gracias por tu compra. Te compartimos el comprobante adjunto."
         isSending={isSendingEmail || isCheckingSmtpStatus || !isSmtpValid}
         onSend={handleSendEmail}
-        helperMessage={!isSmtpValid ? (smtpStatus?.message || 'Configurá un SMTP activo para enviar correos.') : ''}
+        helperMessage={(!isSmtpValid ? (smtpStatus?.message || 'Configurá un SMTP activo para enviar correos.') : '') as any}
         title="Enviar ticket por e-mail"
         submitLabel="Enviar e-mail"
         fieldPrefix="ticket"

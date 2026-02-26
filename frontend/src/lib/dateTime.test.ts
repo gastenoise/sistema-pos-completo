@@ -67,7 +67,7 @@ it('formatDateTimePartsLocal converts SQL UTC timestamp to browser timezone', ()
     });
 
     return formatter;
-  };
+  } as any;
 
   try {
     const parts = formatDateTimePartsLocal('2025-03-15 12:34:56', 'en-GB');

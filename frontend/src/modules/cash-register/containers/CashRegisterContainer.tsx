@@ -51,11 +51,14 @@ export default function CashRegister() {
   const [loading, setLoading] = useState(false);
   const [showRecentSessions, setShowRecentSessions] = useState(false);
 
-  const { data: currentSession, isLoading: loadingSession, isFetching: fetchingSession, refetch: refetchSession } = useCashStatusQuery(businessId, canViewCashRegister);
+  const { data: currentSessionData, isLoading: loadingSession, isFetching: fetchingSession, refetch: refetchSession } = useCashStatusQuery(businessId, canViewCashRegister);
+  const currentSession = currentSessionData as any;
 
-  const { data: recentSessions = [], isFetching: fetchingRecentSessions } = useClosedSessionsQuery(businessId, canViewCashRegister);
+  const { data: recentSessionsData = [], isFetching: fetchingRecentSessions } = useClosedSessionsQuery(businessId, canViewCashRegister);
+  const recentSessions = (recentSessionsData || []) as any[];
 
-  const { data: expectedTotals, isFetching: fetchingExpectedTotals } = useExpectedTotalsQuery(currentSession?.id, canViewCashRegister);
+  const { data: expectedTotalsData, isFetching: fetchingExpectedTotals } = useExpectedTotalsQuery(currentSession?.id, canViewCashRegister);
+  const expectedTotals = expectedTotalsData as any;
 
   const openRegisterMutation = useOpenRegisterMutation();
   const closeRegisterMutation = useCloseRegisterMutation();

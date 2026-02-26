@@ -14,7 +14,7 @@ export const DEFAULT_ICON_CATALOG = {
   10: 'Home',
   11: 'Car',
   12: 'Heart',
-  13: 'Gamepad',
+  13: 'Cigarette',
   14: 'Pizza',
   15: 'Apple',
   16: 'Cake',
