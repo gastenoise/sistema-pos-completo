@@ -1,0 +1,16 @@
+{
+  "extends": "./jsconfig.base.json",
+  "compilerOptions": {
+    "types": [
+      "vite/client"
+    ]
+  },
+  "include": [
+    "src/**/*.js",
+    "src/**/*.jsx"
+  ],
+  "exclude": [
+    "src/**/*.test.js",
+    "src/**/*.test.jsx"
+  ]
+}

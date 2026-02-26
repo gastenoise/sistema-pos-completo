@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
-    "typecheck": "tsc -p ./jsconfig.json",
+    "typecheck": "tsc -p ./jsconfig.app.json && tsc -p ./jsconfig.node-test.json",
     "preview": "vite preview"
   },
   "dependencies": {
