@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeItemsPage } from './items.normalize.js';
+import { normalizeItemsPage } from './items.normalize';
 
 test('normalizeItemsPage soporta Laravel Resource Collection (data + links + meta)', () => {
   const response = {

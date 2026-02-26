@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   createPermissionChecker,
   normalizeBusinessPermissionsPayload,
-} from './businessPermissions.utils.js';
+} from './businessPermissions.utils';
 
 test('normalizeBusinessPermissionsPayload normaliza role y permissions desde response.data', () => {
   const result = normalizeBusinessPermissionsPayload({

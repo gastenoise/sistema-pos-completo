@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { canOperatePos, normalizePosCatalogItems } from './normalizeAndPermissions.js';
+import { canOperatePos, normalizePosCatalogItems } from './normalizeAndPermissions';
 
 test('normalización modular de POS filtra inactivos y setea source por defecto', () => {
   const normalized = normalizePosCatalogItems([
