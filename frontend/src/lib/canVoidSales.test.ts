@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { canVoidSales } from './canVoidSales.js';
+import { canVoidSales } from './canVoidSales';
 
 test('canVoidSales devuelve true cuando el rol admin viene del contexto fresco del backend', () => {
   const currentBusiness = { id: 7 };

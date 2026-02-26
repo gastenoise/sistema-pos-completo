@@ -6,7 +6,7 @@ import {
   getLastNDaysRangeLocal,
   getTodayISODateLocal,
   parseBackendDateToUtcDate,
-} from './dateTime.js';
+} from './dateTime';
 
 test('getTodayISODateLocal uses browser/local calendar day at local midnight boundary', () => {
   const justBeforeMidnight = new Date(2025, 2, 31, 23, 59, 59);

@@ -5,7 +5,7 @@ import {
   buildPosItemsQueryOptions,
   invalidatePosQueries,
   posItemsQueryKey,
-} from './posQueryOptions.js';
+} from './posQueryOptions';
 
 test('pos hook: success scenario', async () => {
   let payload = null;

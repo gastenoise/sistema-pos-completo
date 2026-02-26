@@ -5,7 +5,7 @@ import {
   buildCashStatusQueryOptions,
   cashStatusQueryKey,
   invalidateCashRegisterQueries,
-} from './cashRegisterQueryOptions.js';
+} from './cashRegisterQueryOptions';
 
 test('cash-register hook: success scenario', async () => {
   let called = 0;

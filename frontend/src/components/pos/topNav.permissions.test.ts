@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildTopNavItems } from './topNav.permissions.js';
+import { buildTopNavItems } from './topNav.permissions';
 
 test('TopNav oculta Caja cuando cash_register.view no está permitido', () => {
   const can = (permission) => permission === 'settings.permissions.manage';

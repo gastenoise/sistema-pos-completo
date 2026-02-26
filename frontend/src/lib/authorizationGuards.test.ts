@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { canAccessRoute, canViewPermissionsTab } from './authorizationGuards.js';
+import { canAccessRoute, canViewPermissionsTab } from './authorizationGuards';
 
 test('guard de ruta redirige desde /CashRegister cuando no tiene cash_register.view', () => {
   const can = () => false;

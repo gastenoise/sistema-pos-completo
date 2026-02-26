@@ -294,6 +294,8 @@ const request = async (path, options = {}) => {
   return parsed;
 };
 
+export { request };
+
 export const apiClient = {
   get: (path, options = {}) => request(path, { ...options, method: 'GET' }),
   post: (path, body, options = {}) => request(path, { ...options, method: 'POST', body }),

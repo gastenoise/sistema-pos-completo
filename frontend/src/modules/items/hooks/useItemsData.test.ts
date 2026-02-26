@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildItemsQueryOptions, invalidateItemsQueries, itemsQueryKey } from './itemsQueryOptions.js';
+import { buildItemsQueryOptions, invalidateItemsQueries, itemsQueryKey } from './itemsQueryOptions';
 
 test('items hook query options: success scenario', async () => {
   const calls = [];

@@ -1,5 +1,5 @@
-import { mapCatalogIsActive, withCatalogIsActive } from '../lib/catalogNaming.js';
-import { normalizeListResponse } from '../lib/normalizeResponse.js';
+import { mapCatalogIsActive, withCatalogIsActive } from '../lib/catalogNaming';
+import { normalizeListResponse } from '../lib/normalizeResponse';
 
 const toNumberOrNull = (value) => (value === null || value === undefined || value === '' ? null : Number(value));
 

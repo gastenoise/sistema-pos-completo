@@ -1,5 +1,5 @@
-import { normalizeEntityResponse, normalizeListResponse } from '../../../lib/normalizeResponse.js';
-import { mapCatalogIsActive, withCatalogIsActive } from '../../../lib/catalogNaming.js';
+import { normalizeEntityResponse, normalizeListResponse } from '../../../lib/normalizeResponse';
+import { mapCatalogIsActive, withCatalogIsActive } from '../../../lib/catalogNaming';
 
 export const normalizeSettingsCategories = (response) => mapCatalogIsActive(normalizeListResponse(response, 'categories'));
 
