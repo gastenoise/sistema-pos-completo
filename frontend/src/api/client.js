@@ -13,6 +13,26 @@ let csrfCookiePromise = null;
 const AUTH_MESSAGE_REGEX = /not authenticated|unauthenticated|unauthorized|token|session/i;
 const DEFAULT_ERROR_MESSAGE = API_MESSAGES.defaultError;
 
+/**
+ * @typedef {Error & {
+ *  status?: number,
+ *  data?: unknown
+ * }} HttpError
+ */
+
+/**
+ * @param {string} message
+ * @param {number} [status]
+ * @param {unknown} [data]
+ * @returns {HttpError}
+ */
+const createHttpError = (message, status, data) => {
+  const error = /** @type {HttpError} */ (new Error(message));
+  error.status = status;
+  error.data = data;
+  return error;
+};
+
 const notifySessionExpired = (reason = 'session_expired') => {
   clearToken();
   if (typeof window !== 'undefined' && !didNotifySessionExpired) {
@@ -175,10 +195,7 @@ const parseSuccessPayload = async (response, responseType = 'auto') => {
   if (!isJson && typeof data === 'string') {
     const looksLikeHtml = /<!doctype html|<html|<head|<body|<div id="root">/i.test(data);
     if (looksLikeHtml) {
-      const error = new Error(API_MESSAGES.unexpectedHtmlResponse);
-      error.status = response.status;
-      error.data = data;
-      throw error;
+      throw createHttpError(API_MESSAGES.unexpectedHtmlResponse, response.status, data);
     }
   }
 
@@ -191,10 +208,7 @@ const parseResponse = async (response, responseType = 'auto') => {
     const message = isAuthFailure(response.status, data)
       ? API_MESSAGES.sessionExpired
       : extractErrorMessage(data, response.statusText || DEFAULT_ERROR_MESSAGE);
-    const error = new Error(message);
-    error.status = response.status;
-    error.data = data;
-    throw error;
+    throw createHttpError(message, response.status, data);
   }
 
   return parseSuccessPayload(response, responseType);
@@ -248,7 +262,8 @@ const request = async (path, options = {}) => {
     ...fetchOptions,
     headers,
     credentials: 'include'
-  }).catch((error) => {
+  }).catch((caughtError) => {
+    const error = /** @type {HttpError} */ (caughtError);
     if (token) {
       notifySessionExpired('api_unreachable');
     }
@@ -256,7 +271,8 @@ const request = async (path, options = {}) => {
     throw error;
   });
 
-  const parsed = await parseResponse(response, responseType).catch((error) => {
+  const parsed = await parseResponse(response, responseType).catch((caughtError) => {
+    const error = /** @type {HttpError} */ (caughtError);
     if (token && isAuthFailure(error?.status, error?.data)) {
       notifySessionExpired();
     }
