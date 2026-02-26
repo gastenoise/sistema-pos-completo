@@ -8,14 +8,14 @@ import { formatPrice } from '@/lib/formatPrice';
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 import PaymentShareActions from './PaymentShareActions';
 
-const resolveBankAccountData = (bankAccountData = {}) => ({
+const resolveBankAccountData = (bankAccountData: any = {}) => ({
   bank_name: bankAccountData.bank_name || '',
   account_holder_name: bankAccountData.account_holder_name || '',
   cbu: bankAccountData.cbu || '',
   alias: bankAccountData.alias || '',
 });
 
-const buildTransferPlainText = (bankAccountData) => {
+const buildTransferPlainText = (bankAccountData: any) => {
   const lines = [
     'Datos bancarios para transferencia:',
     `Banco: ${bankAccountData.bank_name || 'No configurado'}`,
@@ -32,7 +32,7 @@ export default function PaymentCard({
   businessData: _businessData,
   bankAccountData,
   onUpdateStatus
-}) {
+}: any) {
   const [loading, setLoading] = useState(false);
   const { currentBusiness } = useBusiness();
 

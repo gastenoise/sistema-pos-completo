@@ -9,7 +9,7 @@ export default function IconPickerField({
   onChange,
   id = 'icon',
   label = 'Ícono',
-}) {
+}: any) {
   const safeIconName = useMemo(() => resolveIconName(value), [value]);
   const IconComponent = useMemo(() => getIconComponent(safeIconName), [safeIconName]);
   const iconOptions = useMemo(() => getIconOptions(), []);
@@ -32,20 +32,20 @@ export default function IconPickerField({
         </PopoverTrigger>
         <PopoverContent align="start" className="w-80 space-y-3">
           <div className="grid max-h-56 grid-cols-5 gap-2 overflow-y-auto pr-1">
-            {iconOptions.map((option) => {
+            {(iconOptions as any[]).map((option) => {
               const OptionIcon = getIconComponent(option.name);
               const isSelected = safeIconName === option.name;
               return (
                 <button
-                  key={option.name}
+                  key={String(option.name)}
                   type="button"
                   className={`rounded-lg border p-2 text-slate-700 hover:bg-slate-50 ${isSelected ? 'border-blue-500 bg-blue-100' : 'border-slate-200'}`}
                   onClick={() => onChange(option.name)}
-                  aria-label={`Seleccionar ${option.name}`}
-                  title={option.name}
+                  aria-label={`Seleccionar ${String(option.name)}`}
+                  title={String(option.name)}
                 >
                   <OptionIcon className="mx-auto h-5 w-5" />
-                  <span className="mt-1 block truncate text-[10px]">{option.name}</span>
+                  <span className="mt-1 block truncate text-[10px]">{String(option.name)}</span>
                 </button>
               );
             })}

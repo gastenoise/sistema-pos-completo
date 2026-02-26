@@ -9,16 +9,16 @@ import { Label } from '@/components/ui/label';
 export default function EmailShareDialog({
   open,
   onOpenChange,
-  defaultEmail,
-  defaultSubject,
-  defaultMessage,
-  isSending,
+  defaultEmail = '',
+  defaultSubject = '',
+  defaultMessage = '',
+  isSending = false,
   onSend,
-  helperMessage,
+  helperMessage = '',
   title = 'Enviar por e-mail',
   submitLabel = 'Enviar e-mail',
   fieldPrefix = 'share',
-}) {
+}: any) {
   const [form, setForm] = useState({
     to_email: defaultEmail || '',
     subject: defaultSubject || '',

@@ -23,7 +23,7 @@ test('pos hook: success scenario', async () => {
 });
 
 test('pos hook: disabled/error-ready scenario', () => {
-  const options = buildPosItemsQueryOptions(2, { search: ' ', barcode: ' ', limit: 20 });
+  const options = buildPosItemsQueryOptions(2, { search: ' ', barcode: ' ', limit: 20 }, { getPosItems: null as any });
   assert.equal(options.enabled, false);
 });
 

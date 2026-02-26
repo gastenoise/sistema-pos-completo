@@ -65,7 +65,7 @@ export default function SaleDetailsDialog({
   paymentMethodLookup = {},
   canVoid = false,
   onVoided,
-}) {
+}: any) {
   const [isVoiding, setIsVoiding] = useState(false);
   const paymentBreakdown = useMemo(
     () => getSalePaymentBreakdown(sale, paymentMethodLookup),

@@ -13,21 +13,19 @@ let csrfCookiePromise = null;
 const AUTH_MESSAGE_REGEX = /not authenticated|unauthenticated|unauthorized|token|session/i;
 const DEFAULT_ERROR_MESSAGE = API_MESSAGES.defaultError;
 
-/**
- * @typedef {Error & {
- *  status?: number,
- *  data?: unknown
- * }} HttpError
- */
+export interface HttpError extends Error {
+  status?: number;
+  data?: any;
+}
 
 /**
  * @param {string} message
  * @param {number} [status]
- * @param {unknown} [data]
+ * @param {any} [data]
  * @returns {HttpError}
  */
-const createHttpError = (message, status, data) => {
-  const error = /** @type {HttpError} */ (new Error(message));
+const createHttpError = (message: string, status?: number, data?: any): HttpError => {
+  const error = new Error(message) as HttpError;
   error.status = status;
   error.data = data;
   return error;
@@ -56,7 +54,7 @@ const isAuthFailure = (status, payload) => {
   return AUTH_MESSAGE_REGEX.test(message);
 };
 
-const buildUrl = (path) => {
+const buildUrl = (path: string) => {
   if (!API_BASE_URL) {
     return path;
   }
@@ -69,7 +67,7 @@ const buildUrl = (path) => {
 };
 
 
-const readCookie = (name) => {
+const readCookie = (name: string) => {
   if (typeof document === 'undefined') {
     return null;
   }
@@ -107,7 +105,7 @@ export const ensureCsrfCookie = async () => {
   }
 };
 
-const resolveBusinessId = () => {
+const resolveBusinessId = (): number | string | null => {
   if (businessContext?.business_id) {
     return businessContext.business_id;
   }
@@ -129,7 +127,7 @@ const resolveBusinessId = () => {
   }
 };
 
-const normalizeBody = (options) => {
+const normalizeBody = (options: any) => {
   if (!options?.body) {
     return options;
   }
@@ -148,7 +146,7 @@ const normalizeBody = (options) => {
   return options;
 };
 
-const extractErrorMessage = (payload, fallback = DEFAULT_ERROR_MESSAGE) => {
+const extractErrorMessage = (payload: any, fallback = DEFAULT_ERROR_MESSAGE) => {
   if (typeof payload === 'string') {
     return payload || fallback;
   }
@@ -165,7 +163,7 @@ const extractErrorMessage = (payload, fallback = DEFAULT_ERROR_MESSAGE) => {
   return payload?.message || payload?.error || fallback;
 };
 
-const parseErrorPayload = async (response) => {
+const parseErrorPayload = async (response: Response) => {
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
     return response.json().catch(() => null);
@@ -173,7 +171,7 @@ const parseErrorPayload = async (response) => {
   return response.text().catch(() => null);
 };
 
-const parseSuccessPayload = async (response, responseType = 'auto') => {
+const parseSuccessPayload = async (response: Response, responseType = 'auto') => {
   if (response.status === 204) {
     return null;
   }
@@ -202,7 +200,7 @@ const parseSuccessPayload = async (response, responseType = 'auto') => {
   return data;
 };
 
-const parseResponse = async (response, responseType = 'auto') => {
+const parseResponse = async (response: Response, responseType = 'auto') => {
   if (!response.ok) {
     const data = await parseErrorPayload(response);
     const message = isAuthFailure(response.status, data)
@@ -214,7 +212,7 @@ const parseResponse = async (response, responseType = 'auto') => {
   return parseSuccessPayload(response, responseType);
 };
 
-export const setBusinessContext = (context) => {
+export const setBusinessContext = (context: any) => {
   businessContext = context;
 };
 
@@ -222,7 +220,7 @@ export const clearBusinessContext = () => {
   businessContext = null;
 };
 
-const request = async (path, options = {}) => {
+const request = async (path: string, options: any = {}) => {
   const token = getToken();
   const normalizedOptions = normalizeBody(options);
   const headers = new Headers(normalizedOptions.headers || {});
@@ -253,7 +251,7 @@ const request = async (path, options = {}) => {
 
   const businessId = resolveBusinessId();
   if (businessId) {
-    headers.set('X-Business-Id', businessId);
+    headers.set('X-Business-Id', String(businessId));
   }
 
   const { responseType = 'auto', includeMeta = false, ...fetchOptions } = normalizedOptions;
@@ -263,20 +261,22 @@ const request = async (path, options = {}) => {
     headers,
     credentials: 'include'
   }).catch((caughtError) => {
-    const error = /** @type {HttpError} */ (caughtError);
     if (token) {
       notifySessionExpired('api_unreachable');
     }
-    error.message = 'Unable to connect to server. Check your internet connection and try again.';
-    throw error;
+    const error = caughtError as any;
+    if (error && typeof error === 'object') {
+      error.message = 'Unable to connect to server. Check your internet connection and try again.';
+    }
+    throw caughtError;
   });
 
   const parsed = await parseResponse(response, responseType).catch((caughtError) => {
-    const error = /** @type {HttpError} */ (caughtError);
+    const error = caughtError as any;
     if (token && isAuthFailure(error?.status, error?.data)) {
       notifySessionExpired();
     }
-    throw error;
+    throw caughtError;
   });
 
   if (token) {

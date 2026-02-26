@@ -37,7 +37,7 @@ test('items hook query options: disabled/error-ready scenario when no businessId
     source: 'all',
     onlyPriceUpdated: false,
     page: 1,
-  });
+  }, { getItems: null as any });
 
   assert.equal(options.enabled, false);
 });

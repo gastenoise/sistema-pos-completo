@@ -59,7 +59,7 @@ export const CurrencyInput = forwardRef(function CurrencyInput(
     decimals = 2,
     className,
     ...props
-  },
+  }: any,
   ref,
 ) {
   const resolvedLocale = useMemo(() => {

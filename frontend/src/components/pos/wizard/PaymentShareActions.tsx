@@ -22,7 +22,7 @@ export default function PaymentShareActions({
   defaultMessage,
   phoneFieldId,
   fieldPrefix,
-}) {
+}: any) {
   const [isWhatsappDialogOpen, setIsWhatsappDialogOpen] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isSharingWhatsapp, setIsSharingWhatsapp] = useState(false);

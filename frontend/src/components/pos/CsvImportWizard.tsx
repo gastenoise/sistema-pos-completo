@@ -48,7 +48,7 @@ export default function CsvImportWizard({
   categories = [],
   previewData = null,
   loading = false
-}) {
+}: any) {
   const [step, setStep] = useState(1);
   const [file, setFile] = useState(null);
   const [mapping, setMapping] = useState({});
@@ -109,8 +109,8 @@ export default function CsvImportWizard({
     onClose();
   };
 
-  const hasRequiredMapping = Boolean(mapping.name)
-    && (Boolean(mapping.price) || (useListPriceAsPrice && Boolean(mapping.list_price)));
+  const hasRequiredMapping = Boolean((mapping as any).name)
+    && (Boolean((mapping as any).price) || (useListPriceAsPrice && Boolean((mapping as any).list_price)));
 
   const updateMapping = (field, column) => {
     setMapping(prev => ({
@@ -289,10 +289,10 @@ export default function CsvImportWizard({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {previewRows.map((row, i) => (
+                    {(previewRows as any[]).map((row, i) => (
                       <TableRow key={i}>
-                        {csvColumns.map((col) => (
-                          <TableCell key={col} className="text-xs">{row[col]}</TableCell>
+                        {(csvColumns as any[]).map((col) => (
+                          <TableCell key={col} className="text-xs">{(row as any)[col]}</TableCell>
                         ))}
                       </TableRow>
                     ))}
@@ -342,7 +342,7 @@ export default function CsvImportWizard({
                 {Object.entries(mapping).filter(([_, v]) => v).map(([field, column]) => (
                   <div key={field} className="flex justify-between">
                     <span className="text-slate-600 capitalize">{field.replace('_', ' ')}:</span>
-                    <span className="font-medium">{column}</span>
+                    <span className="font-medium">{column as any}</span>
                   </div>
                 ))}
                 <div className="flex justify-between">
