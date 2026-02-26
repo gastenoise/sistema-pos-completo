@@ -6,6 +6,7 @@ use App\Models\SepaItem;
 use App\Services\Sepa\SepaImportService;
 use App\Services\Sepa\SepaSourceResolver;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -14,6 +15,25 @@ class SepaImportServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        Schema::dropIfExists('sepa_import_runs');
+        Schema::create('sepa_import_runs', function (Blueprint $table): void {
+            $table->id();
+            $table->string('day', 20);
+            $table->string('requested_date')->nullable();
+            $table->string('status', 20)->default('running');
+            $table->unsignedInteger('downloaded_files')->default(0);
+            $table->unsignedInteger('valid_rows')->default(0);
+            $table->unsignedInteger('invalid_rows')->default(0);
+            $table->unsignedInteger('inserted_rows')->default(0);
+            $table->unsignedInteger('updated_rows')->default(0);
+            $table->json('error_samples')->nullable();
+            $table->text('error_message')->nullable();
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('finished_at')->nullable();
+            $table->unsignedInteger('duration_seconds')->nullable();
+            $table->timestamps();
+        });
 
         Schema::dropIfExists('sepa_items');
         Schema::create('sepa_items', function (Blueprint $table): void {
@@ -136,6 +156,38 @@ class SepaImportServiceTest extends TestCase
 
         $this->assertSame(0, $metrics['inserted_rows']);
         $this->assertSame(1, $metrics['updated_rows']);
+    }
+
+    public function test_it_cleans_up_temporary_directory_after_import_failure(): void
+    {
+        $resolver = $this->createMock(SepaSourceResolver::class);
+        $resolver->method('resolveUrlForDay')->willReturn('http://example.com/sepa.zip');
+
+        // We'll mock the internal executeImport to create a directory and then throw
+        $service = $this->getMockBuilder(SepaImportService::class)
+            ->setConstructorArgs([$resolver])
+            ->onlyMethods(['executeImport'])
+            ->getMock();
+
+        $service->expects($this->once())
+            ->method('executeImport')
+            ->willReturnCallback(function ($day, $runId) {
+                $dir = storage_path("app/sepa/tmp/run_{$runId}");
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0775, true);
+                }
+                file_put_contents($dir . '/test.txt', 'test');
+                throw new \RuntimeException('Simulated import failure');
+            });
+
+        try {
+            $service->import('lunes');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('Simulated import failure', $e->getMessage());
+        }
+
+        $tmpDir = storage_path('app/sepa/tmp/run_1');
+        $this->assertDirectoryDoesNotExist($tmpDir);
     }
 
     private function service(): SepaImportService

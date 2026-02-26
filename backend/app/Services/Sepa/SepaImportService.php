@@ -6,6 +6,7 @@ use App\Models\SepaImportRun;
 use App\Models\SepaItem;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -60,6 +61,8 @@ class SepaImportService
             ]);
 
             throw $exception;
+        } finally {
+            File::deleteDirectory(storage_path("app/sepa/tmp/run_{$run->id}"));
         }
 
         return $run->fresh();
@@ -73,7 +76,7 @@ class SepaImportService
     /**
      * @return array<string, int|array<int, array<string, mixed>>>
      */
-    private function executeImport(string $day, int $runId): array
+    protected function executeImport(string $day, int $runId): array
     {
         $url = $this->sourceResolver->resolveUrlForDay($day);
         $baseTmpDir = storage_path("app/sepa/tmp/run_{$runId}");
