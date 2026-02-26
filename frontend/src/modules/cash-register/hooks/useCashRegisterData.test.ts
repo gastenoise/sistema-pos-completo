@@ -1,4 +1,4 @@
-import test from 'node:test';
+import { describe, it as test } from 'vitest';
 import assert from 'node:assert/strict';
 
 import {

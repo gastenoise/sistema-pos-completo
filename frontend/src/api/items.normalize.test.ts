@@ -1,8 +1,9 @@
-import test from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import { normalizeItemsPage } from './items.normalize';
 
-test('normalizeItemsPage soporta Laravel Resource Collection (data + links + meta)', () => {
+describe('normalizeItemsPage', () => {
+it('soporta Laravel Resource Collection (data + links + meta)', () => {
   const response = {
     data: {
       data: [
@@ -42,7 +43,7 @@ test('normalizeItemsPage soporta Laravel Resource Collection (data + links + met
   });
 });
 
-test('normalizeItemsPage soporta meta legacy en root', () => {
+it('soporta meta legacy en root', () => {
   const response = {
     data: [{ id: 1, name: 'Pan', category_id: '3', list_price: '150' }],
     meta: {
@@ -63,7 +64,7 @@ test('normalizeItemsPage soporta meta legacy en root', () => {
   assert.equal(result.pagination.last_page, 5);
 });
 
-test('normalizeItemsPage mantiene compatibilidad con payload legado', () => {
+it('mantiene compatibilidad con payload legado', () => {
   const response = {
     data: [
       { id: 1, name: 'Pan', category_id: '3', list_price: '150' }
@@ -92,7 +93,7 @@ test('normalizeItemsPage mantiene compatibilidad con payload legado', () => {
   });
 });
 
-test('normalizeItemsPage soporta cursor paginator sin total', () => {
+it('soporta cursor paginator sin total', () => {
   const response = {
     data: [{ id: 4, name: 'Fideos' }],
     pagination: {
@@ -113,4 +114,5 @@ test('normalizeItemsPage soporta cursor paginator sin total', () => {
     to: null,
     next_cursor: 'abc123'
   });
+});
 });
