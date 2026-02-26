@@ -3,13 +3,17 @@ import pluginJs from "@eslint/js";
 import pluginReact from "eslint-plugin-react";
 import pluginReactHooks from "eslint-plugin-react-hooks";
 import pluginUnusedImports from "eslint-plugin-unused-imports";
+import tseslint from "typescript-eslint";
 
-export default [
+export default tseslint.config(
   {
     files: ["src/**/*.{js,jsx,ts,tsx}"],
     ignores: ["dist/**", "node_modules/**", "src/utils/index.ts"],
-    ...pluginJs.configs.recommended,
-    ...pluginReact.configs.flat.recommended,
+    extends: [
+      pluginJs.configs.recommended,
+      ...tseslint.configs.recommended,
+      pluginReact.configs.flat.recommended,
+    ],
     languageOptions: {
       globals: globals.browser,
       parserOptions: {
@@ -32,6 +36,7 @@ export default [
     },
     rules: {
       "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": "off",
       "react/jsx-uses-vars": "error",
       "react/jsx-uses-react": "error",
       "unused-imports/no-unused-imports": "warn",
@@ -51,6 +56,7 @@ export default [
         { ignore: ["cmdk-input-wrapper", "toast-close"] },
       ],
       "react-hooks/rules-of-hooks": "error",
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
   {
@@ -119,4 +125,4 @@ export default [
       "max-depth": "off",
     },
   },
-];
+);

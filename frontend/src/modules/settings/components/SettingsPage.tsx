@@ -19,10 +19,7 @@ import {
 } from '@/modules/settings/api';
 import { 
   Store, Tag, CreditCard, Plus, Pencil, Trash2, 
-  Loader2, Save, Package, Lock, ShoppingBag, Coffee,
-  Utensils, Shirt, Laptop, Smartphone, Book, Wrench, Home, Car, Heart,
-  Gamepad, Pizza, Apple, Cake, Watch, Glasses, Plane, Music,
-  Camera, Dumbbell, Paintbrush, Hammer, Scissors, Zap, Star, Gift,
+  Loader2, Save, Package, Lock, Star,
   Mail, Send
 } from 'lucide-react'; // Reemplaza TestTube por Send
 import { Input } from "@/components/ui/input";

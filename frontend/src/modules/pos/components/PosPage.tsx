@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
-  Package, Loader2, ShoppingBag, Coffee,
-  Utensils, Shirt, Laptop, Smartphone, Book, Wrench, Home, Car, Heart,
-  Gamepad, Pizza, Apple, Cake, Watch, Glasses, Plane, Music,
-  Camera, Dumbbell, Paintbrush, Hammer, Scissors, Zap, Star, Gift, Tag, CreditCard, Eye
+  Package, Loader2, Eye
 } from 'lucide-react';
 import {
   Dialog,
@@ -27,7 +24,6 @@ import SaleCart from '@/components/pos/SaleCart';
 import PaymentWizard from '@/components/pos/PaymentWizard';
 import CashRegisterOpenModal from '@/components/pos/CashRegisterOpenModal';
 import QuickAddForm from '@/components/pos/QuickAddForm';
-import NetworkIndicator from '@/components/pos/NetworkIndicator';
 import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import TicketActions from '@/components/sales/TicketActions';
 import ItemsFiltersDialog from '@/components/items/ItemsFiltersDialog';

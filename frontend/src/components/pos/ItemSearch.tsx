@@ -119,7 +119,7 @@ export default function ItemSearch({
 
       {showResults && query && filteredItems.length === 0 && !loading && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-4 text-center text-slate-500">
-          No se encontraron items para "{query}"
+          No se encontraron items para &quot;{query}&quot;
         </div>
       )}
     </div>

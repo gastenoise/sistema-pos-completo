@@ -1,7 +1,7 @@
 import { clearToken, getToken } from './auth';
 import { API_MESSAGES } from '@/lib/toastMessages';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL ?? '';
 const BUSINESS_STORAGE_KEY = 'pos_current_business';
 const CSRF_COOKIE_ENDPOINT = '/sanctum/csrf-cookie';
 const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -74,7 +74,7 @@ const readCookie = (name) => {
     return null;
   }
 
-  const escapedName = name.replace(/[-[\]{}()*+?.,\^$|#\s]/g, '\\$&');
+  const escapedName = name.replace(/[-[\]{}()*+?.,^$|#\s]/g, '\\$&');
   const match = document.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : null;
 };
@@ -297,9 +297,9 @@ const request = async (path, options = {}) => {
 export { request };
 
 export const apiClient = {
-  get: (path, options = {}) => request(path, { ...options, method: 'GET' }),
-  post: (path, body, options = {}) => request(path, { ...options, method: 'POST', body }),
-  put: (path, body, options = {}) => request(path, { ...options, method: 'PUT', body }),
-  patch: (path, body, options = {}) => request(path, { ...options, method: 'PATCH', body }),
-  delete: (path, options = {}) => request(path, { ...options, method: 'DELETE' })
+  get: (path, options: any = {}) => request(path, { ...options, method: 'GET' }),
+  post: (path, body, options: any = {}) => request(path, { ...options, method: 'POST', body }),
+  put: (path, body, options: any = {}) => request(path, { ...options, method: 'PUT', body }),
+  patch: (path, body, options: any = {}) => request(path, { ...options, method: 'PATCH', body }),
+  delete: (path, options: any = {}) => request(path, { ...options, method: 'DELETE' })
 };
