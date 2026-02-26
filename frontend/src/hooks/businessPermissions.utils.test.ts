@@ -1,4 +1,4 @@
-import test from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 
 import {
@@ -6,7 +6,8 @@ import {
   normalizeBusinessPermissionsPayload,
 } from './businessPermissions.utils';
 
-test('normalizeBusinessPermissionsPayload normaliza role y permissions desde response.data', () => {
+describe('businessPermissions.utils', () => {
+it('normalizeBusinessPermissionsPayload normaliza role y permissions desde response.data', () => {
   const result = normalizeBusinessPermissionsPayload({
     data: {
       role: 'cashier',
@@ -22,11 +23,12 @@ test('normalizeBusinessPermissionsPayload normaliza role y permissions desde res
   assert.equal(result.permissions['cash_register.open'], false);
 });
 
-test('createPermissionChecker devuelve false para permisos ausentes', () => {
+it('createPermissionChecker devuelve false para permisos ausentes', () => {
   const can = createPermissionChecker({
     'cash_register.view': true,
   });
 
   assert.equal(can('cash_register.view'), true);
   assert.equal(can('cash_register.open'), false);
+});
 });
