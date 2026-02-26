@@ -468,7 +468,7 @@ class SepaImportService
         }
 
         $normalized = mb_strtoupper($normalized);
-        if ($normalized === 'SIN MARCA') {
+        if (in_array($normalized, ['SIN MARCA', 'S/D', 'GENERICO'], true)) {
             return null;
         }
 
