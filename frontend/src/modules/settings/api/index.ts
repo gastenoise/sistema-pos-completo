@@ -32,6 +32,6 @@ export const updateSmtpConfig = async (payload) => normalizeEntityResponse(await
 
 export const testSmtpConfig = async (payload) => normalizeEntityResponse(await apiClient.post('/protected/business/smtp/test', payload));
 
-export const getRolePermissions = async () => normalizeEntityResponse(await apiClient.get('/protected/role-permissions'));
+export const getRolePermissions = async () => normalizeEntityResponse(await apiClient.get('/protected/business/role-permissions'));
 
-export const updateRolePermissions = async (payload) => normalizeEntityResponse(await apiClient.put('/protected/role-permissions', payload));
+export const updateRolePermissions = async (payload) => normalizeEntityResponse(await apiClient.put('/protected/business/role-permissions', payload));
