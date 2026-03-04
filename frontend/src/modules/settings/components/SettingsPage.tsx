@@ -14,8 +14,6 @@ import {
   updateBankAccount,
   updateSmtpConfig,
   testSmtpConfig,
-  getRolePermissions,
-  updateRolePermissions,
 } from '@/modules/settings/api';
 import { 
   Store, Tag, CreditCard, Plus, Pencil, Trash2, 
@@ -63,14 +61,8 @@ import IconPickerField from '@/components/common/IconPickerField';
 import { DEFAULT_COLOR_HEX, normalizeHexColor } from '@/lib/colors';
 import { DEFAULT_ICON_NAME, getIconComponent, resolveIconId, resolveIconName } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
-import { canViewPermissionsTab } from '@/lib/authorizationGuards';
 import { mapApiErrorMessage } from '@/api/errorMapping';
-
-const CASH_REGISTER_PERMISSION_KEYS = [
-  'cash_register.view',
-  'cash_register.open',
-  'cash_register.close',
-];
+import { CASH_REGISTER_PERMISSION_KEYS, useRolePermissionsFlow } from '@/modules/settings/hooks/useRolePermissionsFlow';
 
 const CASH_REGISTER_PERMISSION_LABELS = {
   'cash_register.view': 'Ver caja',
@@ -144,8 +136,6 @@ export default function Settings() {
     analytics: false,
     loyalty: false,
   });
-  const [rolePermissions, setRolePermissions] = useState({ admin: {}, cashier: {} });
-  const [savingRolePermissions, setSavingRolePermissions] = useState(false);
 
   useEffect(() => {
     if (currentBusiness) {
@@ -526,64 +516,22 @@ export default function Settings() {
     }
   };
 
-  useEffect(() => {
-    const loadRolePermissions = async () => {
-      if (!businessId || !canViewPermissionsTab({ can, role, allowOwnerOverride: OWNER_SUPERUSER_CAN_MANAGE_PERMISSIONS })) {
-        return;
-      }
+  const {
+    canManageRolePermissions,
+    rolePermissions,
+    savingRolePermissions,
+    handleRolePermissionChange,
+    saveRolePermissions,
+  } = useRolePermissionsFlow({
+    businessId,
+    can,
+    role,
+    allowOwnerOverride: OWNER_SUPERUSER_CAN_MANAGE_PERMISSIONS,
+    onLoadError: (message) => toast.error(message),
+    onSaveError: (message) => toast.error(message),
+    onSaveSuccess: () => toast.success('Permisos actualizados correctamente.'),
+  });
 
-      try {
-        const response = await getRolePermissions();
-        const cashRegisterRows = response?.permissions?.cash_register ?? [];
-
-        const nextPermissions = { admin: {}, cashier: {} };
-
-        cashRegisterRows.forEach((item) => {
-          const key = item?.permission_key;
-          if (!CASH_REGISTER_PERMISSION_KEYS.includes(key)) return;
-          nextPermissions.admin[key] = Boolean(item?.allowed_by_role?.admin);
-          nextPermissions.cashier[key] = Boolean(item?.allowed_by_role?.cashier);
-        });
-
-        setRolePermissions(nextPermissions);
-      } catch (error) {
-        toast.error(mapApiErrorMessage(error, 'No pudimos cargar la configuración de permisos.'));
-      }
-    };
-
-    loadRolePermissions();
-  }, [businessId, role]);
-
-  const handleRolePermissionChange = (targetRole, permissionKey, checked) => {
-    setRolePermissions((prev) => ({
-      ...prev,
-      [targetRole]: {
-        ...(prev[targetRole] || {}),
-        [permissionKey]: checked,
-      },
-    }));
-  };
-
-  const handleSaveRolePermissions = async () => {
-    setSavingRolePermissions(true);
-
-    try {
-      const matrixRows = ['admin', 'cashier'].flatMap((targetRole) => (
-        CASH_REGISTER_PERMISSION_KEYS.map((permissionKey) => ({
-          role: targetRole,
-          permission_key: permissionKey,
-          allowed: Boolean(rolePermissions?.[targetRole]?.[permissionKey]),
-        }))
-      ));
-
-      await updateRolePermissions({ role_permissions: matrixRows });
-      toast.success('Permisos actualizados correctamente.');
-    } catch (error) {
-      toast.error(mapApiErrorMessage(error, 'No pudimos guardar los permisos.'));
-    } finally {
-      setSavingRolePermissions(false);
-    }
-  };
 
   const openEditCategory = (category) => {
     setEditingCategory(category);
@@ -634,7 +582,7 @@ export default function Settings() {
               <Mail className="w-4 h-4" />
               Integraciones
             </TabsTrigger>
-            {canViewPermissionsTab({ can, role, allowOwnerOverride: OWNER_SUPERUSER_CAN_MANAGE_PERMISSIONS }) && (
+            {canManageRolePermissions && (
               <TabsTrigger value="permissions" className="gap-2">
                 <Lock className="w-4 h-4" />
                 Permisos
@@ -1128,7 +1076,7 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          {canViewPermissionsTab({ can, role, allowOwnerOverride: OWNER_SUPERUSER_CAN_MANAGE_PERMISSIONS }) && (
+          {canManageRolePermissions && (
             <TabsContent value="permissions">
               <Card>
                 <CardHeader>
@@ -1168,7 +1116,7 @@ export default function Settings() {
                     </table>
                   </div>
 
-                  <Button onClick={handleSaveRolePermissions} disabled={savingRolePermissions}>
+                  <Button onClick={saveRolePermissions} disabled={savingRolePermissions}>
                     {savingRolePermissions ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : (
