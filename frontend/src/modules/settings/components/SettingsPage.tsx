@@ -78,11 +78,14 @@ const CASH_REGISTER_PERMISSION_LABELS = {
   'cash_register.close': 'Cerrar caja',
 };
 
+// Excepción explícita de negocio: owner conserva acceso de superusuario para gestionar permisos.
+const OWNER_SUPERUSER_CAN_MANAGE_PERMISSIONS = true;
+
 export default function Settings() {
   const { businessId, currentBusiness, refreshCurrentBusiness } = useBusiness();
   const queryClient = useQueryClient();
   const { user, logout, updateUser } = useAuth();
-  const { role } = useBusinessPermissions(businessId);
+  const { role, can } = useBusinessPermissions(businessId);
   
   const [businessData, setBusinessData] = useState({
     name: '',
@@ -525,7 +528,7 @@ export default function Settings() {
 
   useEffect(() => {
     const loadRolePermissions = async () => {
-      if (!businessId || !canViewPermissionsTab(role)) {
+      if (!businessId || !canViewPermissionsTab({ can, role, allowOwnerOverride: OWNER_SUPERUSER_CAN_MANAGE_PERMISSIONS })) {
         return;
       }
 
@@ -631,7 +634,7 @@ export default function Settings() {
               <Mail className="w-4 h-4" />
               Integraciones
             </TabsTrigger>
-            {canViewPermissionsTab(role) && (
+            {canViewPermissionsTab({ can, role, allowOwnerOverride: OWNER_SUPERUSER_CAN_MANAGE_PERMISSIONS }) && (
               <TabsTrigger value="permissions" className="gap-2">
                 <Lock className="w-4 h-4" />
                 Permisos
@@ -1125,7 +1128,7 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          {canViewPermissionsTab(role) && (
+          {canViewPermissionsTab({ can, role, allowOwnerOverride: OWNER_SUPERUSER_CAN_MANAGE_PERMISSIONS }) && (
             <TabsContent value="permissions">
               <Card>
                 <CardHeader>
