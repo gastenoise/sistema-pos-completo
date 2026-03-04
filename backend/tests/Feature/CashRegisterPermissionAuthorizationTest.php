@@ -44,6 +44,14 @@ class CashRegisterPermissionAuthorizationTest extends TestCase
         [$admin, $sameBusiness] = $this->createUserInBusiness('admin', $business);
         Sanctum::actingAs($admin, ['front']);
 
+        BusinessRolePermission::updateOrCreate([
+            'business_id' => $sameBusiness->id,
+            'role' => 'admin',
+            'permission_key' => PermissionCatalog::SETTINGS_PERMISSIONS_MANAGE,
+        ], [
+            'allowed' => true,
+        ]);
+
         $this->withHeader('X-Business-Id', (string) $sameBusiness->id)
             ->putJson('/protected/business/role-permissions', $payload)
             ->assertOk();
@@ -75,10 +83,11 @@ class CashRegisterPermissionAuthorizationTest extends TestCase
         [$cashier, $business] = $this->createUserInBusiness('cashier');
         Sanctum::actingAs($cashier, ['front']);
 
-        BusinessRolePermission::create([
+        BusinessRolePermission::updateOrCreate([
             'business_id' => $business->id,
             'role' => 'cashier',
             'permission_key' => PermissionCatalog::CASH_REGISTER_VIEW,
+        ], [
             'allowed' => true,
         ]);
 
@@ -92,17 +101,19 @@ class CashRegisterPermissionAuthorizationTest extends TestCase
         [$cashier, $business] = $this->createUserInBusiness('cashier');
         Sanctum::actingAs($cashier, ['front']);
 
-        BusinessRolePermission::create([
+        BusinessRolePermission::updateOrCreate([
             'business_id' => $business->id,
             'role' => 'cashier',
             'permission_key' => PermissionCatalog::CASH_REGISTER_VIEW,
+        ], [
             'allowed' => true,
         ]);
 
-        BusinessRolePermission::create([
+        BusinessRolePermission::updateOrCreate([
             'business_id' => $business->id,
             'role' => 'cashier',
             'permission_key' => PermissionCatalog::CASH_REGISTER_OPEN,
+        ], [
             'allowed' => true,
         ]);
 

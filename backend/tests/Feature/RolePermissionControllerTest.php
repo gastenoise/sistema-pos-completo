@@ -27,10 +27,11 @@ class RolePermissionControllerTest extends TestCase
         [$user, $business] = $this->createUserInBusiness('owner');
         Sanctum::actingAs($user, ['front']);
 
-        BusinessRolePermission::create([
+        BusinessRolePermission::updateOrCreate([
             'business_id' => $business->id,
             'role' => 'cashier',
             'permission_key' => PermissionCatalog::CASH_REGISTER_VIEW,
+        ], [
             'allowed' => true,
         ]);
 
@@ -55,10 +56,56 @@ class RolePermissionControllerTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_admin_can_update_role_permissions_with_valid_payload(): void
+    public function test_admin_without_manage_permission_cannot_read_role_permissions(): void
     {
         [$user, $business] = $this->createUserInBusiness('admin');
         Sanctum::actingAs($user, ['front']);
+
+        BusinessRolePermission::updateOrCreate([
+            'business_id' => $business->id,
+            'role' => 'admin',
+            'permission_key' => PermissionCatalog::SETTINGS_PERMISSIONS_MANAGE,
+        ], [
+            'allowed' => false,
+        ]);
+
+        $response = $this->withHeader('X-Business-Id', (string) $business->id)
+            ->getJson('/protected/business/role-permissions');
+
+        $response->assertForbidden();
+    }
+
+    public function test_admin_with_manage_permission_can_read_role_permissions(): void
+    {
+        [$user, $business] = $this->createUserInBusiness('admin');
+        Sanctum::actingAs($user, ['front']);
+
+        BusinessRolePermission::updateOrCreate([
+            'business_id' => $business->id,
+            'role' => 'admin',
+            'permission_key' => PermissionCatalog::SETTINGS_PERMISSIONS_MANAGE,
+        ], [
+            'allowed' => true,
+        ]);
+
+        $response = $this->withHeader('X-Business-Id', (string) $business->id)
+            ->getJson('/protected/business/role-permissions');
+
+        $response->assertOk();
+    }
+
+    public function test_admin_with_manage_permission_can_update_role_permissions_with_valid_payload(): void
+    {
+        [$user, $business] = $this->createUserInBusiness('admin');
+        Sanctum::actingAs($user, ['front']);
+
+        BusinessRolePermission::updateOrCreate([
+            'business_id' => $business->id,
+            'role' => 'admin',
+            'permission_key' => PermissionCatalog::SETTINGS_PERMISSIONS_MANAGE,
+        ], [
+            'allowed' => true,
+        ]);
 
         $payload = [
             'role_permissions' => [
@@ -90,6 +137,54 @@ class RolePermissionControllerTest extends TestCase
         ]);
     }
 
+    public function test_admin_without_manage_permission_cannot_update_role_permissions(): void
+    {
+        [$user, $business] = $this->createUserInBusiness('admin');
+        Sanctum::actingAs($user, ['front']);
+
+        BusinessRolePermission::updateOrCreate([
+            'business_id' => $business->id,
+            'role' => 'admin',
+            'permission_key' => PermissionCatalog::SETTINGS_PERMISSIONS_MANAGE,
+        ], [
+            'allowed' => false,
+        ]);
+
+        $payload = [
+            'role_permissions' => [
+                [
+                    'role' => 'cashier',
+                    'permission_key' => PermissionCatalog::CASH_REGISTER_OPEN,
+                    'allowed' => true,
+                ],
+            ],
+        ];
+
+        $this->withHeader('X-Business-Id', (string) $business->id)
+            ->putJson('/protected/business/role-permissions', $payload)
+            ->assertForbidden();
+    }
+
+    public function test_cashier_cannot_update_role_permissions(): void
+    {
+        [$user, $business] = $this->createUserInBusiness('cashier');
+        Sanctum::actingAs($user, ['front']);
+
+        $payload = [
+            'role_permissions' => [
+                [
+                    'role' => 'cashier',
+                    'permission_key' => PermissionCatalog::CASH_REGISTER_OPEN,
+                    'allowed' => true,
+                ],
+            ],
+        ];
+
+        $this->withHeader('X-Business-Id', (string) $business->id)
+            ->putJson('/protected/business/role-permissions', $payload)
+            ->assertForbidden();
+    }
+
     public function test_update_validates_role_and_permission_key_against_catalogs(): void
     {
         [$user, $business] = $this->createUserInBusiness('owner');
@@ -118,10 +213,11 @@ class RolePermissionControllerTest extends TestCase
         [$user, $business] = $this->createUserInBusiness('admin');
         Sanctum::actingAs($user, ['front']);
 
-        BusinessRolePermission::create([
+        BusinessRolePermission::updateOrCreate([
             'business_id' => $business->id,
             'role' => 'admin',
             'permission_key' => PermissionCatalog::CASH_REGISTER_VIEW,
+        ], [
             'allowed' => true,
         ]);
 
