@@ -91,12 +91,20 @@ class RolePermissionController extends Controller
 
     private function canManageRolePermissions(Request $request, int $businessId): bool
     {
-        $role = $request->user()
-            ?->businesses()
-            ->where('business_id', $businessId)
-            ->value('role');
+        $user = $request->user();
 
-        return in_array($role, [BusinessUser::ROLE_OWNER, BusinessUser::ROLE_ADMIN], true);
+        if (! $user) {
+            return false;
+        }
+
+        $resolved = $this->permissionResolver->resolve($user, $businessId);
+
+        // Owner mantiene bypass explícito por diseño para no bloquear la gestión del negocio.
+        if (($resolved['role'] ?? null) === BusinessUser::ROLE_OWNER) {
+            return true;
+        }
+
+        return $this->permissionResolver->can(PermissionCatalog::SETTINGS_PERMISSIONS_MANAGE);
     }
 
     /**
