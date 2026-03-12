@@ -8,4 +8,3 @@ storage/*.key
 Dockerfile
 .dockerignore
 docker-compose.yml
-docker/
