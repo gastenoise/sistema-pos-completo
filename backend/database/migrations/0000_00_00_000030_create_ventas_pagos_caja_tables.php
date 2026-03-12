@@ -18,9 +18,12 @@ return new class extends Migration {
         Schema::table('businesses', function (Blueprint $table) {
             $table->foreignId('preferred_payment_method_id')
                 ->nullable()
-                ->after('email')
                 ->constrained('payment_methods')
                 ->nullOnDelete();
+
+            if (Schema::getConnection()->getDriverName() === 'mysql') {
+                $table->foreignId('preferred_payment_method_id')->change()->after('email');
+            }
         });
 
         Schema::create('business_payment_method_hides', function (Blueprint $table) {

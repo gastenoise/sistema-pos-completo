@@ -190,9 +190,9 @@ class ReportController extends Controller
         $summary = Sale::query()
             ->where('business_id', $businessId)
             ->when($date, fn ($query) => $query->whereDate('created_at', $date))
-            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'closed' THEN total_amount ELSE 0 END), 0) as total_sales")
-            ->selectRaw("SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as sales_count")
-            ->selectRaw("SUM(CASE WHEN status = 'voided' THEN 1 ELSE 0 END) as voided_count")
+            ->selectRaw("COALESCE(SUM(CASE WHEN status = ? THEN total_amount ELSE 0 END), 0) as total_sales", ['closed'])
+            ->selectRaw("SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as sales_count", ['closed'])
+            ->selectRaw("SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as voided_count", ['voided'])
             ->first();
 
         return response()->json([

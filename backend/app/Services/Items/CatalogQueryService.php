@@ -74,30 +74,36 @@ class CatalogQueryService
             }
 
             return $this->buildSepaQuery($businessId, $filters)
-                ->orderBy('name')
-                ->orderBy('id');
+                ->orderBy('sepa_items.name')
+                ->orderBy('sepa_items.id');
         }
 
         if (!$sepaEnabled) {
-            return $this->buildLocalQuery($filters);
+            return $this->buildLocalQuery($filters)
+                ->orderBy('items.name')
+                ->orderBy('items.id');
         }
 
         if ($normalizedSource === 'local') {
-            return $this->buildLocalQuery($filters);
+            return $this->buildLocalQuery($filters)
+                ->orderBy('items.name')
+                ->orderBy('items.id');
         }
 
         if ($normalizedSource === 'sepa') {
-            return $this->buildSepaQuery($businessId, $filters);
+            return $this->buildSepaQuery($businessId, $filters)
+                ->orderBy('sepa_items.name')
+                ->orderBy('sepa_items.id');
         }
 
         $localQuery = $this->buildLocalQuery($filters);
         $sepaQuery = $this->buildSepaQuery($businessId, $filters);
 
         return DB::query()
-            ->fromSub($localQuery->unionAll($sepaQuery), 'catalog_items')
+            ->fromSub($localQuery->toBase()->unionAll($sepaQuery->toBase()), 'catalog_items')
             ->select(self::CATALOG_SELECT_COLUMNS)
-            ->orderBy('name')
-            ->orderBy('id');
+            ->orderBy('catalog_items.name')
+            ->orderBy('catalog_items.id');
     }
 
     private function buildLocalQuery(array $filters): EloquentBuilder
@@ -114,12 +120,12 @@ class CatalogQueryService
             'items.presentation_unit',
             'items.brand',
             'items.list_price',
-            DB::raw('true as is_active'),
+            DB::raw('1 as is_active'),
             'items.created_at',
             'items.updated_at',
             DB::raw("'local' as source"),
-            DB::raw('null as sepa_item_id'),
-            DB::raw('false as is_price_overridden'),
+            DB::raw('NULL as sepa_item_id'),
+            DB::raw('0 as is_price_overridden'),
         ]);
 
         return $this->applyCommonFilters($query, $filters, 'items');
@@ -135,21 +141,21 @@ class CatalogQueryService
             ->select([
                 'sepa_items.id',
                 DB::raw("{$businessId} as business_id"),
-                DB::raw('sibp.category_id as category_id'),
+                'sibp.category_id as category_id',
                 'sepa_items.name',
-                DB::raw('null as sku'), // compat API: SEPA mantiene sku en null sin depender de sepa_items.sku
+                DB::raw('NULL as sku'), // compat API: SEPA mantiene sku en null sin depender de sepa_items.sku
                 'sepa_items.barcode',
                 DB::raw('COALESCE(sibp.price, sepa_items.list_price, sepa_items.price) as price'),
                 'sepa_items.presentation_quantity',
                 'sepa_items.presentation_unit',
                 'sepa_items.brand',
                 'sepa_items.list_price',
-                DB::raw('true as is_active'),
+                DB::raw('1 as is_active'),
                 'sepa_items.created_at',
                 'sepa_items.updated_at',
                 DB::raw("'sepa' as source"),
                 DB::raw('sepa_items.id as sepa_item_id'),
-                DB::raw('CASE WHEN sibp.price IS NULL THEN false ELSE true END as is_price_overridden'),
+                DB::raw('CASE WHEN sibp.price IS NULL THEN 0 ELSE 1 END as is_price_overridden'),
             ]);
 
         return $this->applyCommonFilters($query, $filters, 'sepa_items');
@@ -270,7 +276,7 @@ class CatalogQueryService
                 continue;
             }
 
-            $cases[] = 'WHEN source = ? AND id = ? THEN ?';
+            $cases[] = 'WHEN (source = ? AND id = ?) THEN ?';
             $bindings[] = $source;
             $bindings[] = (int) $id;
             $bindings[] = $idx;
@@ -281,10 +287,12 @@ class CatalogQueryService
         }
 
         $sql = 'CASE ' . implode(' ', $cases) . ' ELSE 999999 END';
-        $query->reorder();
-        $query->orderByRaw($sql . ' ASC', $bindings)
-            ->orderBy('name')
-            ->orderBy('id');
+
+        if ($query instanceof EloquentBuilder) {
+            $query->reorder();
+        }
+
+        $query->orderByRaw($sql . ' ASC', $bindings);
     }
 
     private function resolvePerPage(array $filters): int

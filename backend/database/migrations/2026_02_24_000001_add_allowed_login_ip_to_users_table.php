@@ -8,7 +8,11 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('allowed_login_ip', 45)->nullable()->after('phone');
+            $table->string('allowed_login_ip', 45)->nullable();
+
+            if (Schema::getConnection()->getDriverName() === 'mysql') {
+                $table->string('allowed_login_ip', 45)->change()->after('phone');
+            }
         });
     }
 
