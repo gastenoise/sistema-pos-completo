@@ -1,31 +1,40 @@
-# Stage 1: PHP Dependencies
-FROM php:8.3-fpm-alpine as php-build
+# Stage 1: Base image with PHP extensions
+FROM php:8.3-fpm-alpine AS base
 
-# Install dependencies
+# Install system dependencies and PHP extensions
 RUN apk add --no-cache \
-    curl \
+    libpng \
+    libzip \
+    oniguruma \
+    icu-libs \
+    curl
+
+RUN apk add --no-cache --virtual .build-deps \
     libpng-dev \
     libxml2-dev \
     zip \
     libzip-dev \
     unzip \
     oniguruma-dev \
-    icu-dev
+    icu-dev \
+    $PHPIZE_DEPS \
+    && docker-php-ext-install pdo pdo_mysql mbstring bcmath ctype fileinfo xml zip opcache intl \
+    && apk del .build-deps
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql mbstring bcmath ctype fileinfo xml zip opcache intl
+WORKDIR /var/www
+
+# Stage 2: PHP Dependencies
+FROM base AS php-build
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-WORKDIR /var/www
 
 # Copy only composer files first for better caching
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
-# Stage 2: Node.js for Vite Assets
-FROM node:20-alpine as node-build
+# Stage 3: Node.js for Vite Assets
+FROM node:20-alpine AS node-build
 
 WORKDIR /var/www
 
@@ -35,21 +44,11 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 3: Production
-FROM php:8.3-fpm-alpine
+# Stage 4: Production
+FROM base AS production
 
-# Install Nginx and other runtime dependencies
-RUN apk add --no-cache \
-    nginx \
-    libpng \
-    libzip \
-    oniguruma \
-    icu-libs
-
-# Install PHP extensions needed at runtime (must match build stage)
-RUN docker-php-ext-install pdo pdo_mysql mbstring bcmath ctype fileinfo xml zip opcache intl
-
-WORKDIR /var/www
+# Install Nginx
+RUN apk add --no-cache nginx
 
 # Copy application files
 COPY . .
