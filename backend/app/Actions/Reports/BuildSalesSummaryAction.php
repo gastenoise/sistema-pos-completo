@@ -60,12 +60,9 @@ class BuildSalesSummaryAction
             })
             ->join('payment_methods', 'sale_payments.payment_method_id', '=', 'payment_methods.id')
             ->where('filtered_sales.status', 'closed')
-            ->select(
-                'payment_methods.code',
-                'payment_methods.name',
-                DB::raw('SUM(sale_payments.amount) as total_amount'),
-                DB::raw('COUNT(sale_payments.id) as payments_count')
-            )
+            ->select('payment_methods.code', 'payment_methods.name')
+            ->selectRaw('SUM(sale_payments.amount) as total_amount')
+            ->selectRaw('COUNT(sale_payments.id) as payments_count')
             ->groupBy('payment_methods.code', 'payment_methods.name')
             ->get();
 
@@ -87,13 +84,10 @@ class BuildSalesSummaryAction
         }
 
         $totalsByCategory = $totalsByCategoryQuery
-            ->select(
-                'categories.id',
-                DB::raw("COALESCE(categories.name, 'Sin categoría') as name"),
-                'categories.color',
-                DB::raw('COALESCE(categories.icon, 1) as icon'),
-                DB::raw('SUM(sale_items.total) as total_amount')
-            )
+            ->select('categories.id', 'categories.color')
+            ->selectRaw("COALESCE(categories.name, ?) as name", ['Sin categoría'])
+            ->selectRaw('COALESCE(categories.icon, ?) as icon', [1])
+            ->selectRaw('SUM(sale_items.total) as total_amount')
             ->groupBy('categories.id', 'categories.name', 'categories.color', 'categories.icon')
             ->havingRaw('SUM(sale_items.total) > 0')
             ->orderByDesc('total_amount')
