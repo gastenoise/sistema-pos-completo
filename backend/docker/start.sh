@@ -8,18 +8,20 @@ MAX_ATTEMPTS=60
 SLEEP=2
 
 # --- reemplazo del puerto en el config de nginx (mantén tu conf con "${PORT}" literal) ---
-sed -i "s/\${PORT}/${PORT:-80}/g" /etc/nginx/conf.d/default.conf
+sed -i "s/\${PORT}/${PORT:-80}/g" /etc/nginx/nginx.conf
 
-# --- esperar a que la DB acepte conexiones (MySQL) ---
+# --- esperar a que la DB acepte conexiones ---
 echo "Waiting for DB to be ready..."
 attempt=0
 until php -r 'try {
+    $driver = getenv("DB_CONNECTION") ?: "mysql";
     $host = getenv("DB_HOST") ?: "127.0.0.1";
-    $port = getenv("DB_PORT") ?: 3306;
+    $port = getenv("DB_PORT") ?: ($driver === "pgsql" ? 5432 : 3306);
     $db   = getenv("DB_DATABASE") ?: "";
     $user = getenv("DB_USERNAME") ?: "";
     $pass = getenv("DB_PASSWORD") ?: "";
-    new PDO("mysql:host={$host};port={$port};dbname={$db}", $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $dsn = "{$driver}:host={$host};port={$port};dbname={$db}";
+    new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     echo "ok";
 } catch (Exception $e) { exit(1); }' >/dev/null 2>&1; do
   attempt=$((attempt + 1))
