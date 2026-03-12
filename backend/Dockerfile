@@ -60,14 +60,16 @@ COPY --from=php-build /var/www/vendor /var/www/vendor
 COPY --from=node-build /var/www/public/build /var/www/public/build
 
 # Copy Nginx config
-COPY docker/nginx-render.conf /etc/nginx/conf.d/default.conf
+COPY docker/nginx.conf /etc/nginx/nginx.conf
 
 # Copy start script
 COPY docker/start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
 
 # Fix permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+# We ensure both www-data (for PHP-FPM) and nginx (for Nginx) have access
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache && \
+    chown -R nginx:nginx /var/www/public
 
 # Render requirement: listen on $PORT
 EXPOSE 80
