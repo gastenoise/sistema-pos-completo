@@ -14,6 +14,7 @@ return [
         'Authorization',
         'Content-Type',
         'Origin',
+        'X-Api-Key',
         'X-Business-Id',
         'X-CSRF-TOKEN',
         'X-Requested-With',

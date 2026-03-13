@@ -12,6 +12,10 @@ class SetSecurityHeaders
     {
         $response = $next($request);
 
+        if ($request->isMethod('OPTIONS')) {
+            return $response;
+        }
+
         $response->headers->set('Content-Security-Policy', implode('; ', [
             "default-src 'none'",
             "base-uri 'self'",
