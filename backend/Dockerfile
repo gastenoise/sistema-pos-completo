@@ -7,7 +7,8 @@ RUN apk add --no-cache \
     libzip \
     oniguruma \
     icu-libs \
-    curl
+    curl \
+    libpq
 
 RUN apk add --no-cache --virtual .build-deps \
     libpng-dev \
@@ -17,8 +18,9 @@ RUN apk add --no-cache --virtual .build-deps \
     unzip \
     oniguruma-dev \
     icu-dev \
+    postgresql-dev \
     $PHPIZE_DEPS \
-    && docker-php-ext-install pdo pdo_mysql mbstring bcmath ctype fileinfo xml zip opcache intl \
+    && docker-php-ext-install pdo pdo_pgsql pgsql mbstring bcmath ctype fileinfo xml zip opcache intl \
     && apk del .build-deps
 
 WORKDIR /var/www
