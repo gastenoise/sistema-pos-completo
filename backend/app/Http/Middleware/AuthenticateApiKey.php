@@ -41,6 +41,13 @@ class AuthenticateApiKey
             ->first();
 
         if (!$apiKey) {
+            \Illuminate\Support\Facades\Log::warning('api_key_auth_failed', [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'has_x_api_key' => $request->hasHeader('X-Api-Key'),
+                'has_auth_header' => $request->hasHeader('Authorization'),
+                'key_hash' => $hash,
+            ]);
             return response()->json(['success' => false, 'message' => 'Invalid API key'], 401);
         }
 
