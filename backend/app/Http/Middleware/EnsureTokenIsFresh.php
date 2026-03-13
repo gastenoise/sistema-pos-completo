@@ -52,7 +52,11 @@ class EnsureTokenIsFresh
             if ($shouldRefresh) {
                 $token->forceFill([
                     'expires_at' => now()->addMinutes($idleMinutes),
-                ])->save();
+                ]);
+
+                if ($token->exists) {
+                    $token->save();
+                }
             }
         }
 

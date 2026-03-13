@@ -106,7 +106,7 @@ class SepaItemPriceOverrideTest extends TestCase
             ->getJson('/protected/items?only_sepa_price_overridden=true')
             ->assertOk();
 
-        $items = $response->json('data.data');
+        $items = $response->json('data');
 
         $this->assertCount(1, $items);
         $this->assertSame('sepa', $items[0]['source']);
@@ -165,7 +165,7 @@ class SepaItemPriceOverrideTest extends TestCase
             ->getJson('/protected/items?only_price_updated=true')
             ->assertOk();
 
-        $items = collect($response->json('data.data'));
+        $items = collect($response->json('data'));
 
         $this->assertCount(2, $items);
         $this->assertTrue($items->contains(fn (array $item): bool => $item['source'] === 'local' && $item['id'] === $localUpdated->id));
@@ -198,8 +198,8 @@ class SepaItemPriceOverrideTest extends TestCase
         $this->withHeader('X-Business-Id', (string) $business->id)
             ->getJson('/protected/items?barcode_or_sku=ABC')
             ->assertOk()
-            ->assertJsonCount(1, 'data.data')
-            ->assertJsonPath('data.data.0.sku', 'ABC-123');
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.sku', 'ABC-123');
     }
 
     public function test_it_forbids_override_when_business_sepa_flag_is_disabled(): void

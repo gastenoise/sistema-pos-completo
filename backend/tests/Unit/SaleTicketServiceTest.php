@@ -8,20 +8,20 @@ use App\Models\Sale;
 use App\Models\User;
 use App\Services\SaleTicketService;
 use Illuminate\Support\Collection;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class SaleTicketServiceTest extends TestCase
 {
     public function test_build_handles_string_dates_without_crashing(): void
     {
         $sale = new Sale([
-            'id' => 1,
             'status' => 'completed',
             'business_id' => 1,
             'created_at' => '2026-02-11 20:57:51',
             'closed_at' => '2026-02-11 20:58:00',
             'total_amount' => '1500.50',
         ]);
+        $sale->id = 1;
 
         $sale->setRelation('items', new Collection());
         $sale->setRelation('payments', new Collection());
