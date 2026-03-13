@@ -2,21 +2,20 @@
 
 set -eu
 
-# --- configuración ---
-# tiempo máximo de espera por la DB (intentos)
+# Configuration
 MAX_ATTEMPTS=60
 SLEEP=2
 
-# --- reemplazo del puerto en el config de nginx (mantén tu conf con "${PORT}" literal) ---
+# Replace port in nginx config (Render uses $PORT)
 sed -i "s/\${PORT}/${PORT:-80}/g" /etc/nginx/nginx.conf
 
-# --- esperar a que la DB acepte conexiones ---
-echo "Waiting for DB to be ready..."
+# Wait for database to be ready
+echo "Waiting for database to be ready..."
 attempt=0
 until php -r 'try {
-    $driver = getenv("DB_CONNECTION") ?: "mysql";
+    $driver = getenv("DB_CONNECTION") ?: "pgsql";
     $host = getenv("DB_HOST") ?: "127.0.0.1";
-    $port = getenv("DB_PORT") ?: ($driver === "pgsql" ? 5432 : 3306);
+    $port = getenv("DB_PORT") ?: 5432;
     $db   = getenv("DB_DATABASE") ?: "";
     $user = getenv("DB_USERNAME") ?: "";
     $pass = getenv("DB_PASSWORD") ?: "";
@@ -26,29 +25,29 @@ until php -r 'try {
 } catch (Exception $e) { exit(1); }' >/dev/null 2>&1; do
   attempt=$((attempt + 1))
   if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
-    echo "WARNING: DB did not become available after $((MAX_ATTEMPTS * SLEEP))s — continuing startup (migrations may fail)."
+    echo "WARNING: Database did not become available. Continuing startup..."
     break
   fi
-  echo "DB not ready yet (attempt $attempt/$MAX_ATTEMPTS). Sleeping ${SLEEP}s..."
+  echo "Database not ready yet (attempt $attempt/$MAX_ATTEMPTS). Sleeping ${SLEEP}s..."
   sleep "$SLEEP"
 done
 
-# --- permisos (fundamental) ---
+# Fix permissions
 echo "Fixing permissions..."
 chown -R www-data:www-data storage bootstrap/cache || true
 chmod -R 775 storage bootstrap/cache || true
 
-# --- cache config & compiled files (seguro si falla no mata el container) ---
-echo "Caching config and routes..."
+# Cache Laravel configuration and routes
+echo "Caching configuration and routes..."
 php artisan config:cache || true
 php artisan route:cache || true
 php artisan view:cache || true
 
-# --- migraciones (solo pendientes; --force para producción) ---
+# Run migrations
 echo "Running migrations..."
-php artisan migrate --force || echo "Migrations failed or nothing to run; continuing startup."
+php artisan migrate --force
 
-# --- arrancar servicios ---
+# Start PHP-FPM and Nginx
 echo "Starting php-fpm..."
 php-fpm -D
 
