@@ -47,6 +47,9 @@ class BusinessPermissionResolverTest extends TestCase
 
         $user->businesses()->attach($business->id, ['role' => 'admin']);
 
+        // Clear auto-bootstrapped permissions for this role to avoid unique constraint issues in test
+        BusinessRolePermission::where('business_id', $business->id)->where('role', 'admin')->delete();
+
         BusinessRolePermission::create([
             'business_id' => $business->id,
             'role' => 'admin',
@@ -65,6 +68,7 @@ class BusinessPermissionResolverTest extends TestCase
             'business_id' => $business->id,
             'role' => 'admin',
             'permission_key' => 'permiso.no.catalogado',
+        ], [
             'allowed' => true,
         ]);
 

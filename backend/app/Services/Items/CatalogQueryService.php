@@ -99,9 +99,11 @@ class CatalogQueryService
         $localQuery = $this->buildLocalQuery($filters);
         $sepaQuery = $this->buildSepaQuery($businessId, $filters);
 
+        $qualifiedColumns = array_map(fn($col) => "catalog_items.{$col}", self::CATALOG_SELECT_COLUMNS);
+
         return DB::query()
             ->fromSub($localQuery->toBase()->unionAll($sepaQuery->toBase()), 'catalog_items')
-            ->select(self::CATALOG_SELECT_COLUMNS)
+            ->select($qualifiedColumns)
             ->orderBy('catalog_items.name')
             ->orderBy('catalog_items.id');
     }
@@ -109,23 +111,23 @@ class CatalogQueryService
     private function buildLocalQuery(array $filters): EloquentBuilder
     {
         $query = Item::query()->select([
-            'items.id',
-            'items.business_id',
-            'items.category_id',
-            'items.name',
-            'items.sku',
-            'items.barcode',
-            'items.price',
-            'items.presentation_quantity',
-            'items.presentation_unit',
-            'items.brand',
-            'items.list_price',
-            DB::raw('1 as is_active'),
+            DB::raw('CAST(items.id AS bigint) as id'),
+            DB::raw('CAST(items.business_id AS bigint) as business_id'),
+            DB::raw('CAST(items.category_id AS bigint) as category_id'),
+            DB::raw('CAST(items.name AS varchar) as name'),
+            DB::raw('CAST(items.sku AS varchar) as sku'),
+            DB::raw('CAST(items.barcode AS varchar) as barcode'),
+            DB::raw('CAST(items.price AS decimal(12,2)) as price'),
+            DB::raw('CAST(items.presentation_quantity AS decimal(12,2)) as presentation_quantity'),
+            DB::raw('CAST(items.presentation_unit AS varchar) as presentation_unit'),
+            DB::raw('CAST(items.brand AS varchar) as brand'),
+            DB::raw('CAST(items.list_price AS decimal(12,2)) as list_price'),
+            DB::raw('CAST(1 AS integer) as is_active'),
             'items.created_at',
             'items.updated_at',
-            DB::raw("'local' as source"),
-            DB::raw('NULL as sepa_item_id'),
-            DB::raw('0 as is_price_overridden'),
+            DB::raw("CAST('local' AS varchar) as source"),
+            DB::raw('CAST(NULL AS bigint) as sepa_item_id'),
+            DB::raw('CAST(0 AS integer) as is_price_overridden'),
         ]);
 
         return $this->applyCommonFilters($query, $filters, 'items');
@@ -139,23 +141,23 @@ class CatalogQueryService
                     ->where('sibp.business_id', '=', $businessId);
             })
             ->select([
-                'sepa_items.id',
-                DB::raw("{$businessId} as business_id"),
-                'sibp.category_id as category_id',
-                'sepa_items.name',
-                DB::raw('NULL as sku'), // compat API: SEPA mantiene sku en null sin depender de sepa_items.sku
-                'sepa_items.barcode',
-                DB::raw('COALESCE(sibp.price, sepa_items.list_price, sepa_items.price) as price'),
-                'sepa_items.presentation_quantity',
-                'sepa_items.presentation_unit',
-                'sepa_items.brand',
-                'sepa_items.list_price',
-                DB::raw('1 as is_active'),
+                DB::raw('CAST(sepa_items.id AS bigint) as id'),
+                DB::raw("CAST({$businessId} AS bigint) as business_id"),
+                DB::raw('CAST(sibp.category_id AS bigint) as category_id'),
+                DB::raw('CAST(sepa_items.name AS varchar) as name'),
+                DB::raw('CAST(NULL AS varchar) as sku'), // compat API: SEPA mantiene sku en null sin depender de sepa_items.sku
+                DB::raw('CAST(sepa_items.barcode AS varchar) as barcode'),
+                DB::raw('CAST(COALESCE(sibp.price, sepa_items.list_price, sepa_items.price) AS decimal(12,2)) as price'),
+                DB::raw('CAST(sepa_items.presentation_quantity AS decimal(12,2)) as presentation_quantity'),
+                DB::raw('CAST(sepa_items.presentation_unit AS varchar) as presentation_unit'),
+                DB::raw('CAST(sepa_items.brand AS varchar) as brand'),
+                DB::raw('CAST(sepa_items.list_price AS decimal(12,2)) as list_price'),
+                DB::raw('CAST(1 AS integer) as is_active'),
                 'sepa_items.created_at',
                 'sepa_items.updated_at',
-                DB::raw("'sepa' as source"),
-                DB::raw('sepa_items.id as sepa_item_id'),
-                DB::raw('CASE WHEN sibp.price IS NULL THEN 0 ELSE 1 END as is_price_overridden'),
+                DB::raw("CAST('sepa' AS varchar) as source"),
+                DB::raw('CAST(sepa_items.id AS bigint) as sepa_item_id'),
+                DB::raw('CAST(CASE WHEN sibp.price IS NULL THEN 0 ELSE 1 END AS integer) as is_price_overridden'),
             ]);
 
         return $this->applyCommonFilters($query, $filters, 'sepa_items');
