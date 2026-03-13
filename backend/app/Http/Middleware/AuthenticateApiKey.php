@@ -20,12 +20,12 @@ class AuthenticateApiKey
 
         if (!$rawKey && $request->hasHeader('Authorization')) {
             $authorization = $request->header('Authorization');
-            if (str_starts_with($authorization, 'ApiKey ')) {
-                $rawKey = trim(substr($authorization, 7));
+            if (preg_match('/^ApiKey\s+(.+)$/i', $authorization, $matches)) {
+                $rawKey = trim($matches[1]);
             }
         }
 
-        if (!$rawKey) {
+        if (!$rawKey || empty(trim($rawKey))) {
             return response()->json(['success' => false, 'message' => 'API key required'], 401);
         }
 
