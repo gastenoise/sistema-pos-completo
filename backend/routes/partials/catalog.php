@@ -16,8 +16,9 @@ if (! function_exists('registerCatalogRoutes')) {
     {
         $middleware = $context['middleware'] ?? [];
         $includeProtectedOnly = (bool) ($context['includeProtectedOnly'] ?? false);
+        $namePrefix = $includeProtectedOnly ? 'protected.' : 'public.';
 
-        Route::middleware($middleware)->group(function () use ($includeProtectedOnly) {
+        Route::middleware($middleware)->as($namePrefix)->group(function () use ($includeProtectedOnly) {
             Route::apiResource('categories', CategoryController::class);
 
             Route::get('banks', [BankAccountController::class, 'index']);
@@ -29,7 +30,7 @@ if (! function_exists('registerCatalogRoutes')) {
 
             if ($includeProtectedOnly) {
                 Route::patch('items/bulk', [ItemController::class, 'bulkUpdate']);
-                Route::put('sepa-items/{sepaItem}/price', [ItemController::class, 'updateSepaPrice']);
+                Route::put('sepa-items/{sepaItem}/price', [ItemController::class, 'updateSepaPrice'])->name('sepa-items.update-price');
             }
 
             Route::apiResource('items', ItemController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
