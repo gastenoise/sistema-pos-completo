@@ -33,6 +33,10 @@ class DocumentationController extends Controller
             ARRAY_FILTER_USE_KEY,
         );
 
+        $spec['servers'] = [
+            ['url' => config('app.url')],
+        ];
+
         return $spec;
     }
 
