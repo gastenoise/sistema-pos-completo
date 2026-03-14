@@ -1,7 +1,7 @@
 import { clearToken, getToken } from './auth';
 import { API_MESSAGES } from '@/lib/toastMessages';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? '';
 const BUSINESS_STORAGE_KEY = 'pos_current_business';
 const CSRF_COOKIE_ENDPOINT = '/sanctum/csrf-cookie';
 const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -55,12 +55,17 @@ const isAuthFailure = (status, payload) => {
 };
 
 const buildUrl = (path: string) => {
-  if (!API_BASE_URL) {
-    return path;
-  }
   if (/^https?:\/\//i.test(path)) {
     return path;
   }
+
+  if (!API_BASE_URL) {
+    // If we reach here, we're making a relative request but no base URL is defined.
+    // In a Vite/Vercel environment, this would default to the current domain.
+    // We throw an error to prevent requests from leaking to the frontend domain.
+    throw new Error(`API_BASE_URL (VITE_API_URL) is not defined. Cannot build absolute URL for: ${path}`);
+  }
+
   const base = API_BASE_URL.replace(/\/+$/, '');
   const suffix = path.replace(/^\/+/, '');
   return `${base}/${suffix}`;

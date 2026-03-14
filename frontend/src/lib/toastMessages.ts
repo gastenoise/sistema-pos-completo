@@ -106,6 +106,6 @@ export const TOAST_MESSAGES = {
 export const API_MESSAGES = {
   defaultError: 'Ocurrió un error. Por favor, intentá nuevamente.',
   csrfInitError: 'No se pudo inicializar la protección CSRF.',
-  unexpectedHtmlResponse: 'Respuesta HTML inesperada. Revisá VITE_API_BASE_URL.',
+  unexpectedHtmlResponse: 'Respuesta HTML inesperada. Revisá VITE_API_URL.',
   sessionExpired: 'Tu sesión expiró. Iniciá sesión nuevamente.'
 };
