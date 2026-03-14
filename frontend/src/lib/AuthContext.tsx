@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { fetchMe, login as loginRequest, logout as logoutRequest, updateMe } from '@/api/auth';
-import { clearBusinessContext } from '@/api/client';
+import { clearBusinessContext, ensureCsrfCookie } from '@/api/client';
 
 const AuthContext = createContext<any>(null);
 
@@ -56,6 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setAuthError(null);
 
     try {
+      await ensureCsrfCookie();
       await checkUserAuth();
       setAppPublicSettings({ id: 'local', public_settings: {} });
     } catch (error) {
