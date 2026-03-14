@@ -247,7 +247,9 @@ const request = async (path: string, options: any = {}) => {
 
   const shouldIncludeCsrf = CSRF_METHODS.has(method);
   if (shouldIncludeCsrf) {
-    await ensureCsrfCookie();
+    if (!readCookie('XSRF-TOKEN')) {
+      await ensureCsrfCookie();
+    }
     const csrfToken = readCookie('XSRF-TOKEN');
     if (csrfToken && !headers.has('X-XSRF-TOKEN')) {
       headers.set('X-XSRF-TOKEN', csrfToken);
