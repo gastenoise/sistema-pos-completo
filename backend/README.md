@@ -181,3 +181,22 @@ class SaleFlowTest extends TestCase
 - Las migraciones base están separadas por bounded context para evitar archivos monolíticos.
 - Referencia y reglas de naming/granularidad: `database/migrations/README.md`.
 - Toda contribución nueva debe seguir el esquema incremental por contexto y evitar "mega migraciones".
+
+
+## Producción con frontend en Vercel (proxy `/api`)
+
+Si el frontend usa Vercel rewrite/proxy (`/api/*` -> Render), configurar backend así:
+
+- `SESSION_DOMAIN=app.example.com`  
+  (debe coincidir con el dominio del frontend para que la cookie de sesión sea válida en el origen del navegador).
+- `SANCTUM_STATEFUL_DOMAINS=app.example.com`
+- `CORS_ALLOWED_ORIGINS=https://app.example.com`
+
+Luego, redeploy backend y frontend.
+
+Validación de login:
+
+1. Abrir DevTools (Network) en `https://app.example.com`.
+2. Confirmar `GET /api/sanctum/csrf-cookie`.
+3. Confirmar `POST /api/public/login` con header `X-XSRF-TOKEN` presente y respuesta exitosa.
+
