@@ -183,20 +183,28 @@ class SaleFlowTest extends TestCase
 - Toda contribución nueva debe seguir el esquema incremental por contexto y evitar "mega migraciones".
 
 
-## Producción con frontend en Vercel (proxy `/api`)
+## Producción en Render con frontend en Vercel (proxy `/api`)
 
-Si el frontend usa Vercel rewrite/proxy (`/api/*` -> Render), configurar backend así:
+Si el frontend usa Vercel rewrite/proxy (`/api/*` -> Render), en **Render** definir explícitamente estas variables (sin depender de defaults de `config/*.php`):
 
-- `SESSION_DOMAIN=app.example.com`  
-  (debe coincidir con el dominio del frontend para que la cookie de sesión sea válida en el origen del navegador).
-- `SANCTUM_STATEFUL_DOMAINS=app.example.com`
-- `CORS_ALLOWED_ORIGINS=https://app.example.com`
+- `SANCTUM_STATEFUL_DOMAINS` con **todos** los hosts del frontend usados por clientes (custom domain, `www`, apex y previews si aplican).
+  - Ejemplo: `app.example.com,www.example.com,example.com`
+- `CORS_ALLOWED_ORIGINS` con orígenes HTTPS exactos del frontend.
+  - Ejemplo: `https://app.example.com,https://www.example.com,https://example.com`
+- `SESSION_DOMAIN` alineado con la arquitectura elegida (recomendado: dominio padre compartido).
+  - Ejemplo: `.example.com`
+- `SESSION_SECURE_COOKIE=true`
+- `SESSION_SAMESITE=none`
 
-Luego, redeploy backend y frontend.
+Después del cambio de variables, durante deploy ejecutar cache de config:
 
-Validación de login:
+```bash
+php artisan config:clear && php artisan config:cache
+```
 
-1. Abrir DevTools (Network) en `https://app.example.com`.
-2. Confirmar `GET /api/sanctum/csrf-cookie`.
-3. Confirmar `POST /api/public/login` con header `X-XSRF-TOKEN` presente y respuesta exitosa.
+Validación de login (DevTools → Network):
+
+1. Confirmar `GET /api/sanctum/csrf-cookie`.
+2. En la respuesta, revisar `Set-Cookie` con atributos esperados (`Secure`, `SameSite=None`, `Domain`).
+3. Confirmar `POST /api/public/login` con header `X-XSRF-TOKEN` y header `Cookie` presentes.
 
