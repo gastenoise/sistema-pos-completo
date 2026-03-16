@@ -3,7 +3,7 @@ import { clearToken, getToken } from './auth';
 import { API_MESSAGES } from '@/lib/toastMessages';
 
 const runtimeEnv = ((import.meta as any)?.env ?? {}) as Record<string, string | boolean | undefined>;
-const API_BASE_URL = String(runtimeEnv.VITE_API_URL ?? runtimeEnv.VITE_API_BASE_URL ?? '');
+const API_BASE_URL = String(runtimeEnv.VITE_API_URL ?? runtimeEnv.VITE_API_BASE_URL ?? '/api');
 const BUSINESS_STORAGE_KEY = 'pos_current_business';
 const CSRF_COOKIE_ENDPOINT = '/sanctum/csrf-cookie';
 const CSRF_RESPONSE_HEADERS = ['x-xsrf-token', 'x-csrf-token'];
@@ -150,13 +150,9 @@ export const ensureCsrfCookie = async () => {
 };
 
 instance.interceptors.request.use(async (config) => {
-  // Enforce absolute backend URLs if VITE_API_URL is defined,
-  // or throw if we are about to make a relative request without a base URL.
-  if (config.url && !/^https?:\/\//i.test(config.url)) {
-    if (!API_BASE_URL) {
-      throw new Error(`API_BASE_URL (VITE_API_URL) is not defined. Cannot build absolute URL for: ${config.url}`);
-    }
-  }
+  // Allow relative URLs even when API_BASE_URL is not set.
+  // This enables same-origin deployments that proxy `/api/*`
+  // without requiring VITE_API_URL at build time.
 
   const method = config.method?.toUpperCase();
   if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
