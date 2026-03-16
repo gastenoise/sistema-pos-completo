@@ -1,0 +1,130 @@
+name: CSRF Session Smoke (staging/preview)
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Optional URL override for staging/preview smoke test'
+        required: false
+        type: string
+
+jobs:
+  csrf-session-smoke:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve target URL
+        id: target
+        env:
+          INPUT_BASE_URL: ${{ inputs.base_url }}
+          DEPLOYMENT_URL: ${{ github.event.deployment_status.environment_url }}
+          STAGING_URL_VAR: ${{ vars.STAGING_URL }}
+          STAGING_URL_SECRET: ${{ secrets.STAGING_URL }}
+        run: |
+          set -euo pipefail
+
+          BASE_URL="${INPUT_BASE_URL:-${DEPLOYMENT_URL:-${STAGING_URL_VAR:-${STAGING_URL_SECRET:-}}}}"
+
+          if [ -z "$BASE_URL" ]; then
+            echo "Unable to resolve target URL. Provide workflow_dispatch input 'base_url', deployment environment_url, vars.STAGING_URL, or secrets.STAGING_URL."
+            exit 1
+          fi
+
+          BASE_URL="${BASE_URL%/}"
+          echo "base_url=$BASE_URL" >> "$GITHUB_OUTPUT"
+          echo "Target URL: $BASE_URL"
+
+      - name: Run CSRF + session login smoke test
+        env:
+          BASE_URL: ${{ steps.target.outputs.base_url }}
+          LOGIN_EMAIL: ${{ secrets.E2E_LOGIN_EMAIL }}
+          LOGIN_PASSWORD: ${{ secrets.E2E_LOGIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${LOGIN_EMAIL:-}" ] || [ -z "${LOGIN_PASSWORD:-}" ]; then
+            echo "Missing secrets E2E_LOGIN_EMAIL / E2E_LOGIN_PASSWORD"
+            exit 1
+          fi
+
+          COOKIE_JAR="$(mktemp)"
+          CSRF_HEADERS="$(mktemp)"
+          LOGIN_BODY="$(mktemp)"
+          ME_BODY="$(mktemp)"
+
+          cleanup() {
+            rm -f "$COOKIE_JAR" "$CSRF_HEADERS" "$LOGIN_BODY" "$ME_BODY"
+          }
+          trap cleanup EXIT
+
+          echo "GET $BASE_URL/sanctum/csrf-cookie"
+          csrf_status="$(curl -sS -o /dev/null -D "$CSRF_HEADERS" -w "%{http_code}" -c "$COOKIE_JAR" "$BASE_URL/sanctum/csrf-cookie")"
+          if [ "$csrf_status" -lt 200 ] || [ "$csrf_status" -ge 400 ]; then
+            echo "Unexpected csrf-cookie status: $csrf_status"
+            exit 1
+          fi
+
+          xsrf_token="$(awk 'BEGIN {FS="\t"} $6 == "XSRF-TOKEN" {print $7}' "$COOKIE_JAR" | tail -n1)"
+          session_cookie_name="laravel_session"
+          session_cookie_value="$(awk -v name="$session_cookie_name" 'BEGIN {FS="\t"} $6 == name {print $7}' "$COOKIE_JAR" | tail -n1)"
+
+          if [ -z "$xsrf_token" ] || [ -z "$session_cookie_value" ]; then
+            echo "Missing XSRF-TOKEN or session cookie after csrf-cookie request"
+            cat "$COOKIE_JAR"
+            exit 1
+          fi
+
+          decoded_xsrf="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.argv[1]))' "$xsrf_token")"
+
+          payload="$(printf '{"email":"%s","password":"%s"}' "$LOGIN_EMAIL" "$LOGIN_PASSWORD")"
+
+          echo "POST $BASE_URL/protected/auth/login"
+          login_status="$(curl -sS -o "$LOGIN_BODY" -w "%{http_code}" -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+            -H 'Content-Type: application/json' \
+            -H "X-XSRF-TOKEN: $decoded_xsrf" \
+            -X POST "$BASE_URL/protected/auth/login" \
+            --data "$payload")"
+
+          if grep -q 'CSRF token mismatch' "$LOGIN_BODY"; then
+            echo "Detected CSRF token mismatch during login"
+            cat "$LOGIN_BODY"
+            exit 1
+          fi
+
+          if [ "$login_status" -lt 200 ] || [ "$login_status" -ge 300 ]; then
+            echo "Login failed with status: $login_status"
+            cat "$LOGIN_BODY"
+            exit 1
+          fi
+
+          if ! grep -q '"success"[[:space:]]*:[[:space:]]*true' "$LOGIN_BODY"; then
+            echo "Login response does not report success"
+            cat "$LOGIN_BODY"
+            exit 1
+          fi
+
+          echo "GET $BASE_URL/protected/auth/me"
+          me_status="$(curl -sS -o "$ME_BODY" -w "%{http_code}" -b "$COOKIE_JAR" "$BASE_URL/protected/auth/me")"
+
+          if grep -q 'CSRF token mismatch' "$ME_BODY"; then
+            echo "Detected CSRF token mismatch during follow-up request"
+            cat "$ME_BODY"
+            exit 1
+          fi
+
+          if [ "$me_status" -lt 200 ] || [ "$me_status" -ge 300 ]; then
+            echo "Authenticated follow-up request failed with status: $me_status"
+            cat "$ME_BODY"
+            exit 1
+          fi
+
+          if ! grep -q '"success"[[:space:]]*:[[:space:]]*true' "$ME_BODY"; then
+            echo "Follow-up /protected/auth/me response is not successful"
+            cat "$ME_BODY"
+            exit 1
+          fi
+
+          echo "CSRF + session smoke test passed."

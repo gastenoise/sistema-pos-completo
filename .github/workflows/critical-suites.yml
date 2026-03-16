@@ -27,7 +27,7 @@ jobs:
           cp .env.example .env
           php artisan key:generate
       - name: Run critical backend suites
-        run: php artisan test --testsuite=Feature,Unit --filter="ItemImportContractTest|CashRegisterContractTest|SaleCloseVoidContractTest|GoldenPathE2ETest|RecentItemUsageServiceTest"
+        run: php artisan test --testsuite=Feature,Unit --filter="ItemImportContractTest|CashRegisterContractTest|SaleCloseVoidContractTest|GoldenPathE2ETest|RecentItemUsageServiceTest|SanctumCsrfSessionLoginTest"
 
   frontend-critical:
     name: Frontend critical hooks + modular utils
