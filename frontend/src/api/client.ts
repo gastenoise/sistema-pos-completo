@@ -155,7 +155,8 @@ instance.interceptors.request.use(async (config) => {
   // without requiring VITE_API_URL at build time.
 
   const method = config.method?.toUpperCase();
-  if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+  const isLogoutRequest = config.url === '/protected/auth/logout';
+  if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !isLogoutRequest) {
     await ensureCsrfCookie();
     if (csrfToken) {
       config.headers['X-XSRF-TOKEN'] = csrfToken;

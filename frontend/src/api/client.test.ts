@@ -48,6 +48,20 @@ const mockAxiosInstance: any = vi.fn(async (initialConfig: RequestConfig) => {
     return response;
   }
 
+
+  if (config.url === '/protected/auth/logout') {
+    let response = {
+      data: { success: true },
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      config,
+    };
+    for (const interceptor of responseInterceptors) {
+      response = interceptor(response);
+    }
+    return response;
+  }
+
   throw new Error(`Unhandled URL in axios mock: ${config.url}`);
 });
 
