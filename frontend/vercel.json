@@ -3,10 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://sistema-pos-completo.onrender.com/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
-  ],
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/.*", "dest": "/index.html" }
   ]
 }
