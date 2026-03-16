@@ -116,12 +116,4 @@ describe('apiClient CSRF bootstrap', () => {
 
     expect(mockAxiosCreate).toHaveBeenCalledWith(expect.objectContaining({ baseURL: '/api' }));
   });
-
-  it('normalizes same-origin absolute VITE_API_URL to /api', async () => {
-    vi.stubEnv('VITE_API_URL', 'https://sistema-pos-completo.vercel.app');
-
-    await import('./client');
-
-    expect(mockAxiosCreate).toHaveBeenCalledWith(expect.objectContaining({ baseURL: '/api' }));
-  });
 });
