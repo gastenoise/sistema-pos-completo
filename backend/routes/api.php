@@ -8,6 +8,7 @@ use App\Http\Controllers\MercadoPagoController;
 use App\Http\Controllers\NavigationEventController;
 use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\RolePermissionController;
+use App\Http\Controllers\SystemController;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/partials/catalog.php';
@@ -21,6 +22,8 @@ require __DIR__.'/partials/reports.php';
 |--------------------------------------------------------------------------
 */
 Route::prefix('protected')->group(function () {
+    Route::post('system/run-scheduler', [SystemController::class, 'runScheduler']);
+
     Route::prefix('auth')->middleware('web')->group(function () {
         Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login');
         Route::post('register', [AuthController::class, 'register']);
