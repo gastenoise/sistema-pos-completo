@@ -16,6 +16,7 @@ return [
         'Origin',
         'X-Api-Key',
         'X-Business-Id',
+        'X-Cron-Token',
         'X-CSRF-TOKEN',
         'X-Requested-With',
         'X-XSRF-TOKEN',

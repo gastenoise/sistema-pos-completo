@@ -21,9 +21,9 @@ require __DIR__.'/partials/reports.php';
 | Public Routes (Front - Public Access)
 |--------------------------------------------------------------------------
 */
-Route::prefix('protected')->group(function () {
-    Route::post('system/run-scheduler', [SystemController::class, 'runScheduler']);
+Route::post('system/run-scheduler', [SystemController::class, 'runScheduler']);
 
+Route::prefix('protected')->group(function () {
     Route::prefix('auth')->middleware('web')->group(function () {
         Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login');
         Route::post('register', [AuthController::class, 'register']);

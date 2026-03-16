@@ -59,7 +59,7 @@ Puedes usar un servicio gratuito como [Cron-job.org](https://cron-job.org/) o si
 
 1.  Crea una cuenta en Cron-job.org.
 2.  Crea un nuevo "Cronjob".
-3.  **URL**: `https://sistema-pos-completo.onrender.com/protected/system/run-scheduler`
+3.  **URL**: `https://sistema-pos-completo.onrender.com/system/run-scheduler`
 4.  **Execution schedule**: Cada 1 minuto (o la frecuencia que desees, aunque Laravel espera 1 minuto para chequear todas las tareas).
 5.  **Request Method**: `POST`
 6.  **Request Headers**: Añade el siguiente header:
