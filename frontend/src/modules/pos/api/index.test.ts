@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '@/api/client';
-import { getBankAccount, getPosItems, getPosPaymentMethods } from './index';
+import { getBankAccount, getPosItems, getPosPaymentMethods, startSale, closeSale } from './index';
 
 vi.mock('@/api/client', () => ({
   apiClient: {
@@ -33,5 +33,25 @@ describe('modules/pos/api', () => {
   it('resuelve payload de bancos con o sin wrapper data', async () => {
     apiClient.get.mockResolvedValueOnce({ data: [{ id: 1 }] });
     await expect(getBankAccount()).resolves.toEqual([{ id: 1 }]);
+  });
+
+  it('normalizes startSale response', async () => {
+    const mockSale = { id: 1, total_amount: '100.00' };
+    apiClient.post.mockResolvedValueOnce({ success: true, data: mockSale });
+
+    const result = await startSale({});
+
+    expect(result).toEqual(mockSale);
+    expect(apiClient.post).toHaveBeenCalledWith('/protected/sales/start', {});
+  });
+
+  it('normalizes closeSale response', async () => {
+    const mockResult = { success: true, message: 'Sale closed' };
+    apiClient.post.mockResolvedValueOnce({ success: true, data: mockResult });
+
+    const result = await closeSale(1, {});
+
+    expect(result).toEqual(mockResult);
+    expect(apiClient.post).toHaveBeenCalledWith('/protected/sales/1/close', {});
   });
 });

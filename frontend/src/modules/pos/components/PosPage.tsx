@@ -172,12 +172,15 @@ function POSContent() {
   });
 
   const mapSalePayments = (payments = []) => {
-    return payments.map((payment) => ({
-      ...payment,
-      payment_method_id: payment.payment_method_id,
-      payment_method_type: payment.paymentMethod?.type || payment.paymentMethod?.code,
-      method: payment.paymentMethod || paymentMethods.find((method) => String(method.id) === String(payment.payment_method_id))
-    }));
+    return payments.map((payment) => {
+      const pm = payment.paymentMethod || payment.payment_method;
+      return {
+        ...payment,
+        payment_method_id: payment.payment_method_id,
+        payment_method_type: pm?.type || pm?.code,
+        method: pm || paymentMethods.find((method) => String(method.id) === String(payment.payment_method_id))
+      };
+    });
   };
 
   const startSaleWithItemsAndPayments = async ({ cashRegisterSessionId, items, payments }) => {
@@ -362,10 +365,12 @@ function POSContent() {
       ...(reference && { transaction_reference: reference })
     });
 
+    const pm = confirmed?.paymentMethod || confirmed?.payment_method;
+
     return {
       ...confirmed,
-      method: confirmed?.paymentMethod || paymentMethods.find((method) => String(method.id) === String(confirmed?.payment_method_id)),
-      payment_method_type: confirmed?.paymentMethod?.type || confirmed?.paymentMethod?.code,
+      method: pm || paymentMethods.find((method) => String(method.id) === String(confirmed?.payment_method_id)),
+      payment_method_type: pm?.type || pm?.code,
     };
   };
 

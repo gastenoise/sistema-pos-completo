@@ -54,8 +54,8 @@ export const getPosCashRegisterStatus = async () => {
   return { status: 'closed' };
 };
 
-export const startSale = (payload) => apiClient.post('/protected/sales/start', payload);
-export const closeSale = (saleId, payload) => apiClient.post(`/protected/sales/${saleId}/close`, payload);
+export const startSale = async (payload) => normalizeEntityResponse(await apiClient.post('/protected/sales/start', payload));
+export const closeSale = async (saleId, payload) => normalizeEntityResponse(await apiClient.post(`/protected/sales/${saleId}/close`, payload));
 export const getSaleById = async (saleId) => normalizeEntityResponse(await apiClient.get(`/protected/sales/${saleId}`));
 export const confirmSalePayment = async (saleId, paymentId, payload) => normalizeEntityResponse(await apiClient.post(
   `/protected/sales/${saleId}/payments/${paymentId}/confirm`,
