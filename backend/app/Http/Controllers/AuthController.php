@@ -22,7 +22,7 @@ class AuthController extends Controller
         $throttleKey = sprintf('login-failed:%s|%s', $request->ip(), $email);
         $failedAttempts = RateLimiter::attempts($throttleKey);
 
-        if (RateLimiter::tooManyAttempts($throttleKey, 1)) {
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $retryAfter = RateLimiter::availableIn($throttleKey);
 
             Log::warning('Auth login blocked by progressive backoff', [
@@ -35,8 +35,8 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Demasiados intentos. Intenta nuevamente más tarde.',
-            ], 429);
+                'message' => 'Credenciales inválidas.',
+            ], 401);
         }
 
         if (!Auth::attempt(['email' => $email, 'password' => $password], true)) {
@@ -55,8 +55,8 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Demasiados intentos. Intenta nuevamente más tarde.',
-            ], 429);
+                'message' => 'Credenciales inválidas.',
+            ], 401);
         }
 
         $user = User::with('businesses')->findOrFail(Auth::id());
