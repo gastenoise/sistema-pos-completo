@@ -3,7 +3,7 @@ import { clearToken, getToken } from './auth';
 import { API_MESSAGES } from '@/lib/toastMessages';
 
 const runtimeEnv = ((import.meta as any)?.env ?? {}) as Record<string, string | boolean | undefined>;
-const API_BASE_URL = String(runtimeEnv.VITE_API_URL ?? runtimeEnv.VITE_API_BASE_URL ?? '');
+const API_BASE_URL = String(runtimeEnv.VITE_API_URL ?? runtimeEnv.VITE_API_BASE_URL ?? '/api');
 const BUSINESS_STORAGE_KEY = 'pos_current_business';
 const CSRF_COOKIE_ENDPOINT = '/sanctum/csrf-cookie';
 const CSRF_RESPONSE_HEADERS = ['x-xsrf-token', 'x-csrf-token'];
