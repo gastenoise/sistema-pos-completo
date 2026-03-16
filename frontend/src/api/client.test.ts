@@ -86,6 +86,9 @@ describe('apiClient CSRF bootstrap', () => {
     vi.resetModules();
     interceptedLoginConfig = null;
     vi.stubGlobal('window', {
+      location: {
+        origin: 'https://sistema-pos-completo.vercel.app',
+      },
       localStorage: {
         getItem: vi.fn(() => null),
       },
