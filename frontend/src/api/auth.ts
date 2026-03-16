@@ -61,6 +61,8 @@ export const updateMe = async (updates) => {
 export const logout = async () => {
   try {
     await apiClient.post('/protected/auth/logout', {});
+  } catch (_error) {
+    // Logout in UI should remain resilient even if backend is temporarily unreachable.
   } finally {
     clearToken();
   }
