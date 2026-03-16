@@ -41,3 +41,31 @@ Una vez activo, puedes ver los logs del Cron Job en Render. Cada minuto verás q
 ## Notas Adicionales
 *   **Zona Horaria**: El comando `sepa:sync` está configurado específicamente para la zona horaria `America/Argentina/Buenos_Aires`. Asegúrate de que el servidor tenga la hora correcta o que Laravel esté configurado para manejar UTC correctamente (por defecto lo hace bien).
 *   **Costos**: Ten en cuenta que en Render, los Cron Jobs tienen un costo asociado según el plan que elijas.
+
+---
+
+## Alternativa para el Plan Gratuito (Render Free)
+
+Si estás usando el plan gratuito de Render, no tienes acceso a la funcionalidad de "Cron Jobs". Para solucionar esto, hemos habilitado un endpoint que permite ejecutar el scheduler mediante una petición HTTP POST.
+
+### 1. Configurar Token de Seguridad
+Para evitar que cualquiera ejecute el scheduler, debes configurar una variable de entorno en tu Web Service de Render:
+
+*   **Key**: `SYSTEM_CRON_TOKEN`
+*   **Value**: Una cadena aleatoria y segura (ej: `tu_token_secreto_123`).
+
+### 2. Configurar un servicio de Cron Externo
+Puedes usar un servicio gratuito como [Cron-job.org](https://cron-job.org/) o similar para llamar a tu endpoint automáticamente.
+
+1.  Crea una cuenta en Cron-job.org.
+2.  Crea un nuevo "Cronjob".
+3.  **URL**: `https://sistema-pos-completo.onrender.com/protected/system/run-scheduler`
+4.  **Execution schedule**: Cada 1 minuto (o la frecuencia que desees, aunque Laravel espera 1 minuto para chequear todas las tareas).
+5.  **Request Method**: `POST`
+6.  **Request Headers**: Añade el siguiente header:
+    *   `X-Cron-Token`: (El valor que pusiste en `SYSTEM_CRON_TOKEN`).
+
+### 3. Consideración sobre el "Spin down"
+En el plan gratuito de Render, el servidor se "duerme" tras 15 minutos de inactividad.
+*   Si el servicio externo de Cron llama al endpoint cada minuto, el servidor **nunca se dormirá**.
+*   Si prefieres que se duerma, puedes configurar el Cron externo para que solo llame en las horas necesarias (ej: a las 09:00 y a las 15:30), pero ten en cuenta que el primer request tardará unos segundos en despertar al servidor.
