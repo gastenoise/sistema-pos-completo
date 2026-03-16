@@ -16,14 +16,14 @@ class SystemSchedulerManualRunTest extends TestCase
 
     public function test_it_fails_without_token(): void
     {
-        $response = $this->postJson('/protected/system/run-scheduler');
+        $response = $this->postJson('/system/run-scheduler');
 
         $response->assertStatus(401);
     }
 
     public function test_it_fails_with_wrong_token(): void
     {
-        $response = $this->postJson('/protected/system/run-scheduler', [], [
+        $response = $this->postJson('/system/run-scheduler', [], [
             'X-Cron-Token' => 'wrong-token'
         ]);
 
@@ -36,7 +36,7 @@ class SystemSchedulerManualRunTest extends TestCase
         // pero podemos verificar que el controlador responde correctamente si el token es válido.
         // Artisan::call es capturado por el framework en tests si se desea, pero aquí verificamos el flujo.
 
-        $response = $this->postJson('/protected/system/run-scheduler', [], [
+        $response = $this->postJson('/system/run-scheduler', [], [
             'X-Cron-Token' => 'test-token'
         ]);
 
