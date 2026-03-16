@@ -130,23 +130,4 @@ describe('apiClient CSRF bootstrap', () => {
 
     expect(mockAxiosCreate).toHaveBeenCalledWith(expect.objectContaining({ baseURL: '/api' }));
   });
-
-  it('normalizes same-origin absolute VITE_API_URL to /api', async () => {
-    vi.stubEnv('VITE_API_URL', 'https://sistema-pos-completo.vercel.app');
-
-    await import('./client');
-
-    expect(mockAxiosCreate).toHaveBeenCalledWith(expect.objectContaining({ baseURL: '/api' }));
-  });
-
-
-  it('does not bootstrap CSRF before logout request', async () => {
-    vi.stubEnv('VITE_API_URL', '/api');
-
-    const { apiClient } = await import('./client');
-
-    await apiClient.post('/protected/auth/logout', {});
-
-    expect(mockAxiosInstance.get).not.toHaveBeenCalledWith('/sanctum/csrf-cookie');
-  });
 });

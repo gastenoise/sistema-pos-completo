@@ -3,31 +3,7 @@ import { clearToken, getToken } from './auth';
 import { API_MESSAGES } from '@/lib/toastMessages';
 
 const runtimeEnv = ((import.meta as any)?.env ?? {}) as Record<string, string | boolean | undefined>;
-const normalizeApiBaseUrl = (rawBaseUrl: string | boolean | undefined): string => {
-  const value = String(rawBaseUrl ?? '').trim();
-  if (!value) {
-    return '/api';
-  }
-
-  const browserWindow = (globalThis as any)?.window;
-  if (!browserWindow || !/^https?:\/\//i.test(value)) {
-    return value;
-  }
-
-  try {
-    const parsed = new URL(value);
-    const currentOrigin = browserWindow.location?.origin;
-    if (currentOrigin && parsed.origin === currentOrigin) {
-      const normalizedPath = parsed.pathname.replace(/\/$/, '');
-      return normalizedPath === '/api' ? '/api' : '/api';
-    }
-    return value;
-  } catch (_error) {
-    return value;
-  }
-};
-
-const API_BASE_URL = normalizeApiBaseUrl(runtimeEnv.VITE_API_URL ?? runtimeEnv.VITE_API_BASE_URL);
+const API_BASE_URL = String(runtimeEnv.VITE_API_URL ?? runtimeEnv.VITE_API_BASE_URL ?? '/api');
 const BUSINESS_STORAGE_KEY = 'pos_current_business';
 const CSRF_COOKIE_ENDPOINT = '/sanctum/csrf-cookie';
 const CSRF_RESPONSE_HEADERS = ['x-xsrf-token', 'x-csrf-token'];
