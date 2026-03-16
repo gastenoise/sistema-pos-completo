@@ -57,13 +57,19 @@ Para evitar que cualquiera ejecute el scheduler, debes configurar una variable d
 ### 2. Configurar un servicio de Cron Externo
 Puedes usar un servicio gratuito como [Cron-job.org](https://cron-job.org/) o similar para llamar a tu endpoint automáticamente.
 
-1.  Crea una cuenta en Cron-job.org.
-2.  Crea un nuevo "Cronjob".
-3.  **URL**: `https://sistema-pos-completo.onrender.com/system/run-scheduler`
-4.  **Execution schedule**: Cada 1 minuto (o la frecuencia que desees, aunque Laravel espera 1 minuto para chequear todas las tareas).
-5.  **Request Method**: `POST`
-6.  **Request Headers**: Añade el siguiente header:
-    *   `X-Cron-Token`: (El valor que pusiste en `SYSTEM_CRON_TOKEN`).
+#### Opción A: Simular el Scheduler (Recomendado)
+Esta opción intenta ejecutar todas las tareas pendientes según su horario definido en el código.
+1.  **URL**: `https://sistema-pos-completo.onrender.com/system/run-scheduler`
+2.  **Schedule**: Cada 1 minuto.
+3.  **Request Headers**: `X-Cron-Token`: (Tu token).
+*Nota: Si llamas a este endpoint fuera del horario (ej: a las 10:00), Laravel responderá que no hay tareas listas para ejecutar.*
+
+#### Opción B: Forzar Sincronización SEPA
+Si quieres que la sincronización SEPA ocurra exactamente cuando el servicio externo lo pida, sin importar el horario interno de Laravel:
+1.  **URL**: `https://sistema-pos-completo.onrender.com/system/sepa-sync`
+2.  **Schedule**: Configura el horario que desees en Cron-job.org (ej: 15:30).
+3.  **Request Headers**: `X-Cron-Token`: (Tu token).
+*Nota: Este endpoint ejecuta `php artisan sepa:sync --sync` inmediatamente.*
 
 ### 3. Consideración sobre el "Spin down"
 En el plan gratuito de Render, el servidor se "duerme" tras 15 minutos de inactividad.
