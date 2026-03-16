@@ -5,10 +5,13 @@ import { API_MESSAGES } from '@/lib/toastMessages';
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? '';
 const BUSINESS_STORAGE_KEY = 'pos_current_business';
 const CSRF_COOKIE_ENDPOINT = '/sanctum/csrf-cookie';
+const CSRF_RESPONSE_HEADERS = ['x-xsrf-token', 'x-csrf-token'];
+const SHOULD_DEBUG_XSRF = import.meta.env.DEV || import.meta.env.VITE_DEBUG_XSRF === 'true';
 
 let businessContext = null;
 let didNotifySessionExpired = false;
 let csrfCookiePromise = null;
+let csrfToken: string | null = null;
 
 const AUTH_MESSAGE_REGEX = /not authenticated|unauthenticated|unauthorized|token|session/i;
 const DEFAULT_ERROR_MESSAGE = API_MESSAGES.defaultError;
@@ -54,14 +57,14 @@ const isAuthFailure = (status, payload) => {
   return AUTH_MESSAGE_REGEX.test(message);
 };
 
-const readCookie = (name: string) => {
-  if (typeof document === 'undefined') {
-    return null;
-  }
-
-  const escapedName = name.replace(/[-[\]{}()*+?.,\^$|#\s]/g, '\\$&');
-  const match = document.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
+const resolveCsrfToken = (headers: Record<string, string | undefined> = {}) => {
+  const normalizedHeaders = Object.fromEntries(
+    Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value])
+  );
+  const token = CSRF_RESPONSE_HEADERS
+    .map((headerName) => normalizedHeaders[headerName])
+    .find((value) => typeof value === 'string' && value.length > 0);
+  return token ?? null;
 };
 
 const resolveBusinessId = (): number | string | null => {
@@ -119,14 +122,19 @@ export const ensureCsrfCookie = async () => {
     return;
   }
 
-  if (readCookie('XSRF-TOKEN')) {
+  if (csrfToken) {
     return;
   }
 
   if (!csrfCookiePromise) {
-    csrfCookiePromise = instance.get(CSRF_COOKIE_ENDPOINT).finally(() => {
-      csrfCookiePromise = null;
-    });
+    csrfCookiePromise = instance
+      .get(CSRF_COOKIE_ENDPOINT)
+      .then((response) => {
+        csrfToken = resolveCsrfToken(response?.headers as Record<string, string | undefined>);
+      })
+      .finally(() => {
+        csrfCookiePromise = null;
+      });
   }
 
   try {
@@ -148,6 +156,14 @@ instance.interceptors.request.use(async (config) => {
   const method = config.method?.toUpperCase();
   if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
     await ensureCsrfCookie();
+    if (csrfToken) {
+      config.headers['X-XSRF-TOKEN'] = csrfToken;
+    }
+  }
+
+  if (SHOULD_DEBUG_XSRF && method === 'POST' && config.url === '/protected/auth/login') {
+    const hasXsrfHeader = Boolean(config.headers?.['X-XSRF-TOKEN']);
+    console.debug('[api] login request X-XSRF-TOKEN present:', hasXsrfHeader);
   }
 
   const businessId = resolveBusinessId();
