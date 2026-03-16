@@ -68,9 +68,11 @@ mockAxiosInstance.interceptors = {
   },
 };
 
+const mockAxiosCreate = vi.fn(() => mockAxiosInstance);
+
 vi.mock('axios', () => ({
   default: {
-    create: vi.fn(() => mockAxiosInstance),
+    create: mockAxiosCreate,
   },
 }));
 
@@ -80,9 +82,13 @@ describe('apiClient CSRF bootstrap', () => {
     responseInterceptors.length = 0;
     mockAxiosInstance.mockClear();
     mockAxiosInstance.get.mockClear();
+    mockAxiosCreate.mockClear();
     vi.resetModules();
     interceptedLoginConfig = null;
     vi.stubGlobal('window', {
+      location: {
+        origin: 'https://sistema-pos-completo.vercel.app',
+      },
       localStorage: {
         getItem: vi.fn(() => null),
       },
@@ -101,5 +107,21 @@ describe('apiClient CSRF bootstrap', () => {
 
     expect(interceptedLoginConfig).toBeTruthy();
     expect(interceptedLoginConfig?.headers?.['X-XSRF-TOKEN']).toBe('csrf-from-header');
+  });
+
+  it('uses /api as default baseURL when VITE_API_URL is missing', async () => {
+    vi.unstubAllEnvs();
+
+    await import('./client');
+
+    expect(mockAxiosCreate).toHaveBeenCalledWith(expect.objectContaining({ baseURL: '/api' }));
+  });
+
+  it('normalizes same-origin absolute VITE_API_URL to /api', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://sistema-pos-completo.vercel.app');
+
+    await import('./client');
+
+    expect(mockAxiosCreate).toHaveBeenCalledWith(expect.objectContaining({ baseURL: '/api' }));
   });
 });
