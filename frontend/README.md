@@ -88,3 +88,26 @@ Checklist mínima:
 ## npm audit (devDependencies)
 
 `npm audit` may report vulnerabilities in **ajv** and **minimatch** coming from ESLint and its plugins. These are **devDependencies only** (they are not included in the production build). There is currently no safe fix: `npm audit fix --force` breaks peer dependencies and lint; upgrading to ESLint 10 requires plugin support that is not yet available. Until the ecosystem ships updated versions, these findings are accepted as low-risk for local/CI development.
+
+
+## Producción recomendada (Vercel proxy + Render)
+
+Se adopta arquitectura **same-origin en navegador**:
+
+- Frontend en Vercel (por ejemplo `https://app.example.com`).
+- Backend en Render (por ejemplo `https://sistema-pos-completo.onrender.com`).
+- El frontend llama a `VITE_API_URL=/api` y Vercel reescribe `/api/*` al backend.
+
+Pasos:
+
+1. Confirmar `frontend/vercel.json` con rewrite:
+   - `/api/:path* -> https://sistema-pos-completo.onrender.com/:path*`
+2. Configurar variable de entorno frontend:
+   - `VITE_API_URL=/api`
+3. Redeploy del frontend en Vercel.
+
+Verificación rápida en browser (Network):
+
+- `GET /api/sanctum/csrf-cookie` devuelve cookies.
+- `POST /api/public/login` incluye header `X-XSRF-TOKEN` y responde 200/204.
+
