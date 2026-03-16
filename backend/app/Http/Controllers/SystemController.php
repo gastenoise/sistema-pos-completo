@@ -41,4 +41,38 @@ class SystemController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Ejecuta manualmente la sincronización SEPA.
+     */
+    public function runSepaSync(Request $request)
+    {
+        $token = config('services.system.cron_token');
+
+        if (!$token || $request->header('X-Cron-Token') !== $token) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado.'
+            ], 401);
+        }
+
+        try {
+            // --sync para que se ejecute en el momento y no vaya a la cola
+            Artisan::call('sepa:sync', ['--sync' => true]);
+            $output = Artisan::output();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sincronización SEPA ejecutada.',
+                'output' => $output
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error ejecutando SEPA sync manual: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al ejecutar SEPA sync.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

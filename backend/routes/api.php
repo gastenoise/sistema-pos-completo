@@ -22,6 +22,7 @@ require __DIR__.'/partials/reports.php';
 |--------------------------------------------------------------------------
 */
 Route::post('system/run-scheduler', [SystemController::class, 'runScheduler']);
+Route::post('system/sepa-sync', [SystemController::class, 'runSepaSync']);
 
 Route::prefix('protected')->group(function () {
     Route::prefix('auth')->middleware('web')->group(function () {
