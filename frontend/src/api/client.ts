@@ -2,13 +2,17 @@ import axios from 'axios';
 import { clearToken, getToken } from './auth';
 import { API_MESSAGES } from '@/lib/toastMessages';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? '';
+const runtimeEnv = ((import.meta as any)?.env ?? {}) as Record<string, string | boolean | undefined>;
+const API_BASE_URL = String(runtimeEnv.VITE_API_URL ?? runtimeEnv.VITE_API_BASE_URL ?? '');
 const BUSINESS_STORAGE_KEY = 'pos_current_business';
 const CSRF_COOKIE_ENDPOINT = '/sanctum/csrf-cookie';
+const CSRF_RESPONSE_HEADERS = ['x-xsrf-token', 'x-csrf-token'];
+const SHOULD_DEBUG_XSRF = Boolean(runtimeEnv.DEV) || runtimeEnv.VITE_DEBUG_XSRF === 'true';
 
 let businessContext = null;
 let didNotifySessionExpired = false;
 let csrfCookiePromise = null;
+let csrfToken: string | null = null;
 
 const AUTH_MESSAGE_REGEX = /not authenticated|unauthenticated|unauthorized|token|session/i;
 const DEFAULT_ERROR_MESSAGE = API_MESSAGES.defaultError;
@@ -33,11 +37,13 @@ const createHttpError = (message: string, status?: number, data?: any): HttpErro
 
 const notifySessionExpired = (reason = 'session_expired') => {
   clearToken();
-  if (typeof window !== 'undefined' && !didNotifySessionExpired) {
+  const browserWindow = (globalThis as any)?.window;
+  if (browserWindow && !didNotifySessionExpired) {
     didNotifySessionExpired = true;
-    window.dispatchEvent(new CustomEvent('session-expired', {
-      detail: { reason }
-    }));
+    const event = typeof browserWindow.CustomEvent === 'function'
+      ? new browserWindow.CustomEvent('session-expired', { detail: { reason } })
+      : { type: 'session-expired', detail: { reason } };
+    browserWindow.dispatchEvent(event);
   }
 };
 
@@ -54,14 +60,14 @@ const isAuthFailure = (status, payload) => {
   return AUTH_MESSAGE_REGEX.test(message);
 };
 
-const readCookie = (name: string) => {
-  if (typeof document === 'undefined') {
-    return null;
-  }
-
-  const escapedName = name.replace(/[-[\]{}()*+?.,\^$|#\s]/g, '\\$&');
-  const match = document.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
+const resolveCsrfToken = (headers: Record<string, string | undefined> = {}) => {
+  const normalizedHeaders = Object.fromEntries(
+    Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value])
+  );
+  const token = CSRF_RESPONSE_HEADERS
+    .map((headerName) => normalizedHeaders[headerName])
+    .find((value) => typeof value === 'string' && value.length > 0);
+  return token ?? null;
 };
 
 const resolveBusinessId = (): number | string | null => {
@@ -71,10 +77,11 @@ const resolveBusinessId = (): number | string | null => {
   if (businessContext?.id) {
     return businessContext.id;
   }
-  if (typeof window === 'undefined') {
+  const browserWindow = (globalThis as any)?.window;
+  if (!browserWindow) {
     return null;
   }
-  const raw = window.localStorage.getItem(BUSINESS_STORAGE_KEY);
+  const raw = browserWindow.localStorage.getItem(BUSINESS_STORAGE_KEY);
   if (!raw) {
     return null;
   }
@@ -115,18 +122,24 @@ const instance = axios.create({
 });
 
 export const ensureCsrfCookie = async () => {
-  if (typeof window === 'undefined') {
+  const browserWindow = (globalThis as any)?.window;
+  if (!browserWindow) {
     return;
   }
 
-  if (readCookie('XSRF-TOKEN')) {
+  if (csrfToken) {
     return;
   }
 
   if (!csrfCookiePromise) {
-    csrfCookiePromise = instance.get(CSRF_COOKIE_ENDPOINT).finally(() => {
-      csrfCookiePromise = null;
-    });
+    csrfCookiePromise = instance
+      .get(CSRF_COOKIE_ENDPOINT)
+      .then((response) => {
+        csrfToken = resolveCsrfToken(response?.headers as Record<string, string | undefined>);
+      })
+      .finally(() => {
+        csrfCookiePromise = null;
+      });
   }
 
   try {
@@ -148,6 +161,14 @@ instance.interceptors.request.use(async (config) => {
   const method = config.method?.toUpperCase();
   if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
     await ensureCsrfCookie();
+    if (csrfToken) {
+      config.headers['X-XSRF-TOKEN'] = csrfToken;
+    }
+  }
+
+  if (SHOULD_DEBUG_XSRF && method === 'POST' && config.url === '/protected/auth/login') {
+    const hasXsrfHeader = Boolean(config.headers?.['X-XSRF-TOKEN']);
+    console.debug('[api] login request X-XSRF-TOKEN present:', hasXsrfHeader);
   }
 
   const businessId = resolveBusinessId();

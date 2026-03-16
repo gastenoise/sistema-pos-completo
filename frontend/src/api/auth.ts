@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient, ensureCsrfCookie } from './client';
 import { normalizeEntityResponse } from '@/lib/normalizeResponse';
 
 /** @typedef {import('@/types/user').CanonicalUserProfile} UserProfile */
@@ -39,6 +39,7 @@ export const clearToken = () => {
 };
 
 export const login = async (email, password) => {
+  await ensureCsrfCookie();
   const data = await apiClient.post('/protected/auth/login', { email, password });
   setToken(data?.success);
   return normalizeEntityResponse(data);
