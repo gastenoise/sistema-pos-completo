@@ -2,11 +2,12 @@ import axios from 'axios';
 import { clearToken, getToken } from './auth';
 import { API_MESSAGES } from '@/lib/toastMessages';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? '';
+const runtimeEnv = ((import.meta as any)?.env ?? {}) as Record<string, string | boolean | undefined>;
+const API_BASE_URL = String(runtimeEnv.VITE_API_URL ?? runtimeEnv.VITE_API_BASE_URL ?? '');
 const BUSINESS_STORAGE_KEY = 'pos_current_business';
 const CSRF_COOKIE_ENDPOINT = '/sanctum/csrf-cookie';
 const CSRF_RESPONSE_HEADERS = ['x-xsrf-token', 'x-csrf-token'];
-const SHOULD_DEBUG_XSRF = import.meta.env.DEV || import.meta.env.VITE_DEBUG_XSRF === 'true';
+const SHOULD_DEBUG_XSRF = Boolean(runtimeEnv.DEV) || runtimeEnv.VITE_DEBUG_XSRF === 'true';
 
 let businessContext = null;
 let didNotifySessionExpired = false;
@@ -36,11 +37,13 @@ const createHttpError = (message: string, status?: number, data?: any): HttpErro
 
 const notifySessionExpired = (reason = 'session_expired') => {
   clearToken();
-  if (typeof window !== 'undefined' && !didNotifySessionExpired) {
+  const browserWindow = (globalThis as any)?.window;
+  if (browserWindow && !didNotifySessionExpired) {
     didNotifySessionExpired = true;
-    window.dispatchEvent(new CustomEvent('session-expired', {
-      detail: { reason }
-    }));
+    const event = typeof browserWindow.CustomEvent === 'function'
+      ? new browserWindow.CustomEvent('session-expired', { detail: { reason } })
+      : { type: 'session-expired', detail: { reason } };
+    browserWindow.dispatchEvent(event);
   }
 };
 
@@ -74,10 +77,11 @@ const resolveBusinessId = (): number | string | null => {
   if (businessContext?.id) {
     return businessContext.id;
   }
-  if (typeof window === 'undefined') {
+  const browserWindow = (globalThis as any)?.window;
+  if (!browserWindow) {
     return null;
   }
-  const raw = window.localStorage.getItem(BUSINESS_STORAGE_KEY);
+  const raw = browserWindow.localStorage.getItem(BUSINESS_STORAGE_KEY);
   if (!raw) {
     return null;
   }
@@ -118,7 +122,8 @@ const instance = axios.create({
 });
 
 export const ensureCsrfCookie = async () => {
-  if (typeof window === 'undefined') {
+  const browserWindow = (globalThis as any)?.window;
+  if (!browserWindow) {
     return;
   }
 

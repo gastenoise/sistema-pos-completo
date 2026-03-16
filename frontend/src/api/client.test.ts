@@ -11,7 +11,7 @@ const requestInterceptors: Array<(config: RequestConfig) => Promise<RequestConfi
 const responseInterceptors: Array<(response: any) => any> = [];
 let interceptedLoginConfig: RequestConfig | null = null;
 
-const mockAxiosInstance = vi.fn(async (initialConfig: RequestConfig) => {
+const mockAxiosInstance: any = vi.fn(async (initialConfig: RequestConfig) => {
   let config: RequestConfig = {
     ...initialConfig,
     headers: { ...(initialConfig.headers ?? {}) },
