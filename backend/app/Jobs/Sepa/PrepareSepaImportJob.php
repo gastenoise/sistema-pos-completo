@@ -31,7 +31,7 @@ class PrepareSepaImportJob implements ShouldQueue
             return;
         }
 
-        if ($run->stage === SepaImportService::STAGE_PENDING_DISCOVERY) {
+        if ($run->stage === SepaImportService::STAGE_DOWNLOADED) {
             $importService->discoverInnerArchives($run);
         }
     }

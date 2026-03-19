@@ -21,7 +21,7 @@ class ProcessSepaImportSliceJob implements ShouldQueue
     public function handle(SepaImportService $importService): void
     {
         $run = SepaImportRun::query()->find($this->runId);
-        if ($run === null || $run->stage !== SepaImportService::STAGE_PENDING_PROCESSING) {
+        if ($run === null || !in_array($run->stage, [SepaImportService::STAGE_READY_TO_PROCESS, SepaImportService::STAGE_PROCESSING], true)) {
             return;
         }
 
