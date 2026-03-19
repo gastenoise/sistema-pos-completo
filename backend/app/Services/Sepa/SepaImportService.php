@@ -15,6 +15,13 @@ use ZipArchive;
 
 class SepaImportService
 {
+    public const STAGE_PENDING_DOWNLOAD = 'pending_download';
+    public const STAGE_PENDING_DISCOVERY = 'pending_discovery';
+    public const STAGE_PENDING_PROCESSING = 'pending_processing';
+    public const STAGE_PENDING_FINALIZE = 'pending_finalize';
+    public const STAGE_COMPLETED = 'completed';
+    public const STAGE_FAILED = 'failed';
+
     private const EXPECTED_MIN_COLUMNS = 8;
     private const ERROR_SAMPLE_LIMIT = 10;
 
@@ -24,12 +31,28 @@ class SepaImportService
 
     public function import(string $day, ?string $requestedDate = null): SepaImportRun
     {
+        $run = $this->startRun($day, $requestedDate);
+
+        while ($run->status === 'running') {
+            $run = $this->advanceRun($run);
+        }
+
+        return $run;
+    }
+
+    public function startRun(string $day, ?string $requestedDate = null): SepaImportRun
+    {
         $startedAt = now();
 
-        $run = SepaImportRun::create([
+        return SepaImportRun::create([
             'day' => $day,
             'requested_date' => $requestedDate,
             'status' => 'running',
+            'stage' => self::STAGE_PENDING_DOWNLOAD,
+            'pipeline_state' => [
+                'inner_zip_files' => [],
+                'next_archive_index' => 0,
+            ],
             'started_at' => $startedAt,
             'downloaded_files' => 0,
             'valid_rows' => 0,
@@ -37,73 +60,95 @@ class SepaImportService
             'inserted_rows' => 0,
             'updated_rows' => 0,
         ]);
-
-        try {
-            $metrics = $this->executeImport($day, $run->id);
-
-            $run->update([
-                'status' => 'success',
-                'downloaded_files' => $metrics['downloaded_files'],
-                'valid_rows' => $metrics['valid_rows'],
-                'invalid_rows' => $metrics['invalid_rows'],
-                'inserted_rows' => $metrics['inserted_rows'],
-                'updated_rows' => $metrics['updated_rows'],
-                'error_samples' => $metrics['error_samples'],
-                'finished_at' => now(),
-                'duration_seconds' => $this->safeDurationSeconds($startedAt),
-            ]);
-        } catch (\Throwable $exception) {
-            $run->update([
-                'status' => 'failed',
-                'error_message' => $exception->getMessage(),
-                'finished_at' => now(),
-                'duration_seconds' => $this->safeDurationSeconds($startedAt),
-            ]);
-
-            throw $exception;
-        } finally {
-            File::deleteDirectory(storage_path("app/sepa/tmp/run_{$run->id}"));
-        }
-
-        return $run->fresh();
     }
 
-    private function safeDurationSeconds(Carbon $startedAt): int
+    public function advanceRun(SepaImportRun $run): SepaImportRun
     {
-        return max(0, (int) $startedAt->diffInSeconds(now(), true));
+        $run = $run->fresh();
+
+        return match ($run?->stage) {
+            self::STAGE_PENDING_DOWNLOAD => $this->downloadArtifacts($run),
+            self::STAGE_PENDING_DISCOVERY => $this->discoverInnerArchives($run),
+            self::STAGE_PENDING_PROCESSING => $this->processNextArchive($run),
+            self::STAGE_PENDING_FINALIZE => $this->finalizeRun($run),
+            self::STAGE_COMPLETED, self::STAGE_FAILED => $run,
+            default => throw new RuntimeException("Etapa de importación SEPA desconocida: {$run->stage}"),
+        };
     }
 
-    /**
-     * @return array<string, int|array<int, array<string, mixed>>>
-     */
-    protected function executeImport(string $day, int $runId): array
+    public function downloadArtifacts(SepaImportRun $run): SepaImportRun
     {
-        $url = $this->sourceResolver->resolveUrlForDay($day);
-        $baseTmpDir = storage_path("app/sepa/tmp/run_{$runId}");
-        if (!is_dir($baseTmpDir)) {
-            mkdir($baseTmpDir, 0775, true);
-        }
+        return $this->runStage($run, self::STAGE_PENDING_DOWNLOAD, function (SepaImportRun $run, array &$state, array &$metrics): array {
+            $url = $this->sourceResolver->resolveUrlForDay($run->day);
+            $baseTmpDir = $this->baseTmpDir($run);
+            if (!is_dir($baseTmpDir)) {
+                mkdir($baseTmpDir, 0775, true);
+            }
 
-        $mainZipPath = $baseTmpDir.'/sepa_main.zip';
-        $this->downloadMainZip($url, $mainZipPath);
+            $mainZipPath = $baseTmpDir.'/sepa_main.zip';
+            $mainExtractDir = $baseTmpDir.'/main_extracted';
 
-        $mainExtractDir = $baseTmpDir.'/main_extracted';
-        $this->extractZip($mainZipPath, $mainExtractDir);
+            $this->downloadMainZip($url, $mainZipPath);
+            $this->extractZip($mainZipPath, $mainExtractDir);
 
-        $internalDateDir = $this->detectInternalDateDirectory($mainExtractDir);
-        $innerZipFiles = $this->listZipFilesSortedBySize($internalDateDir);
+            $state['main_zip_path'] = $mainZipPath;
+            $state['main_extract_dir'] = $mainExtractDir;
+            $state['inner_zip_files'] = [];
+            $state['next_archive_index'] = 0;
+            $metrics['downloaded_files'] = max($metrics['downloaded_files'], 1);
 
-        $metrics = [
-            'downloaded_files' => count($innerZipFiles) + 1,
-            'valid_rows' => 0,
-            'invalid_rows' => 0,
-            'inserted_rows' => 0,
-            'updated_rows' => 0,
-            'error_samples' => [],
-        ];
+            return [
+                'stage' => self::STAGE_PENDING_DISCOVERY,
+            ];
+        });
+    }
 
-        foreach ($innerZipFiles as $index => $zipPath) {
-            $innerExtractDir = $baseTmpDir.'/inner_'.($index + 1);
+    public function discoverInnerArchives(SepaImportRun $run): SepaImportRun
+    {
+        return $this->runStage($run, self::STAGE_PENDING_DISCOVERY, function (SepaImportRun $run, array &$state, array &$metrics): array {
+            $mainExtractDir = $state['main_extract_dir'] ?? null;
+            if (!is_string($mainExtractDir) || $mainExtractDir === '') {
+                throw new RuntimeException('No existe el directorio temporal del ZIP principal para descubrir archivos internos.');
+            }
+
+            $internalDateDir = $this->detectInternalDateDirectory($mainExtractDir);
+            $innerZipFiles = $this->listZipFilesSortedBySize($internalDateDir);
+
+            $state['internal_date_dir'] = $internalDateDir;
+            $state['inner_zip_files'] = array_values($innerZipFiles);
+            $state['next_archive_index'] = 0;
+            $metrics['downloaded_files'] = count($innerZipFiles) + 1;
+
+            return [
+                'stage' => $innerZipFiles === []
+                    ? self::STAGE_PENDING_FINALIZE
+                    : self::STAGE_PENDING_PROCESSING,
+            ];
+        });
+    }
+
+    public function processNextArchive(SepaImportRun $run): SepaImportRun
+    {
+        return $this->runStage($run, self::STAGE_PENDING_PROCESSING, function (SepaImportRun $run, array &$state, array &$metrics): array {
+            $innerZipFiles = $state['inner_zip_files'] ?? [];
+            $nextArchiveIndex = (int) ($state['next_archive_index'] ?? 0);
+
+            if (!is_array($innerZipFiles)) {
+                throw new RuntimeException('El estado del pipeline no contiene la lista de ZIP internos.');
+            }
+
+            if ($nextArchiveIndex >= count($innerZipFiles)) {
+                return [
+                    'stage' => self::STAGE_PENDING_FINALIZE,
+                ];
+            }
+
+            $zipPath = $innerZipFiles[$nextArchiveIndex] ?? null;
+            if (!is_string($zipPath) || $zipPath === '') {
+                throw new RuntimeException('No se pudo resolver el ZIP interno a procesar.');
+            }
+
+            $innerExtractDir = $this->baseTmpDir($run).'/inner_'.($nextArchiveIndex + 1);
             $this->extractZip($zipPath, $innerExtractDir);
 
             $csvPath = $this->findProductosCsv($innerExtractDir);
@@ -112,16 +157,133 @@ class SepaImportService
                     'zip' => basename($zipPath),
                     'error' => 'productos.csv no encontrado',
                 ]);
-                continue;
+            } else {
+                $this->parseAndUpsertCsv($csvPath, $metrics);
             }
 
-            $this->parseAndUpsertCsv($csvPath, $metrics);
-        }
+            $state['next_archive_index'] = $nextArchiveIndex + 1;
 
-        return $metrics;
+            return [
+                'stage' => $state['next_archive_index'] >= count($innerZipFiles)
+                    ? self::STAGE_PENDING_FINALIZE
+                    : self::STAGE_PENDING_PROCESSING,
+            ];
+        });
     }
 
-    private function downloadMainZip(string $url, string $destinationPath): void
+    public function finalizeRun(SepaImportRun $run): SepaImportRun
+    {
+        return $this->runStage($run, self::STAGE_PENDING_FINALIZE, function (SepaImportRun $run, array &$state): array {
+            $innerZipFiles = $state['inner_zip_files'] ?? [];
+            $nextArchiveIndex = (int) ($state['next_archive_index'] ?? 0);
+
+            if (is_array($innerZipFiles) && $nextArchiveIndex < count($innerZipFiles)) {
+                throw new RuntimeException('La corrida SEPA todavía tiene archivos pendientes de procesar.');
+            }
+
+            return [
+                'status' => 'success',
+                'stage' => self::STAGE_COMPLETED,
+                'finished_at' => now(),
+                'duration_seconds' => $this->safeDurationSeconds($run->started_at ?? now()),
+            ];
+        }, cleanupAfterSuccess: true);
+    }
+
+    private function safeDurationSeconds(Carbon $startedAt): int
+    {
+        return max(0, (int) $startedAt->diffInSeconds(now(), true));
+    }
+
+    /**
+     * @param callable(SepaImportRun, array<string, mixed>&, array<string, int|array<int, array<string, mixed>>>&): array<string, mixed> $callback
+     */
+    private function runStage(SepaImportRun $run, string $expectedStage, callable $callback, bool $cleanupAfterSuccess = false): SepaImportRun
+    {
+        $run = $run->fresh();
+        if ($run === null) {
+            throw new RuntimeException('La corrida SEPA no existe.');
+        }
+
+        if ($run->status !== 'running') {
+            return $run;
+        }
+
+        if ($run->stage !== $expectedStage) {
+            throw new RuntimeException("La corrida SEPA #{$run->id} no está en la etapa esperada [{$expectedStage}] sino en [{$run->stage}].");
+        }
+
+        $state = $this->pipelineState($run);
+        $metrics = $this->metricsFromRun($run);
+
+        try {
+            $updates = $callback($run, $state, $metrics);
+            $run->update(array_merge($metrics, [
+                'pipeline_state' => $state,
+            ], $updates));
+        } catch (\Throwable $exception) {
+            $this->markRunAsFailed($run, $exception);
+            throw $exception;
+        }
+
+        $run = $run->fresh();
+
+        if ($cleanupAfterSuccess && $run->status === 'success') {
+            $this->cleanupRunArtifacts($run);
+        }
+
+        return $run;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pipelineState(SepaImportRun $run): array
+    {
+        $state = $run->pipeline_state;
+
+        return is_array($state) ? $state : [];
+    }
+
+    /**
+     * @return array<string, int|array<int, array<string, mixed>>>
+     */
+    private function metricsFromRun(SepaImportRun $run): array
+    {
+        return [
+            'downloaded_files' => (int) $run->downloaded_files,
+            'valid_rows' => (int) $run->valid_rows,
+            'invalid_rows' => (int) $run->invalid_rows,
+            'inserted_rows' => (int) $run->inserted_rows,
+            'updated_rows' => (int) $run->updated_rows,
+            'error_samples' => is_array($run->error_samples) ? $run->error_samples : [],
+        ];
+    }
+
+    private function markRunAsFailed(SepaImportRun $run, \Throwable $exception): void
+    {
+        $run->update([
+            'status' => 'failed',
+            'stage' => self::STAGE_FAILED,
+            'error_message' => $exception->getMessage(),
+            'finished_at' => now(),
+            'duration_seconds' => $this->safeDurationSeconds($run->started_at ?? now()),
+        ]);
+
+        $this->cleanupRunArtifacts($run);
+    }
+
+    private function cleanupRunArtifacts(SepaImportRun $run): void
+    {
+        File::deleteDirectory($this->baseTmpDir($run));
+    }
+
+    private function baseTmpDir(SepaImportRun $run): string
+    {
+        return storage_path("app/sepa/tmp/run_{$run->id}");
+    }
+
+    protected function downloadMainZip(string $url, string $destinationPath): void
     {
         $response = Http::timeout((int) config('sepa.http_timeout', 120))->get($url);
 
@@ -132,7 +294,7 @@ class SepaImportService
         file_put_contents($destinationPath, $response->body());
     }
 
-    private function extractZip(string $zipPath, string $extractTo): void
+    protected function extractZip(string $zipPath, string $extractTo): void
     {
         if (!is_dir($extractTo)) {
             mkdir($extractTo, 0775, true);
@@ -151,7 +313,7 @@ class SepaImportService
         $zip->close();
     }
 
-    private function detectInternalDateDirectory(string $baseDir): string
+    protected function detectInternalDateDirectory(string $baseDir): string
     {
         $directories = array_values(array_filter(glob($baseDir.'/*'), 'is_dir'));
 
@@ -165,7 +327,7 @@ class SepaImportService
     /**
      * @return array<int, string>
      */
-    private function listZipFilesSortedBySize(string $directory): array
+    protected function listZipFilesSortedBySize(string $directory): array
     {
         $zipFiles = glob($directory.'/*.zip') ?: [];
 
@@ -176,7 +338,7 @@ class SepaImportService
         return $zipFiles;
     }
 
-    private function findProductosCsv(string $directory): ?string
+    protected function findProductosCsv(string $directory): ?string
     {
         $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory));
 
@@ -196,7 +358,7 @@ class SepaImportService
     /**
      * @param array<string, int|array<int, array<string, mixed>>> $metrics
      */
-    private function parseAndUpsertCsv(string $csvPath, array &$metrics): void
+    protected function parseAndUpsertCsv(string $csvPath, array &$metrics): void
     {
         $file = new SplFileObject($csvPath);
         $file->setFlags(SplFileObject::READ_CSV | SplFileObject::DROP_NEW_LINE | SplFileObject::SKIP_EMPTY);
@@ -322,7 +484,7 @@ class SepaImportService
      * @param array<int, array<string, mixed>> $batch
      * @param array<string, int|array<int, array<string, mixed>>> $metrics
      */
-    private function persistChunk(array $batch, array &$metrics): void
+    protected function persistChunk(array $batch, array &$metrics): void
     {
         $barcodes = array_column($batch, 'barcode');
         $existingRows = SepaItem::query()
