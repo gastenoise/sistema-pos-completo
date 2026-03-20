@@ -46,19 +46,48 @@ class SystemSchedulerManualRunTest extends TestCase
         ]);
     }
 
-    public function test_it_responds_correctly_for_sepa_sync_with_token(): void
+    public function test_it_starts_sepa_run_asynchronously_by_default(): void
     {
-        // Mocking the behavior of sepa:sync might be complex because it depends on external URLs.
-        // For the purpose of this test, we want to verify the controller's token logic and
-        // that it tries to call Artisan. We can partial-mock Artisan if needed, but
-        // since we are getting a 500 from deep inside the service, we know the controller passed the auth.
+        Artisan::shouldReceive('call')->once()->with('sepa:sync', [])->andReturn(0);
+        Artisan::shouldReceive('output')->once()->andReturn("bootstrap queued\n");
 
-        // Instead of full execution, we verify it doesn't return 401.
         $response = $this->postJson('/system/sepa-sync', [], [
             'X-Cron-Token' => 'test-token'
         ]);
 
-        // It might be 500 in tests due to missing SEPA config, but not 401.
-        $this->assertNotEquals(401, $response->getStatusCode());
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'message' => 'Corrida SEPA iniciada.',
+        ]);
+    }
+
+    public function test_it_can_advance_a_single_sepa_stage_manually(): void
+    {
+        Artisan::shouldReceive('call')->once()->with('sepa:advance', [])->andReturn(0);
+        Artisan::shouldReceive('output')->once()->andReturn("advanced\n");
+
+        $response = $this->postJson('/system/sepa-sync', ['action' => 'advance'], [
+            'X-Cron-Token' => 'test-token'
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'message' => 'Corrida SEPA avanzada una etapa.',
+        ]);
+    }
+
+    public function test_it_rejects_unknown_sepa_action(): void
+    {
+        $response = $this->postJson('/system/sepa-sync', ['action' => 'foo'], [
+            'X-Cron-Token' => 'test-token'
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJson([
+            'success' => false,
+            'message' => 'Acción SEPA inválida. Use start, advance o diagnostic.',
+        ]);
     }
 }

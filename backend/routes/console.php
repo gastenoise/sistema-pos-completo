@@ -10,4 +10,16 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::job(new FetchDollarRate)->dailyAt('09:00');
-Schedule::command('sepa:sync')->dailyAt('15:30')->timezone('America/Argentina/Buenos_Aires');
+
+Schedule::command('sepa:sync')
+    ->dailyAt('15:30')
+    ->timezone('America/Argentina/Buenos_Aires')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+Schedule::command('sepa:advance')
+    ->everyFifteenMinutes()
+    ->between('15:30', '23:59')
+    ->timezone('America/Argentina/Buenos_Aires')
+    ->withoutOverlapping()
+    ->onOneServer();
