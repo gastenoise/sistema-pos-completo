@@ -33,7 +33,7 @@ class SepaSyncSchedulingTest extends TestCase
             ->first(fn ($event) => str_contains((string) $event->command, 'sepa:advance'));
 
         $this->assertNotNull($event, 'No se encontró la tarea sepa:advance en el scheduler.');
-        $this->assertSame('*/15 * * * *', $event->expression);
+        $this->assertSame('* * * * *', $event->expression);
         $this->assertSame('America/Argentina/Buenos_Aires', $event->timezone);
         $this->assertNotEmpty($this->schedulerFilters($event), 'La tarea sepa:advance debe restringirse al horario operativo.');
     }

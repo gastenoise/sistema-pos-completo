@@ -18,7 +18,7 @@ Schedule::command('sepa:sync')
     ->onOneServer();
 
 Schedule::command('sepa:advance')
-    ->everyFifteenMinutes()
+    ->everyMinute()
     ->between('15:30', '23:59')
     ->timezone('America/Argentina/Buenos_Aires')
     ->withoutOverlapping()

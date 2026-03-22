@@ -11,6 +11,7 @@ class SepaImportRunFile extends Model
 
     protected $casts = [
         'metrics' => 'array',
+        'csv_headers' => 'array',
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
     ];

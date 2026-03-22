@@ -155,20 +155,24 @@ class SepaImportServiceTest extends TestCase
         $service = $this->service();
 
         $run = $service->startRun('lunes', '2026-03-19');
-        $run = $service->downloadArtifacts($run);
+        $run = $service->toDownloadingMainZip($run);
+        $run = $service->downloadMainZipStage($run);
 
         $this->assertSame('running', $run->status);
-        $this->assertSame(SepaImportService::STAGE_DOWNLOADED, $run->stage);
+        $this->assertSame(SepaImportService::STAGE_MAIN_ZIP_DOWNLOADED, $run->stage);
         $this->assertNotNull($run->main_zip_path);
+
+        $run = $service->toExtractingMainZip($run);
+        $run = $service->extractMainZipStage($run);
         $this->assertDirectoryExists($run->main_extract_dir);
         $this->assertDirectoryExists(storage_path('app/sepa/tmp/run_'.$run->id));
 
-        $run = $service->advanceRun($run);
+        $run = $service->toDiscoveringInnerArchives($run);
+        $run = $service->discoverInnerArchives($run);
         $run = $run->fresh(['files']);
 
-        $this->assertSame(SepaImportService::STAGE_READY_TO_PROCESS, $run->stage);
+        $this->assertSame(SepaImportService::STAGE_READY_FOR_ARCHIVE_PROCESSING, $run->stage);
         $this->assertSame(2, $run->total_zip_files);
-        $this->assertSame(0, $run->next_file_index);
         $this->assertCount(2, $run->files);
         $this->assertSame(['pending', 'pending'], $run->files->pluck('status')->all());
         $this->assertTrue($run->canAdvance());
@@ -185,24 +189,44 @@ class SepaImportServiceTest extends TestCase
         $service = $this->service();
 
         $run = $service->startRun('lunes', '2026-03-19');
-        $run = $service->downloadArtifacts($run);
+        $run = $service->toDownloadingMainZip($run);
+        $run = $service->downloadMainZipStage($run);
+        $run = $service->toExtractingMainZip($run);
+        $run = $service->extractMainZipStage($run);
+        $run = $service->toDiscoveringInnerArchives($run);
         $run = $service->discoverInnerArchives($run);
-        $run = $service->processNextArchive($run);
-        $run = $service->processNextArchive($run);
+
+        // Process first file
+        $run = $service->toProcessingArchive($run);
+        $run = $service->processingArchiveStage($run);
+        $run = $service->toProcessingChunk($run);
+        $run = $service->processingChunkStage($run); // finishes file 1
+
+        // Process second file
+        $run = $service->toProcessingArchive($run);
+        $run = $service->processingArchiveStage($run);
+        $run = $service->toProcessingChunk($run);
+        $run = $service->processingChunkStage($run); // finishes file 2
+
         $run = $run->fresh(['files']);
 
-        $this->assertSame(2, $run->next_file_index);
-        $this->assertSame(SepaImportService::STAGE_READY_TO_PROCESS, $run->stage);
+        $this->assertSame(SepaImportService::STAGE_READY_FOR_ARCHIVE_PROCESSING, $run->stage);
         $this->assertSame(['done', 'done', 'pending'], $run->files->pluck('status')->all());
         $this->assertDatabaseCount('sepa_items', 2);
 
         $job = new ProcessSepaImportSliceJob($run->id);
-        $job->handle($service);
+        $job->handle($service); // goes to toProcessingArchive (next step for STAGE_READY_FOR_ARCHIVE_PROCESSING)
+
+        $run = $run->fresh();
+        $this->assertSame(SepaImportService::STAGE_PROCESSING_ARCHIVE, $run->stage);
+
+        $run = $service->advanceRun($run); // to ready for chunk
+        $run = $service->advanceRun($run); // to processing chunk
+        $run = $service->advanceRun($run); // finishes file 3 -> ready for archive
 
         $run = $run->fresh(['files']);
 
-        $this->assertSame(SepaImportService::STAGE_FINALIZING, $run->stage);
-        $this->assertSame(3, $run->next_file_index);
+        $this->assertSame(SepaImportService::STAGE_READY_FOR_ARCHIVE_PROCESSING, $run->stage);
         $this->assertSame(['done', 'done', 'done'], $run->files->pluck('status')->all());
         $this->assertSame(3, $run->valid_rows);
         $this->assertSame(3, SepaItem::query()->count());
@@ -215,20 +239,37 @@ class SepaImportServiceTest extends TestCase
         $service = $this->service();
 
         $run = $service->startRun('lunes', '2026-03-19');
-        $run = $service->downloadArtifacts($run);
+        $run = $service->toDownloadingMainZip($run);
+        $run = $service->downloadMainZipStage($run);
+        $run = $service->toExtractingMainZip($run);
+        $run = $service->extractMainZipStage($run);
+        $run = $service->toDiscoveringInnerArchives($run);
         $run = $service->discoverInnerArchives($run);
-        $run = $service->processNextArchive($run);
+
+        $run = $service->toProcessingArchive($run);
+        $run = $service->processingArchiveStage($run);
 
         $this->assertDirectoryExists(storage_path('app/sepa/tmp/run_'.$run->id));
 
-        $run = $service->processNextArchive($run);
+        $run = $service->toProcessingChunk($run);
+        $run = $service->processingChunkStage($run); // finishes file 1
         $this->assertDirectoryExists(storage_path('app/sepa/tmp/run_'.$run->id));
 
-        $run = $service->finalizeRun($run);
+        // Finish all files
+        $run = $service->toProcessingArchive($run);
+        $run = $service->processingArchiveStage($run);
+        $run = $service->toProcessingChunk($run);
+        $run = $service->processingChunkStage($run); // finishes file 2
+
+        // Finalizing
+        $run = $service->toProcessingArchive($run); // to reconciling
+        $run = $service->reconcileMetricsStage($run); // to cleaning
+        $run = $service->cleaningArtifactsStage($run); // to success
 
         $this->assertSame(SepaImportService::STAGE_SUCCESS, $run->stage);
         $this->assertDirectoryDoesNotExist(storage_path('app/sepa/tmp/run_'.$run->id));
 
+        config()->set('sepa.max_stage_attempts', 1);
         $resolver = $this->createMock(SepaSourceResolver::class);
         $resolver->method('resolveUrlForDay')->willReturn('http://example.com/sepa.zip');
 
@@ -241,7 +282,9 @@ class SepaImportServiceTest extends TestCase
         };
 
         try {
-            $failingService->import('lunes');
+            $run = $failingService->startRun('lunes');
+            $failingService->toDownloadingMainZip($run);
+            $failingService->downloadMainZipStage($run);
             $this->fail('The import should throw an exception.');
         } catch (RuntimeException $e) {
             $this->assertSame('Simulated import failure', $e->getMessage());

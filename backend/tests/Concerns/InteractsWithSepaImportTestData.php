@@ -34,7 +34,13 @@ trait InteractsWithSepaImportTestData
             $table->string('day', 20);
             $table->string('requested_date')->nullable();
             $table->string('status', 20)->default('running');
-            $table->string('stage', 40)->default(SepaImportService::STAGE_PENDING_DOWNLOAD);
+            $table->string('stage', 40)->default(SepaImportService::STAGE_SCHEDULED);
+            $table->string('current_stage', 40)->nullable();
+            $table->timestamp('next_action_at')->nullable();
+            $table->timestamp('locked_at')->nullable();
+            $table->unsignedInteger('attempts')->default(0);
+            $table->boolean('artifacts_ready')->default(false);
+            $table->boolean('discovery_completed')->default(false);
             $table->string('main_zip_path')->nullable();
             $table->string('main_extract_dir')->nullable();
             $table->unsignedInteger('total_zip_files')->default(0);
@@ -52,6 +58,7 @@ trait InteractsWithSepaImportTestData
             $table->text('error_message')->nullable();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
+            $table->timestamp('finalized_at')->nullable();
             $table->unsignedInteger('duration_seconds')->nullable();
             $table->timestamps();
         });
@@ -63,6 +70,8 @@ trait InteractsWithSepaImportTestData
             $table->string('zip_path');
             $table->string('extract_dir')->nullable();
             $table->string('csv_path')->nullable();
+            $table->unsignedBigInteger('last_line_number')->default(0);
+            $table->json('csv_headers')->nullable();
             $table->string('status', 20)->default('pending');
             $table->json('metrics')->nullable();
             $table->text('error_message')->nullable();

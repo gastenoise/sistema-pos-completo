@@ -40,7 +40,7 @@ class SepaIncrementalResumeTest extends TestCase
 
         $run = SepaImportRun::query()->firstOrFail();
 
-        $this->assertSame(SepaImportService::STAGE_PENDING_DOWNLOAD, $run->stage);
+        $this->assertSame(SepaImportService::STAGE_SCHEDULED, $run->stage);
         $this->assertSame('running', $run->status);
         Queue::assertPushed(PrepareSepaImportJob::class, 1);
     }
@@ -64,34 +64,80 @@ class SepaIncrementalResumeTest extends TestCase
 
         $run = SepaImportRun::query()->firstOrFail();
 
-        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])
-            ->assertSuccessful();
+        // scheduled -> to downloading
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
         $run = $run->fresh();
-        $this->assertSame(SepaImportService::STAGE_DOWNLOADED, $run->stage);
+        $this->assertSame(SepaImportService::STAGE_DOWNLOADING_MAIN_ZIP, $run->stage);
 
-        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])
-            ->assertSuccessful();
+        // downloading -> downloaded
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
+        $run = $run->fresh();
+        $this->assertSame(SepaImportService::STAGE_MAIN_ZIP_DOWNLOADED, $run->stage);
+
+        // downloaded -> to extracting
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
+        $run = $run->fresh();
+        $this->assertSame(SepaImportService::STAGE_EXTRACTING_MAIN_ZIP, $run->stage);
+
+        // extracting -> extracted
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
+        $run = $run->fresh();
+        $this->assertSame(SepaImportService::STAGE_MAIN_ZIP_EXTRACTED, $run->stage);
+
+        // extracted -> to discovering
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
+        $run = $run->fresh();
+        $this->assertSame(SepaImportService::STAGE_DISCOVERING_INNER_ARCHIVES, $run->stage);
+
+        // discovering -> ready for archive
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
         $run = $run->fresh(['files']);
-        $this->assertContains($run->stage, [SepaImportService::STAGE_READY_TO_PROCESS, SepaImportService::STAGE_PROCESSING]);
-        $this->assertSame(0, $run->next_file_index);
+        $this->assertSame(SepaImportService::STAGE_READY_FOR_ARCHIVE_PROCESSING, $run->stage);
         $this->assertCount(2, $run->files);
 
-        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])
-            ->assertSuccessful();
+        // ready for archive -> to processing archive
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
+        $run = $run->fresh();
+        $this->assertSame(SepaImportService::STAGE_PROCESSING_ARCHIVE, $run->stage);
+
+        // processing archive -> processing stage
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
+        $run = $run->fresh();
+        $this->assertSame(SepaImportService::STAGE_READY_FOR_CHUNK_PROCESSING, $run->stage);
+
+        // ready for chunk -> processing chunk
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
+        $run = $run->fresh();
+        $this->assertSame(SepaImportService::STAGE_PROCESSING_CHUNK, $run->stage);
+
+        // processing chunk (since samples are small, 1 chunk finishes it) -> ready for archive (next file)
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
         $run = $run->fresh(['files']);
-        $this->assertContains($run->stage, [SepaImportService::STAGE_READY_TO_PROCESS, SepaImportService::STAGE_PROCESSING]);
-        $this->assertSame(1, $run->next_file_index);
+        $this->assertSame(SepaImportService::STAGE_READY_FOR_ARCHIVE_PROCESSING, $run->stage);
         $this->assertSame(['done', 'pending'], $run->files->pluck('status')->all());
 
-        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])
-            ->assertSuccessful();
-        $run = $run->fresh(['files']);
-        $this->assertSame(SepaImportService::STAGE_FINALIZING, $run->stage);
-        $this->assertSame(2, $run->next_file_index);
-        $this->assertSame(['done', 'done'], $run->files->pluck('status')->all());
+        // Process second file
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful(); // to processing archive
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful(); // processing archive -> ready for chunk
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful(); // to processing chunk
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful(); // processing chunk -> ready for archive (none left)
 
-        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])
-            ->assertSuccessful();
+        $run = $run->fresh(['files']);
+        $this->assertSame(['done', 'done'], $run->files->pluck('status')->all());
+        $this->assertSame(SepaImportService::STAGE_READY_FOR_ARCHIVE_PROCESSING, $run->stage);
+
+        // No more files -> reconciling
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
+        $run = $run->fresh();
+        $this->assertSame(SepaImportService::STAGE_RECONCILING_METRICS, $run->stage);
+
+        // reconciling -> cleaning
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
+        $run = $run->fresh();
+        $this->assertSame(SepaImportService::STAGE_CLEANING_ARTIFACTS, $run->stage);
+
+        // cleaning -> success
+        $this->artisan('sepa:advance', ['--day' => 'lunes', '--date' => '2026-03-19'])->assertSuccessful();
         $run = $run->fresh();
 
         $this->assertSame('success', $run->status);

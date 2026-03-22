@@ -73,8 +73,12 @@ class SepaSyncCommand extends Command
     private function dispatchBootstrapJob(SepaImportRun $run): ?string
     {
         if (!in_array($run->stage, [
-            SepaImportService::STAGE_PENDING_DOWNLOAD,
-            SepaImportService::STAGE_DOWNLOADED,
+            SepaImportService::STAGE_SCHEDULED,
+            SepaImportService::STAGE_DOWNLOADING_MAIN_ZIP,
+            SepaImportService::STAGE_MAIN_ZIP_DOWNLOADED,
+            SepaImportService::STAGE_EXTRACTING_MAIN_ZIP,
+            SepaImportService::STAGE_MAIN_ZIP_EXTRACTED,
+            SepaImportService::STAGE_DISCOVERING_INNER_ARCHIVES,
         ], true)) {
             return null;
         }
