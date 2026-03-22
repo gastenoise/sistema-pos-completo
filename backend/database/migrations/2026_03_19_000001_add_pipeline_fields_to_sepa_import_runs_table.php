@@ -11,18 +11,18 @@ return new class extends Migration {
     {
         Schema::table('sepa_import_runs', function (Blueprint $table): void {
             $table->string('stage', 40)
-                ->default(SepaImportService::STAGE_PENDING_DOWNLOAD)
+                ->default('scheduled')
                 ->after('status');
             $table->json('pipeline_state')->nullable()->after('error_samples');
         });
 
         DB::table('sepa_import_runs')
             ->where('status', 'success')
-            ->update(['stage' => SepaImportService::STAGE_SUCCESS]);
+            ->update(['stage' => 'success']);
 
         DB::table('sepa_import_runs')
             ->where('status', 'failed')
-            ->update(['stage' => SepaImportService::STAGE_FAILED]);
+            ->update(['stage' => 'failed']);
     }
 
     public function down(): void
