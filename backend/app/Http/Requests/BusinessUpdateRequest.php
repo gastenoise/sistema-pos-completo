@@ -28,6 +28,7 @@ class BusinessUpdateRequest extends FormRequest
             'business_parameters' => 'nullable|array',
             'business_parameters.' . BusinessParameter::SHOW_CLOSED_SALE_AUTOMATICALLY => 'sometimes|boolean',
             'business_parameters.' . BusinessParameter::ENABLE_SEPA_ITEMS => 'sometimes|boolean',
+            'business_parameters.' . BusinessParameter::ENABLE_BARCODE_SCANNER => 'sometimes|boolean',
             'business_parameters.*' => 'boolean',
             'currency' => 'nullable|string|in:ARS,USD',
         ];

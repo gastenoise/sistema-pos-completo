@@ -3,6 +3,7 @@
 namespace App\Actions\Business;
 
 use App\Models\Business;
+use App\Models\BusinessParameter;
 use App\Models\Category;
 
 class BootstrapBusinessAction
@@ -33,5 +34,10 @@ class BootstrapBusinessAction
                 'icon' => $category['icon'],
             ]);
         }
+
+        // 3. Activar escáner de código de barras por defecto
+        $business->parameters()->firstOrCreate([
+            'parameter_id' => BusinessParameter::ENABLE_BARCODE_SCANNER,
+        ]);
     }
 }
