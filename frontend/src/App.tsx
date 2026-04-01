@@ -80,11 +80,6 @@ const AuthenticatedApp = () => {
   const ignoreImmediateResetRef = useRef(false);
 
 
-  if (isLoginRoute && isAuthenticated && !isLoadingAuth) {
-    return <Navigate to="/Home" replace />;
-  }
-
-
   const requiresBusinessContext = !isLoginRoute && !isHomeRoute && !isBusinessSelectRoute;
 
   useEffect(() => {
@@ -132,6 +127,11 @@ const AuthenticatedApp = () => {
       }, 180);
     },
   });
+
+
+  if (isLoginRoute && isAuthenticated && !isLoadingAuth) {
+    return <Navigate to="/Home" replace />;
+  }
 
   if (isAuthenticated && !isLoadingAuth && requiresBusinessContext && !businessId) {
     return <Navigate to="/Home" replace />;
