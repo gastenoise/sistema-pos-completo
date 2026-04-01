@@ -36,6 +36,7 @@ import ItemsFiltersDialog from '@/components/items/ItemsFiltersDialog';
 import { useItemFilters } from '@/modules/items/hooks/useItemFilters';
 import { useKeyboardScanner } from '@/components/scanner/useKeyboardScanner';
 import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
+import { handleItemsScanComplete } from '@/modules/pos/utils/scannerHandlers';
 
 export default function Items() {
   const { businessId, currentBusiness, businesses } = useBusiness();
@@ -451,17 +452,15 @@ export default function Items() {
     contextBlocklist: ['POS_PAYMENT_DIALOG'],
     debug: true,
     onScanComplete: (rawCode) => {
-      const code = String(rawCode ?? '').trim();
-      if (!code) {
-        return;
-      }
-
-      setBarcodeOrSkuQuery(code);
-      setSearchQuery('');
-      if (hasOffsetPagination && currentPage > 1) {
-        setPage(1);
-      }
-      focusAndHighlightBarcodeInput();
+      handleItemsScanComplete({
+        rawCode,
+        hasOffsetPagination,
+        currentPage,
+        setBarcodeOrSkuQuery,
+        setSearchQuery,
+        setPage,
+        focusAndHighlightBarcodeInput,
+      });
     },
   });
 
