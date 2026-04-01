@@ -34,6 +34,7 @@ export default function ItemsFiltersDialog({
   onClearFilters,
   categories = [],
   searchInputRef,
+  barcodeInputRef,
   rightContent = null,
   inputClassName = '',
   searchInputClassName = '',
@@ -105,6 +106,7 @@ export default function ItemsFiltersDialog({
         </div>
 
         <Input
+          ref={barcodeInputRef}
           type="text"
           placeholder="por barcode o sku"
           inputMode="numeric"

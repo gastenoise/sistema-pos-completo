@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Upload, Package, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -34,9 +34,11 @@ import BulkActionsBar from '@/components/pos/BulkActionsBar';
 import CsvImportWizard from '@/components/pos/CsvImportWizard';
 import ItemsFiltersDialog from '@/components/items/ItemsFiltersDialog';
 import { useItemFilters } from '@/modules/items/hooks/useItemFilters';
+import { useKeyboardScanner } from '@/components/scanner/useKeyboardScanner';
+import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
 
 export default function Items() {
-  const { businessId } = useBusiness();
+  const { businessId, currentBusiness, businesses } = useBusiness();
   const queryClient = useQueryClient();
   const { user, logout } = useAuth();
   
@@ -63,6 +65,8 @@ export default function Items() {
   const [importLoading, setImportLoading] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [barcodeInputHighlighted, setBarcodeInputHighlighted] = useState(false);
+  const barcodeInputRef = useRef<HTMLInputElement | null>(null);
 
   const getItemSelectionKey = (item) => `${item.source || 'local'}:${item.source === 'sepa' ? (item.sepa_item_id || item.id) : item.id}`;
 
@@ -139,6 +143,15 @@ export default function Items() {
   const totalPages = hasOffsetPagination ? Number(pagination?.last_page || 1) : null;
   const currentPage = hasOffsetPagination ? Number(pagination?.current_page || page) : Number(page);
   const hasNextCursor = Boolean(pagination?.next_cursor);
+  const selectedBusiness = businesses.find((business) => {
+    const id = business?.business_id ?? business?.id;
+    return String(id) === String(businessId);
+  });
+  const currentBusinessParameters: any = {
+    ...normalizeBusinessParameters(selectedBusiness),
+    ...normalizeBusinessParameters(currentBusiness),
+  };
+  const scannerEnabled = currentBusinessParameters[BUSINESS_PARAMETER_IDS.ENABLE_BARCODE_SCANNER] === true;
 
   // Create/Update mutation
   const itemMutation = useSaveItemMutation();
@@ -417,6 +430,37 @@ export default function Items() {
     setOnlyPriceUpdated(false);
   };
 
+  const focusAndHighlightBarcodeInput = () => {
+    barcodeInputRef.current?.focus();
+    setBarcodeInputHighlighted(true);
+  };
+
+  useEffect(() => {
+    if (!barcodeInputHighlighted) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setBarcodeInputHighlighted(false), 800);
+    return () => window.clearTimeout(timeout);
+  }, [barcodeInputHighlighted]);
+
+  useKeyboardScanner({
+    enabled: scannerEnabled,
+    onScanComplete: (rawCode) => {
+      const code = String(rawCode ?? '').trim();
+      if (!code) {
+        return;
+      }
+
+      setBarcodeOrSkuQuery(code);
+      setSearchQuery('');
+      if (hasOffsetPagination && currentPage > 1) {
+        setPage(1);
+      }
+      focusAndHighlightBarcodeInput();
+    },
+  });
+
   return (
     <div className="min-h-screen bg-slate-50">
       <TopNav user={user} onLogout={handleLogout} currentPage="Items" />
@@ -458,7 +502,9 @@ export default function Items() {
             categories={categories}
             searchInputClassName="flex-1 min-w-[240px]"
             barcodeInputClassName="sm:w-44 md:w-52"
+            inputClassName={barcodeInputHighlighted ? 'ring-2 ring-emerald-400 ring-offset-1' : ''}
             searchInputRef={null as any}
+            barcodeInputRef={barcodeInputRef}
           />
         </div>
 
