@@ -4,7 +4,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -24,8 +24,6 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { canAccessRoute } from '@/lib/authorizationGuards';
-import { useKeyboardScanner } from '@/components/scanner/useKeyboardScanner';
-import ScanProgressOverlay from '@/components/scanner/ScanProgressOverlay';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -70,64 +68,7 @@ const AuthenticatedApp = () => {
   const isLoginRoute = location.pathname === '/login';
   const isHomeRoute = location.pathname === '/Home';
   const isBusinessSelectRoute = location.pathname === '/BusinessSelect';
-  const isScannerRoute = location.pathname === '/POS' || location.pathname === '/Items';
-  const [scanOverlay, setScanOverlay] = useState({
-    open: false,
-    buffer: '',
-    status: 'scanning' as 'scanning' | 'completed',
-  });
-  const completeFeedbackTimerRef = useRef<number | null>(null);
-  const ignoreImmediateResetRef = useRef(false);
-
-
   const requiresBusinessContext = !isLoginRoute && !isHomeRoute && !isBusinessSelectRoute;
-
-  useEffect(() => {
-    return () => {
-      if (completeFeedbackTimerRef.current !== null) {
-        window.clearTimeout(completeFeedbackTimerRef.current);
-      }
-    };
-  }, []);
-
-  useKeyboardScanner({
-    enabled: isAuthenticated && isScannerRoute,
-    onScanProgress: (value, meta) => {
-      if (ignoreImmediateResetRef.current && !meta.isScannerSession && value.length === 0) {
-        return;
-      }
-
-      if (!meta.isScannerSession || value.length === 0) {
-        setScanOverlay({ open: false, buffer: '', status: 'scanning' });
-        return;
-      }
-
-      setScanOverlay({
-        open: true,
-        buffer: value,
-        status: 'scanning',
-      });
-    },
-    onScanComplete: (value) => {
-      ignoreImmediateResetRef.current = true;
-
-      if (completeFeedbackTimerRef.current !== null) {
-        window.clearTimeout(completeFeedbackTimerRef.current);
-      }
-
-      setScanOverlay({
-        open: true,
-        buffer: value,
-        status: 'completed',
-      });
-
-      completeFeedbackTimerRef.current = window.setTimeout(() => {
-        setScanOverlay({ open: false, buffer: '', status: 'scanning' });
-        ignoreImmediateResetRef.current = false;
-      }, 180);
-    },
-  });
-
 
   if (isLoginRoute && isAuthenticated && !isLoadingAuth) {
     return <Navigate to="/Home" replace />;
@@ -179,11 +120,6 @@ const AuthenticatedApp = () => {
           </DialogContent>
         </Dialog>
       )}
-      <ScanProgressOverlay
-        open={scanOverlay.open && isScannerRoute}
-        buffer={scanOverlay.buffer}
-        status={scanOverlay.status}
-      />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={
