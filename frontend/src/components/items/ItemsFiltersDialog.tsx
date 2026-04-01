@@ -34,7 +34,7 @@ export default function ItemsFiltersDialog({
   onClearFilters,
   categories = [],
   searchInputRef,
-  barcodeInputRef,
+  barcodeInputRef = null,
   rightContent = null,
   inputClassName = '',
   searchInputClassName = '',
