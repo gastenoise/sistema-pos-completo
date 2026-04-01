@@ -18,6 +18,7 @@ import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/busin
 import { getIconComponent } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { useAuthorization } from '@/components/auth/AuthorizationContext';
+import { useKeyboardScanner } from '@/components/scanner/useKeyboardScanner';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useCart, CartProvider } from '@/components/pos/CartContext';
@@ -73,9 +74,11 @@ function POSContent() {
   const [isLastSaleDialogOpen, setIsLastSaleDialogOpen] = useState(false);
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
   const [isProcessingItemsAction, setIsProcessingItemsAction] = useState(false);
+  const [pendingScannedCode, setPendingScannedCode] = useState<string | null>(null);
   const { role } = useAuthorization();
   
   const searchInputRef = useRef(null);
+  const lastScannedCodeRef = useRef<{ code: string; scannedAt: number } | null>(null);
 
   // Fetch items (server-side top-N search)
   const { data: itemsData = [], isLoading: loadingItems, isFetching: fetchingItems } = useQuery({
@@ -141,6 +144,8 @@ function POSContent() {
   const shouldAutoOpenLastSale = Boolean(
     currentBusinessParameters[BUSINESS_PARAMETER_IDS.SHOW_CLOSED_SALE_AUTOMATICALLY]
   );
+  const scannerEnabledByBusiness = currentBusinessParameters[BUSINESS_PARAMETER_IDS.ENABLE_BARCODE_SCANNER] === true;
+  const scannerEnabled = scannerEnabledByBusiness && !showWizard && !showCashOpenModal;
 
   const { data: lastCompletedSale = null } = useQuery({
     queryKey: ['latest-closed-sale', businessId],
@@ -280,6 +285,74 @@ function POSContent() {
       payments
     };
   };
+
+  const findExactItemMatch = (code: string, list: any[] = []) => {
+    const normalizedCode = String(code ?? '').trim().toLowerCase();
+    if (!normalizedCode) {
+      return null;
+    }
+
+    const matches = list.filter((item) => {
+      const barcode = String(item?.barcode ?? '').trim().toLowerCase();
+      const sku = String(item?.sku ?? '').trim().toLowerCase();
+      return barcode === normalizedCode || sku === normalizedCode;
+    });
+
+    if (matches.length !== 1) {
+      return null;
+    }
+
+    return matches[0];
+  };
+
+  const addScannedItem = (code: string, item: any) => {
+    const now = Date.now();
+    const lastScan = lastScannedCodeRef.current;
+    if (lastScan && lastScan.code === code && now - lastScan.scannedAt < 400) {
+      return false;
+    }
+
+    lastScannedCodeRef.current = { code, scannedAt: now };
+    handleItemClick(item);
+    return true;
+  };
+
+  useKeyboardScanner({
+    enabled: scannerEnabled,
+    onScanComplete: (rawCode) => {
+      const code = String(rawCode ?? '').trim();
+      if (!code) {
+        return;
+      }
+
+      setBarcodeOrSkuQuery(code);
+      const localMatch = findExactItemMatch(code, items);
+      if (localMatch) {
+        addScannedItem(code, localMatch);
+        setPendingScannedCode(null);
+        return;
+      }
+
+      setPendingScannedCode(code);
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+    },
+  });
+
+  useEffect(() => {
+    if (!pendingScannedCode) {
+      return;
+    }
+
+    const exactMatch = findExactItemMatch(pendingScannedCode, items);
+    if (!exactMatch) {
+      return;
+    }
+
+    const wasAdded = addScannedItem(pendingScannedCode, exactMatch);
+    if (wasAdded) {
+      setPendingScannedCode(null);
+    }
+  }, [items, pendingScannedCode]);
 
   // Keyboard shortcuts
   useEffect(() => {
