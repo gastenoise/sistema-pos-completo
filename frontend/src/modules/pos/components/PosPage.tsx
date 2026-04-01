@@ -145,7 +145,9 @@ function POSContent() {
     currentBusinessParameters[BUSINESS_PARAMETER_IDS.SHOW_CLOSED_SALE_AUTOMATICALLY]
   );
   const scannerEnabledByBusiness = currentBusinessParameters[BUSINESS_PARAMETER_IDS.ENABLE_BARCODE_SCANNER] === true;
-  const scannerEnabled = scannerEnabledByBusiness && !showWizard && !showCashOpenModal;
+  const hasPaymentDialogOpen = showWizard || showCashOpenModal;
+  const scannerEnabled = scannerEnabledByBusiness;
+  const scannerContextId = hasPaymentDialogOpen ? 'POS_PAYMENT_DIALOG' : 'POS';
 
   const { data: lastCompletedSale = null } = useQuery({
     queryKey: ['latest-closed-sale', businessId],
@@ -319,6 +321,10 @@ function POSContent() {
 
   useKeyboardScanner({
     enabled: scannerEnabled,
+    contextId: scannerContextId,
+    contextAllowlist: ['POS', 'Items'],
+    contextBlocklist: ['POS_PAYMENT_DIALOG'],
+    debug: true,
     onScanComplete: (rawCode) => {
       const code = String(rawCode ?? '').trim();
       if (!code) {

@@ -446,6 +446,10 @@ export default function Items() {
 
   useKeyboardScanner({
     enabled: scannerEnabled,
+    contextId: 'Items',
+    contextAllowlist: ['POS', 'Items'],
+    contextBlocklist: ['POS_PAYMENT_DIALOG'],
+    debug: true,
     onScanComplete: (rawCode) => {
       const code = String(rawCode ?? '').trim();
       if (!code) {
