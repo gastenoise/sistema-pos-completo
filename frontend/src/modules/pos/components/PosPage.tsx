@@ -19,6 +19,7 @@ import { getIconComponent } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { useAuthorization } from '@/components/auth/AuthorizationContext';
 import { useKeyboardScanner } from '@/components/scanner/useKeyboardScanner';
+import { findExactItemMatch, handlePosScanComplete } from '@/modules/pos/utils/scannerHandlers';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useCart, CartProvider } from '@/components/pos/CartContext';
@@ -288,25 +289,6 @@ function POSContent() {
     };
   };
 
-  const findExactItemMatch = (code: string, list: any[] = []) => {
-    const normalizedCode = String(code ?? '').trim().toLowerCase();
-    if (!normalizedCode) {
-      return null;
-    }
-
-    const matches = list.filter((item) => {
-      const barcode = String(item?.barcode ?? '').trim().toLowerCase();
-      const sku = String(item?.sku ?? '').trim().toLowerCase();
-      return barcode === normalizedCode || sku === normalizedCode;
-    });
-
-    if (matches.length !== 1) {
-      return null;
-    }
-
-    return matches[0];
-  };
-
   const addScannedItem = (code: string, item: any) => {
     const now = Date.now();
     const lastScan = lastScannedCodeRef.current;
@@ -326,21 +308,17 @@ function POSContent() {
     contextBlocklist: ['POS_PAYMENT_DIALOG'],
     debug: true,
     onScanComplete: (rawCode) => {
-      const code = String(rawCode ?? '').trim();
-      if (!code) {
-        return;
-      }
-
-      setBarcodeOrSkuQuery(code);
-      const localMatch = findExactItemMatch(code, items);
-      if (localMatch) {
-        addScannedItem(code, localMatch);
-        setPendingScannedCode(null);
-        return;
-      }
-
-      setPendingScannedCode(code);
-      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+      handlePosScanComplete({
+        rawCode,
+        hasPaymentDialogOpen,
+        items,
+        setBarcodeOrSkuQuery,
+        setPendingScannedCode,
+        addScannedItem,
+        invalidateItems: () => {
+          queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+        },
+      });
     },
   });
 
