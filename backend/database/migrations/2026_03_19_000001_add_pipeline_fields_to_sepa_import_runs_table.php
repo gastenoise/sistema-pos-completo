@@ -18,7 +18,7 @@ return new class extends Migration {
 
         DB::table('sepa_import_runs')
             ->where('status', 'success')
-            ->update(['stage' => SepaImportService::STAGE_SUCCESS]);
+            ->update(['stage' => SepaImportService::STAGE_COMPLETED]);
 
         DB::table('sepa_import_runs')
             ->where('status', 'failed')

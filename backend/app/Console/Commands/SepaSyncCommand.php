@@ -66,10 +66,9 @@ class SepaSyncCommand extends Command
     {
         return match ($run->stage) {
             SepaImportService::STAGE_PENDING_DOWNLOAD,
-            SepaImportService::STAGE_DOWNLOADED => tap(PrepareSepaImportJob::class, fn () => PrepareSepaImportJob::dispatch($run->id)),
-            SepaImportService::STAGE_READY_TO_PROCESS,
-            SepaImportService::STAGE_PROCESSING => tap(ProcessSepaImportSliceJob::class, fn () => ProcessSepaImportSliceJob::dispatch($run->id)),
-            SepaImportService::STAGE_FINALIZING => tap(FinalizeSepaImportJob::class, fn () => FinalizeSepaImportJob::dispatch($run->id)),
+            SepaImportService::STAGE_PENDING_DISCOVERY => tap(PrepareSepaImportJob::class, fn () => PrepareSepaImportJob::dispatch($run->id)),
+            SepaImportService::STAGE_PENDING_PROCESSING => tap(ProcessSepaImportSliceJob::class, fn () => ProcessSepaImportSliceJob::dispatch($run->id)),
+            SepaImportService::STAGE_PENDING_FINALIZE => tap(FinalizeSepaImportJob::class, fn () => FinalizeSepaImportJob::dispatch($run->id)),
             default => null,
         };
     }

@@ -21,7 +21,7 @@ class FinalizeSepaImportJob implements ShouldQueue
     public function handle(SepaImportService $importService): void
     {
         $run = SepaImportRun::query()->find($this->runId);
-        if ($run === null || $run->stage !== SepaImportService::STAGE_FINALIZING) {
+        if ($run === null || $run->stage !== SepaImportService::STAGE_PENDING_FINALIZE) {
             return;
         }
 
