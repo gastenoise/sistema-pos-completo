@@ -12,6 +12,5 @@ class SepaImportRun extends Model
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
         'error_samples' => 'array',
-        'pipeline_state' => 'array',
     ];
 }
