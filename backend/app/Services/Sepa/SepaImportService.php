@@ -133,8 +133,15 @@ class SepaImportService
         $mainExtractDir = $baseTmpDir.'/main_extracted';
         $this->extractZip($mainZipPath, $mainExtractDir);
 
-        $internalDateDir = $this->detectInternalDateDirectory($mainExtractDir);
-        $innerZipFiles = $this->listZipFilesSortedBySize($internalDateDir);
+        $discovery = $this->discoverImportSources($mainExtractDir);
+        $innerZipFiles = $discovery['zip_files'];
+        $directCsvFiles = $discovery['csv_files'];
+
+        Log::info('SEPA discovery strategy selected', [
+            'strategy' => $discovery['strategy'],
+            'inner_zip_count' => count($innerZipFiles),
+            'direct_csv_count' => count($directCsvFiles),
+        ]);
 
         $metrics = [
             'downloaded_files' => count($innerZipFiles) + 1,
@@ -145,19 +152,27 @@ class SepaImportService
             'error_samples' => [],
         ];
 
-        foreach ($innerZipFiles as $index => $zipPath) {
-            $innerExtractDir = $baseTmpDir.'/inner_'.($index + 1);
-            $this->extractZip($zipPath, $innerExtractDir);
+        if ($innerZipFiles !== []) {
+            foreach ($innerZipFiles as $index => $zipPath) {
+                $innerExtractDir = $baseTmpDir.'/inner_'.($index + 1);
+                $this->extractZip($zipPath, $innerExtractDir);
 
-            $csvPath = $this->findProductosCsv($innerExtractDir);
-            if ($csvPath === null) {
-                $this->pushErrorSample($metrics['error_samples'], [
-                    'zip' => basename($zipPath),
-                    'error' => 'productos.csv no encontrado',
-                ]);
-                continue;
+                $csvPath = $this->findProductosCsv($innerExtractDir);
+                if ($csvPath === null) {
+                    $this->pushErrorSample($metrics['error_samples'], [
+                        'zip' => basename($zipPath),
+                        'error' => 'productos.csv no encontrado',
+                    ]);
+                    continue;
+                }
+
+                $this->parseAndUpsertCsv($csvPath, $metrics);
             }
 
+            return $metrics;
+        }
+
+        foreach ($directCsvFiles as $csvPath) {
             $this->parseAndUpsertCsv($csvPath, $metrics);
         }
 
@@ -194,13 +209,63 @@ class SepaImportService
         $zip->close();
     }
 
-    private function detectInternalDateDirectory(string $baseDir): string
+    /**
+     * @return array{strategy: string, zip_files: array<int, string>, csv_files: array<int, string>}
+     */
+    private function discoverImportSources(string $mainExtractDir): array
+    {
+        // Estrategia 1: estructura actual (carpeta fecha + ZIPs internos).
+        $internalDateDir = $this->detectInternalDateDirectory($mainExtractDir);
+        if ($internalDateDir !== null) {
+            $innerZipFiles = $this->findFilesByExtension($internalDateDir, 'zip', true);
+            if ($innerZipFiles !== []) {
+                return [
+                    'strategy' => 'date_dir_with_inner_zips',
+                    'zip_files' => $innerZipFiles,
+                    'csv_files' => [],
+                ];
+            }
+        }
+
+        // Estrategia 2: ZIPs en raíz del ZIP principal.
+        $rootZipFiles = $this->findFilesByExtension($mainExtractDir, 'zip', false);
+        if ($rootZipFiles !== []) {
+            return [
+                'strategy' => 'main_zip_root_with_inner_zips',
+                'zip_files' => $rootZipFiles,
+                'csv_files' => [],
+            ];
+        }
+
+        // Estrategia 3: productos.csv directo en raíz o subdirectorios.
+        $csvFiles = $this->findProductosCsvFiles($mainExtractDir);
+        if ($csvFiles !== []) {
+            return [
+                'strategy' => 'direct_productos_csv',
+                'zip_files' => [],
+                'csv_files' => $csvFiles,
+            ];
+        }
+
+        throw new RuntimeException(
+            'No se encontraron ZIPs internos ni archivos productos.csv en el ZIP principal.'
+        );
+    }
+
+    /**
+     * @return string|null
+     */
+    private function detectInternalDateDirectory(string $baseDir): ?string
     {
         $directories = array_values(array_filter(glob($baseDir.'/*'), 'is_dir'));
 
         if ($directories === []) {
-            throw new RuntimeException('No se encontró carpeta interna de fecha en el ZIP principal.');
+            return null;
         }
+
+        usort($directories, static function (string $left, string $right): int {
+            return strcmp($left, $right);
+        });
 
         return $directories[0];
     }
@@ -208,15 +273,41 @@ class SepaImportService
     /**
      * @return array<int, string>
      */
-    private function listZipFilesSortedBySize(string $directory): array
+    private function findFilesByExtension(string $directory, string $extension, bool $recursive): array
     {
-        $zipFiles = glob($directory.'/*.zip') ?: [];
+        if (!is_dir($directory)) {
+            return [];
+        }
 
-        usort($zipFiles, static function (string $left, string $right): int {
+        $flags = \FilesystemIterator::SKIP_DOTS;
+        $normalizedExtension = mb_strtolower($extension);
+        $files = [];
+
+        if ($recursive) {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($directory, $flags)
+            );
+        } else {
+            $iterator = new \DirectoryIterator($directory);
+        }
+
+        foreach ($iterator as $file) {
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            if (mb_strtolower($file->getExtension()) !== $normalizedExtension) {
+                continue;
+            }
+
+            $files[] = $file->getPathname();
+        }
+
+        usort($files, static function (string $left, string $right): int {
             return filesize($left) <=> filesize($right);
         });
 
-        return $zipFiles;
+        return $files;
     }
 
     private function findProductosCsv(string $directory): ?string
@@ -234,6 +325,31 @@ class SepaImportService
         }
 
         return null;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function findProductosCsvFiles(string $directory): array
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS)
+        );
+        $matches = [];
+
+        foreach ($iterator as $file) {
+            if (!$file->isFile()) {
+                continue;
+            }
+
+            if (mb_strtolower($file->getFilename()) === 'productos.csv') {
+                $matches[] = $file->getPathname();
+            }
+        }
+
+        sort($matches);
+
+        return $matches;
     }
 
     /**
