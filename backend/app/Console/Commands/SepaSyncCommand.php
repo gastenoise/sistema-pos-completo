@@ -11,7 +11,7 @@ class SepaSyncCommand extends Command
 {
     protected $signature = 'sepa:sync
         {--day= : Día en español (lunes..domingo) para forzar origen}
-        {--date= : Fecha de referencia para logging/reproceso}
+        {--requested-date= : Fecha solicitada (auditoría); no cambia el dataset importado}
         {--source-file= : Archivo local para usar como origen en lugar de URL}
         {--sync : Ejecuta en modo síncrono sin cola}';
 
@@ -24,21 +24,21 @@ class SepaSyncCommand extends Command
             return self::INVALID;
         }
 
-        $date = $this->option('date');
-        $date = is_string($date) ? $date : null;
+        $requestedDate = $this->option('requested-date');
+        $requestedDate = is_string($requestedDate) ? $requestedDate : null;
 
         if (!$this->usesSourceFile() && !$this->validateConfiguredUrl($sourceResolver, $day)) {
             return self::INVALID;
         }
 
         if ($this->option('sync')) {
-            $run = $importService->import($day, $date);
+            $run = $importService->import($day, $requestedDate);
             $this->info("SEPA sync finalizado. Run #{$run->id} ({$run->status})");
 
             return self::SUCCESS;
         }
 
-        ProcessSepaSyncJob::dispatch($day, $date);
+        ProcessSepaSyncJob::dispatch($day, $requestedDate);
         $this->info("SEPA sync encolado para [{$day}]");
 
         return self::SUCCESS;
