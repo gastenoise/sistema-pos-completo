@@ -12,6 +12,7 @@ class SepaSyncCommand extends Command
     protected $signature = 'sepa:sync
         {--day= : Día en español (lunes..domingo) para forzar origen}
         {--date= : Fecha de referencia para logging/reproceso}
+        {--source-file= : Archivo local para usar como origen en lugar de URL}
         {--sync : Ejecuta en modo síncrono sin cola}';
 
     protected $description = 'Sincroniza productos SEPA desde ZIP diario.';
@@ -26,6 +27,10 @@ class SepaSyncCommand extends Command
         $date = $this->option('date');
         $date = is_string($date) ? $date : null;
 
+        if (!$this->usesSourceFile() && !$this->validateConfiguredUrl($sourceResolver, $day)) {
+            return self::INVALID;
+        }
+
         if ($this->option('sync')) {
             $run = $importService->import($day, $date);
             $this->info("SEPA sync finalizado. Run #{$run->id} ({$run->status})");
@@ -37,6 +42,48 @@ class SepaSyncCommand extends Command
         $this->info("SEPA sync encolado para [{$day}]");
 
         return self::SUCCESS;
+    }
+
+    private function usesSourceFile(): bool
+    {
+        $sourceFile = $this->option('source-file');
+
+        return is_string($sourceFile) && trim($sourceFile) !== '';
+    }
+
+    private function validateConfiguredUrl(SepaSourceResolver $sourceResolver, string $day): bool
+    {
+        $url = config('sepa.day_urls.'.$day);
+        if (!is_string($url) || trim($url) === '') {
+            if ($day === 'lunes') {
+                $this->error('Configurá `SEPA_URL_LUNES` en .env');
+            } else {
+                $envKey = $this->resolveDayEnvKey($day);
+                $this->error("Configurá `{$envKey}` en .env");
+            }
+
+            return false;
+        }
+
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            if ($day === 'lunes') {
+                $this->error('La URL configurada para lunes no es válida');
+            } else {
+                $this->error("La URL configurada para {$day} no es válida");
+            }
+
+            return false;
+        }
+
+        return in_array($day, $sourceResolver->supportedDays(), true);
+    }
+
+    private function resolveDayEnvKey(string $day): string
+    {
+        return match ($day) {
+            'miercoles' => 'SEPA_URL_MIERCOLES',
+            default => 'SEPA_URL_'.mb_strtoupper($day),
+        };
     }
 
     private function resolveDay(SepaSourceResolver $sourceResolver): ?string
