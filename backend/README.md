@@ -108,16 +108,20 @@ Para deshabilitar cron, comentar el servicio scheduler en docker-compose.yml.
 - No hay duplicados (una sola ejecución diaria).
 - El día resuelto (`lunes..domingo`) coincide con la fecha argentina.
 
+
+- `--requested-date=YYYY-MM-DD` **no cambia el origen real del dataset** (la URL se sigue resolviendo por día). Se guarda sólo para auditoría en `sepa_import_runs.requested_date`.
+- Endpoint manual `POST /system/sepa-sync` acepta `requested_date` en el body con el mismo criterio: es trazabilidad, no selector de fuente.
+
 Comandos útiles de diagnóstico:
 ```bash
 # Revisar próximas ejecuciones del scheduler
 php artisan schedule:list
 
 # Ejecutar importación de forma síncrona para diagnóstico inmediato
-php artisan sepa:sync --sync
+php artisan sepa:sync --sync --requested-date=2026-04-07
 
 # Revisar últimas corridas registradas
-php artisan tinker --execute="App\\Models\\SepaImportRun::query()->latest()->limit(5)->get(['id','day','date','status','started_at','finished_at'])->toArray();"
+php artisan tinker --execute="App\\Models\\SepaImportRun::query()->latest()->limit(5)->get(['id','day','requested_date','status','started_at','finished_at'])->toArray();"
 ```
 
 > Evitá configurar **más de un scheduler** para el mismo entorno (por ejemplo, cron + contenedor scheduler al mismo tiempo), para prevenir ejecuciones duplicadas.

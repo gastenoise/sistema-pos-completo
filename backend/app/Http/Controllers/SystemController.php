@@ -57,13 +57,25 @@ class SystemController extends Controller
         }
 
         try {
-            // --sync para que se ejecute en el momento y no vaya a la cola
-            Artisan::call('sepa:sync', ['--sync' => true]);
+            // --sync para que se ejecute en el momento y no vaya a la cola.
+            // requested-date sólo deja traza de auditoría y no altera el dataset fuente importado.
+            $requestedDateInput = $request->input('requested_date');
+            $requestedDate = is_string($requestedDateInput) && trim($requestedDateInput) !== ''
+                ? trim($requestedDateInput)
+                : null;
+
+            $arguments = ['--sync' => true];
+            if ($requestedDate !== null) {
+                $arguments['--requested-date'] = $requestedDate;
+            }
+
+            Artisan::call('sepa:sync', $arguments);
             $output = Artisan::output();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Sincronización SEPA ejecutada.',
+                'message' => 'Sincronización SEPA ejecutada. requested_date se registra solo para auditoría y no cambia el dataset importado.',
+                'requested_date' => $requestedDate,
                 'output' => $output
             ]);
         } catch (\Exception $e) {
