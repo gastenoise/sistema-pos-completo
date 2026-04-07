@@ -5,9 +5,13 @@ namespace Tests\Unit;
 use App\Models\SepaItem;
 use App\Services\Sepa\SepaImportService;
 use App\Services\Sepa\SepaSourceResolver;
+use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Mockery;
 use Tests\TestCase;
 
 class SepaImportServiceTest extends TestCase
@@ -188,6 +192,54 @@ class SepaImportServiceTest extends TestCase
 
         $tmpDir = storage_path('app/sepa/tmp/run_1');
         $this->assertDirectoryDoesNotExist($tmpDir);
+    }
+
+    public function test_it_skips_import_when_lock_is_not_acquired(): void
+    {
+        $lock = Mockery::mock(Lock::class);
+        $lock->shouldReceive('get')->once()->andReturnFalse();
+
+        Cache::shouldReceive('lock')->once()->with('sepa:sync:lunes', Mockery::type('int'))->andReturn($lock);
+        Log::shouldReceive('warning')->once();
+
+        $run = $this->service()->import('lunes', '2026-04-07');
+
+        $this->assertSame('skipped_locked', $run->status);
+        $this->assertSame('lunes', $run->day);
+        $this->assertSame('2026-04-07', $run->requested_date);
+        $this->assertSame(0, $run->duration_seconds);
+        $this->assertDatabaseCount('sepa_items', 0);
+    }
+
+    public function test_it_releases_lock_after_import_finishes(): void
+    {
+        $resolver = $this->createMock(SepaSourceResolver::class);
+        $lock = Mockery::mock(Lock::class);
+        $lock->shouldReceive('get')->once()->andReturnTrue();
+        $lock->shouldReceive('release')->once();
+
+        Cache::shouldReceive('lock')->once()->with('sepa:sync:lunes', Mockery::type('int'))->andReturn($lock);
+
+        $service = $this->getMockBuilder(SepaImportService::class)
+            ->setConstructorArgs([$resolver])
+            ->onlyMethods(['executeImport'])
+            ->getMock();
+
+        $service->expects($this->once())
+            ->method('executeImport')
+            ->willReturn([
+                'downloaded_files' => 1,
+                'valid_rows' => 1,
+                'invalid_rows' => 0,
+                'inserted_rows' => 1,
+                'updated_rows' => 0,
+                'error_samples' => [],
+            ]);
+
+        $run = $service->import('lunes');
+
+        $this->assertSame('success', $run->status);
+        $this->assertSame(1, $run->downloaded_files);
     }
 
     private function service(): SepaImportService
