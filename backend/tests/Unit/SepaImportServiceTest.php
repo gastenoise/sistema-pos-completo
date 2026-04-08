@@ -9,6 +9,7 @@ use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Mockery;
@@ -240,6 +241,61 @@ class SepaImportServiceTest extends TestCase
 
         $this->assertSame('success', $run->status);
         $this->assertSame(1, $run->downloaded_files);
+    }
+
+    public function test_download_main_zip_streams_content_to_destination_file(): void
+    {
+        Http::fake([
+            'example.com/*' => Http::response('zip-content', 200),
+        ]);
+
+        $service = $this->service();
+        $destination = storage_path('app/sepa/tmp/test-main.zip');
+        File::delete($destination);
+
+        $this->invokePrivate($service, 'downloadMainZip', ['https://example.com/sepa.zip', $destination]);
+
+        $this->assertFileExists($destination);
+        $this->assertGreaterThan(0, filesize($destination));
+        $this->assertSame('zip-content', file_get_contents($destination));
+    }
+
+    public function test_download_main_zip_includes_url_and_status_in_error_message(): void
+    {
+        Http::fake([
+            'example.com/*' => Http::response('error', 503),
+        ]);
+
+        $service = $this->service();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('https://example.com/sepa.zip');
+        $this->expectExceptionMessage('Código HTTP: 503');
+
+        $this->invokePrivate(
+            $service,
+            'downloadMainZip',
+            ['https://example.com/sepa.zip', storage_path('app/sepa/tmp/error-main.zip')]
+        );
+    }
+
+    public function test_download_main_zip_rejects_empty_downloads(): void
+    {
+        Http::fake([
+            'example.com/*' => Http::response('', 200),
+        ]);
+
+        $service = $this->service();
+        $destination = storage_path('app/sepa/tmp/empty-main.zip');
+
+        try {
+            $this->invokePrivate($service, 'downloadMainZip', ['https://example.com/sepa.zip', $destination]);
+            $this->fail('Se esperaba RuntimeException para descarga vacía.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Descarga SEPA vacía', $exception->getMessage());
+        }
+
+        $this->assertFileDoesNotExist($destination);
     }
 
     private function service(): SepaImportService

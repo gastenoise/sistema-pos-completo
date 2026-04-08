@@ -181,13 +181,52 @@ class SepaImportService
 
     private function downloadMainZip(string $url, string $destinationPath): void
     {
-        $response = Http::timeout((int) config('sepa.http_timeout', 120))->get($url);
+        $response = Http::withOptions(['stream' => true])
+            ->timeout((int) config('sepa.http_timeout', 120))
+            ->get($url);
+        $status = $response->status();
 
         if (!$response->successful()) {
-            throw new RuntimeException("No se pudo descargar SEPA desde {$url}. Status: {$response->status()}");
+            throw new RuntimeException("No se pudo descargar SEPA desde {$url}. Código HTTP: {$status}");
         }
 
-        file_put_contents($destinationPath, $response->body());
+        $destinationDir = dirname($destinationPath);
+        if (!is_dir($destinationDir)) {
+            mkdir($destinationDir, 0775, true);
+        }
+
+        $stream = $response->toPsrResponse()->getBody();
+        $bytesWritten = 0;
+        $handle = fopen($destinationPath, 'wb');
+        if ($handle === false) {
+            throw new RuntimeException("No se pudo abrir archivo destino para SEPA: {$destinationPath}");
+        }
+
+        try {
+            while (!$stream->eof()) {
+                $chunk = $stream->read(1024 * 1024);
+                if ($chunk === '') {
+                    continue;
+                }
+
+                $written = fwrite($handle, $chunk);
+                if ($written === false) {
+                    throw new RuntimeException("Error al escribir descarga SEPA en {$destinationPath}");
+                }
+
+                $bytesWritten += $written;
+            }
+        } finally {
+            fclose($handle);
+        }
+
+        $finalSize = (int) (filesize($destinationPath) ?: 0);
+        if ($bytesWritten <= 0 || $finalSize <= 0) {
+            File::delete($destinationPath);
+            throw new RuntimeException(
+                "Descarga SEPA vacía desde {$url}. Código HTTP: {$status}. Archivo: {$destinationPath}"
+            );
+        }
     }
 
     private function extractZip(string $zipPath, string $extractTo): void
