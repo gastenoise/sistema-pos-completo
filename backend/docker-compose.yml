@@ -36,10 +36,9 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: openventa
-      MYSQL_ROOT_PASSWORD: ""
-      MYSQL_PASSWORD: ""
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in backend/.env before starting docker-compose}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-}
       # MYSQL_USER: root
-      MYSQL_ALLOW_EMPTY_PASSWORD: 1
     ports:
       - "3306:3306"
     volumes:
