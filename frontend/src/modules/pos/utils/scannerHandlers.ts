@@ -56,6 +56,36 @@ export const handlePosScanComplete = ({
   invalidateItems();
 };
 
+export const handlePendingPosScanResolution = ({
+  pendingScannedCode,
+  items,
+  addScannedItem,
+  setPendingScannedCode,
+  onNoMatchFound,
+}: {
+  pendingScannedCode: string | null;
+  items: any[];
+  addScannedItem: (code: string, item: any) => boolean;
+  setPendingScannedCode: (code: string | null) => void;
+  onNoMatchFound?: (code: string) => void;
+}) => {
+  if (!pendingScannedCode) {
+    return;
+  }
+
+  const exactMatch = findExactItemMatch(pendingScannedCode, items);
+  if (!exactMatch) {
+    setPendingScannedCode(null);
+    onNoMatchFound?.(pendingScannedCode);
+    return;
+  }
+
+  const wasAdded = addScannedItem(pendingScannedCode, exactMatch);
+  if (wasAdded) {
+    setPendingScannedCode(null);
+  }
+};
+
 export const handleItemsScanComplete = ({
   rawCode,
   hasOffsetPagination,

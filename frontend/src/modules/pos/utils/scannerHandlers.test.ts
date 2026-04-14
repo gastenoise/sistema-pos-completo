@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-import { handleItemsScanComplete, handlePosScanComplete } from './scannerHandlers';
+import { handleItemsScanComplete, handlePendingPosScanResolution, handlePosScanComplete } from './scannerHandlers';
 
 describe('POS scanner handling', () => {
   it('scan válido agrega item al carrito automáticamente', () => {
@@ -70,5 +70,25 @@ describe('Items scanner handling', () => {
     expect(setSearchQuery).toHaveBeenCalledWith('');
     expect(setPage).toHaveBeenCalledWith(1);
     expect(focusAndHighlightBarcodeInput).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('POS pending scanner resolution', () => {
+  it('ejecuta callback cuando no hay match luego del refresh y limpia pending code', () => {
+    const addScannedItem = vi.fn();
+    const setPendingScannedCode = vi.fn();
+    const onNoMatchFound = vi.fn();
+
+    handlePendingPosScanResolution({
+      pendingScannedCode: '779999',
+      items: [{ id: 1, barcode: '779123' }],
+      addScannedItem,
+      setPendingScannedCode,
+      onNoMatchFound,
+    });
+
+    expect(addScannedItem).not.toHaveBeenCalled();
+    expect(setPendingScannedCode).toHaveBeenCalledWith(null);
+    expect(onNoMatchFound).toHaveBeenCalledWith('779999');
   });
 });
