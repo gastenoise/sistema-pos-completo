@@ -2,6 +2,7 @@ export const BUSINESS_PARAMETER_IDS = {
   SHOW_CLOSED_SALE_AUTOMATICALLY: 'show_closed_sale_automatically',
   ENABLE_SEPA_ITEMS: 'enable_sepa_items',
   ENABLE_BARCODE_SCANNER: 'enable_barcode_scanner',
+  AUTO_OPEN_ITEM_CREATE_ON_UNKNOWN_BARCODE: 'auto_open_item_create_on_unknown_barcode',
 };
 
 export const BUSINESS_BOOLEAN_PARAMETERS = [
@@ -20,12 +21,18 @@ export const BUSINESS_BOOLEAN_PARAMETERS = [
     label: 'Habilitar escáner de código de barras',
     description: 'Permite usar el lector de código de barras para cargar productos en las ventas.',
   },
+  {
+    id: BUSINESS_PARAMETER_IDS.AUTO_OPEN_ITEM_CREATE_ON_UNKNOWN_BARCODE,
+    label: 'Abrir alta de ítem con código desconocido',
+    description: 'Si está activo, al escanear un código inexistente se abre automáticamente el formulario para crear el producto.',
+  },
 ];
 
 export const normalizeBusinessParameters = (business) => {
   if (!business || typeof business !== 'object') {
     return {
       [BUSINESS_PARAMETER_IDS.ENABLE_BARCODE_SCANNER]: true,
+      [BUSINESS_PARAMETER_IDS.AUTO_OPEN_ITEM_CREATE_ON_UNKNOWN_BARCODE]: true,
     };
   }
 
@@ -33,6 +40,7 @@ export const normalizeBusinessParameters = (business) => {
   if (!params || typeof params !== 'object') {
     return {
       [BUSINESS_PARAMETER_IDS.ENABLE_BARCODE_SCANNER]: true,
+      [BUSINESS_PARAMETER_IDS.AUTO_OPEN_ITEM_CREATE_ON_UNKNOWN_BARCODE]: true,
     };
   }
 
@@ -43,6 +51,10 @@ export const normalizeBusinessParameters = (business) => {
 
   if (!(BUSINESS_PARAMETER_IDS.ENABLE_BARCODE_SCANNER in normalized)) {
     normalized[BUSINESS_PARAMETER_IDS.ENABLE_BARCODE_SCANNER] = true;
+  }
+
+  if (!(BUSINESS_PARAMETER_IDS.AUTO_OPEN_ITEM_CREATE_ON_UNKNOWN_BARCODE in normalized)) {
+    normalized[BUSINESS_PARAMETER_IDS.AUTO_OPEN_ITEM_CREATE_ON_UNKNOWN_BARCODE] = true;
   }
 
   return normalized;

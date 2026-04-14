@@ -10,6 +10,7 @@ class BusinessParameter extends Model
     public const SHOW_CLOSED_SALE_AUTOMATICALLY = 'show_closed_sale_automatically';
     public const ENABLE_SEPA_ITEMS = 'enable_sepa_items';
     public const ENABLE_BARCODE_SCANNER = 'enable_barcode_scanner';
+    public const AUTO_OPEN_ITEM_CREATE_ON_UNKNOWN_BARCODE = 'auto_open_item_create_on_unknown_barcode';
 
     protected $fillable = [
         'business_id',
