@@ -76,8 +76,8 @@ function POSContent() {
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
   const [isProcessingItemsAction, setIsProcessingItemsAction] = useState(false);
   const [pendingScannedCode, setPendingScannedCode] = useState<string | null>(null);
-  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
-  const [prefilledQuickAddBarcode, setPrefilledQuickAddBarcode] = useState('');
+  const [showCreateItemModal, setShowCreateItemModal] = useState(false);
+  const [pendingBarcodeForCreate, setPendingBarcodeForCreate] = useState('');
   const { role } = useAuthorization();
   
   const searchInputRef = useRef(null);
@@ -318,8 +318,8 @@ function POSContent() {
       return;
     }
 
-    setPrefilledQuickAddBarcode(code);
-    setIsQuickAddOpen(true);
+    setPendingBarcodeForCreate(code);
+    setShowCreateItemModal(true);
   };
 
   useKeyboardScanner({
@@ -466,35 +466,8 @@ function POSContent() {
 
   const handleQuickAdd = async (itemData) => {
     if (itemData.save_to_catalog) {
-      setIsProcessingItemsAction(true);
-      try {
-        const payload = {
-          name: itemData.name,
-          price: Number(itemData.price),
-          is_active: true,
-          ...(itemData.barcode ? { barcode: itemData.barcode } : {}),
-          ...(itemData.category_id !== undefined && { category_id: itemData.category_id }),
-        };
-
-        const createdItem = await createItem(payload);
-
-        if (!createdItem?.id) {
-          throw new Error('No se pudo crear el item en catálogo');
-        }
-
-        addToCart({
-          id: createdItem.id,
-          name: createdItem.name,
-          price: Number(createdItem.price),
-          barcode: createdItem.barcode ?? itemData.barcode ?? null,
-          category_id: createdItem.category_id ?? itemData.category_id ?? null,
-        });
-
-        queryClient.invalidateQueries({ queryKey: ['items', businessId] });
-        return;
-      } finally {
-        setIsProcessingItemsAction(false);
-      }
+      await handleSaveItemFromScan(itemData);
+      return;
     }
 
     addToCart({
@@ -505,6 +478,42 @@ function POSContent() {
       category_id: itemData.category_id ?? null,
       is_quick_item: true,
     });
+  };
+
+  const handleSaveItemFromScan = async (itemData) => {
+    setIsProcessingItemsAction(true);
+    try {
+      const payload = {
+        name: itemData.name,
+        price: Number(itemData.price),
+        is_active: true,
+        ...(itemData.barcode ? { barcode: itemData.barcode } : {}),
+        ...(itemData.category_id !== undefined && { category_id: itemData.category_id }),
+      };
+
+      const createdItem = await createItem(payload);
+
+      if (!createdItem?.id) {
+        throw new Error('No se pudo crear el item en catálogo');
+      }
+
+      addToCart({
+        id: createdItem.id,
+        name: createdItem.name,
+        price: Number(createdItem.price),
+        barcode: createdItem.barcode ?? itemData.barcode ?? null,
+        category_id: createdItem.category_id ?? itemData.category_id ?? null,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+      setShowCreateItemModal(false);
+      setPendingBarcodeForCreate('');
+    } catch (error) {
+      toast.error(error?.message || TOAST_MESSAGES.items.saveError);
+      throw error;
+    } finally {
+      setIsProcessingItemsAction(false);
+    }
   };
 
   const handleSyncOfflineQueue = async () => {
@@ -595,9 +604,14 @@ function POSContent() {
                 <QuickAddForm
                   onAdd={handleQuickAdd}
                   categories={categories}
-                  open={isQuickAddOpen}
-                  onOpenChange={setIsQuickAddOpen}
-                  initialBarcode={prefilledQuickAddBarcode}
+                  open={showCreateItemModal}
+                  onOpenChange={(nextOpen) => {
+                    setShowCreateItemModal(nextOpen);
+                    if (!nextOpen) {
+                      setPendingBarcodeForCreate('');
+                    }
+                  }}
+                  initialBarcode={pendingBarcodeForCreate}
                 />
               }
             />
