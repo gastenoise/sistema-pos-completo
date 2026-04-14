@@ -21,6 +21,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+type QuickAddFormProps = {
+  onAdd: (itemData: {
+    name: string;
+    price: number;
+    save_to_catalog: boolean;
+    category_id: number;
+    barcode: string;
+  }) => Promise<void> | void;
+  categories?: any[];
+  loading?: boolean;
+  open?: boolean;
+  onOpenChange?: (nextOpen: boolean) => void;
+  initialBarcode?: string;
+};
+
 export default function QuickAddForm({
   onAdd,
   categories = [],
@@ -28,7 +43,7 @@ export default function QuickAddForm({
   open: controlledOpen,
   onOpenChange,
   initialBarcode = '',
-}) {
+}: QuickAddFormProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
