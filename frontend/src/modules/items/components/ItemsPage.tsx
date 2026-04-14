@@ -610,6 +610,7 @@ export default function Items() {
         open={showEditorModal}
         onClose={() => { setShowEditorModal(false); setEditingItem(null); }}
         item={editingItem}
+        initialBarcode={!editingItem ? barcodeOrSkuQuery : ''}
         categories={categories}
         onSave={handleSaveItem}
         loading={savingItem}
