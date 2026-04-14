@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
@@ -21,23 +21,63 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export default function QuickAddForm({ onAdd, categories = [], loading = false }) {
-  const [open, setOpen] = useState(false);
+type QuickAddFormProps = {
+  onAdd: (itemData: {
+    name: string;
+    price: number;
+    save_to_catalog: boolean;
+    category_id: number;
+    barcode: string;
+  }) => Promise<void> | void;
+  categories?: any[];
+  loading?: boolean;
+  open?: boolean;
+  onOpenChange?: (nextOpen: boolean) => void;
+  initialBarcode?: string;
+};
+
+export default function QuickAddForm({
+  onAdd,
+  categories = [],
+  loading = false,
+  open: controlledOpen,
+  onOpenChange,
+  initialBarcode = '',
+}: QuickAddFormProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     price: '',
     category_id: '',
     save_to_catalog: false,
     name: '',
+    barcode: '',
   });
+  const isOpenControlled = typeof controlledOpen === 'boolean';
+  const open = isOpenControlled ? controlledOpen : uncontrolledOpen;
 
   const handleOpenChange = (nextOpen) => {
-    setOpen(nextOpen);
+    if (!isOpenControlled) {
+      setUncontrolledOpen(nextOpen);
+    }
+    onOpenChange?.(nextOpen);
 
     if (nextOpen) {
-      setFormData((prev) => ({ ...prev, save_to_catalog: false }));
+      setFormData((prev) => ({
+        ...prev,
+        save_to_catalog: false,
+        barcode: initialBarcode || prev.barcode,
+      }));
     }
   };
+
+  useEffect(() => {
+    if (!open || !initialBarcode) {
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, barcode: initialBarcode }));
+  }, [initialBarcode, open]);
 
   const selectedCategory = categories.find((category) => String(category.id) === String(formData.category_id));
 
@@ -54,10 +94,11 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
         price: parseFloat(formData.price),
         save_to_catalog: formData.save_to_catalog,
         category_id: Number(formData.category_id),
+        barcode: formData.barcode.trim(),
       });
       toast.success(TOAST_MESSAGES.items.quickAddSuccess);
-      setFormData({ price: '', category_id: '', save_to_catalog: false, name: '' });
-      setOpen(false);
+      setFormData({ price: '', category_id: '', save_to_catalog: false, name: '', barcode: '' });
+      handleOpenChange(false);
     } catch (_error) {
       toast.error(TOAST_MESSAGES.items.quickAddError);
     } finally {
@@ -129,6 +170,16 @@ export default function QuickAddForm({ onAdd, categories = [], loading = false }
               placeholder="Si lo dejas vacío, se usa el nombre de la categoría"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <Label>Código de barras (opcional)</Label>
+            <Input
+              type="text"
+              placeholder="CB"
+              value={formData.barcode}
+              onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
             />
           </div>
 

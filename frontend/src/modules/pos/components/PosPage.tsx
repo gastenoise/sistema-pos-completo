@@ -19,7 +19,7 @@ import { getIconComponent } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { useAuthorization } from '@/components/auth/AuthorizationContext';
 import { useKeyboardScanner } from '@/components/scanner/useKeyboardScanner';
-import { findExactItemMatch, handlePosScanComplete } from '@/modules/pos/utils/scannerHandlers';
+import { handlePendingPosScanResolution, handlePosScanComplete } from '@/modules/pos/utils/scannerHandlers';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useCart, CartProvider } from '@/components/pos/CartContext';
@@ -76,10 +76,13 @@ function POSContent() {
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
   const [isProcessingItemsAction, setIsProcessingItemsAction] = useState(false);
   const [pendingScannedCode, setPendingScannedCode] = useState<string | null>(null);
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [prefilledQuickAddBarcode, setPrefilledQuickAddBarcode] = useState('');
   const { role } = useAuthorization();
   
   const searchInputRef = useRef(null);
   const lastScannedCodeRef = useRef<{ code: string; scannedAt: number } | null>(null);
+  const lastNoMatchResolvedCodeRef = useRef<{ code: string; resolvedAt: number } | null>(null);
 
   // Fetch items (server-side top-N search)
   const { data: itemsData = [], isLoading: loadingItems, isFetching: fetchingItems } = useQuery({
@@ -146,6 +149,7 @@ function POSContent() {
     currentBusinessParameters[BUSINESS_PARAMETER_IDS.SHOW_CLOSED_SALE_AUTOMATICALLY]
   );
   const scannerEnabledByBusiness = currentBusinessParameters[BUSINESS_PARAMETER_IDS.ENABLE_BARCODE_SCANNER] === true;
+  const shouldAutoOpenItemCreateOnUnknownBarcode = currentBusinessParameters[BUSINESS_PARAMETER_IDS.AUTO_OPEN_ITEM_CREATE_ON_UNKNOWN_BARCODE] === true;
   const hasPaymentDialogOpen = showWizard || showCashOpenModal;
   const scannerEnabled = scannerEnabledByBusiness;
   const scannerContextId = hasPaymentDialogOpen ? 'POS_PAYMENT_DIALOG' : 'POS';
@@ -301,6 +305,23 @@ function POSContent() {
     return true;
   };
 
+  const handleNoMatchFoundAfterRefresh = (code: string) => {
+    const now = Date.now();
+    const lastNoMatch = lastNoMatchResolvedCodeRef.current;
+    if (lastNoMatch && lastNoMatch.code === code && now - lastNoMatch.resolvedAt < 400) {
+      return;
+    }
+
+    lastNoMatchResolvedCodeRef.current = { code, resolvedAt: now };
+
+    if (!shouldAutoOpenItemCreateOnUnknownBarcode) {
+      return;
+    }
+
+    setPrefilledQuickAddBarcode(code);
+    setIsQuickAddOpen(true);
+  };
+
   useKeyboardScanner({
     enabled: scannerEnabled,
     contextId: scannerContextId,
@@ -323,19 +344,13 @@ function POSContent() {
   });
 
   useEffect(() => {
-    if (!pendingScannedCode) {
-      return;
-    }
-
-    const exactMatch = findExactItemMatch(pendingScannedCode, items);
-    if (!exactMatch) {
-      return;
-    }
-
-    const wasAdded = addScannedItem(pendingScannedCode, exactMatch);
-    if (wasAdded) {
-      setPendingScannedCode(null);
-    }
+    handlePendingPosScanResolution({
+      pendingScannedCode,
+      items,
+      addScannedItem,
+      setPendingScannedCode,
+      onNoMatchFound: handleNoMatchFoundAfterRefresh,
+    });
   }, [items, pendingScannedCode]);
 
   // Keyboard shortcuts
@@ -457,6 +472,7 @@ function POSContent() {
           name: itemData.name,
           price: Number(itemData.price),
           is_active: true,
+          ...(itemData.barcode ? { barcode: itemData.barcode } : {}),
           ...(itemData.category_id !== undefined && { category_id: itemData.category_id }),
         };
 
@@ -470,6 +486,7 @@ function POSContent() {
           id: createdItem.id,
           name: createdItem.name,
           price: Number(createdItem.price),
+          barcode: createdItem.barcode ?? itemData.barcode ?? null,
           category_id: createdItem.category_id ?? itemData.category_id ?? null,
         });
 
@@ -484,6 +501,7 @@ function POSContent() {
       id: `quick-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: itemData.name,
       price: Number(itemData.price),
+      barcode: itemData.barcode || null,
       category_id: itemData.category_id ?? null,
       is_quick_item: true,
     });
@@ -573,7 +591,15 @@ function POSContent() {
               inputClassName="h-12"
               searchInputClassName="flex-1 min-w-[240px]"
               barcodeInputClassName="sm:w-44 md:w-52"
-              rightContent={<QuickAddForm onAdd={handleQuickAdd} categories={categories} />}
+              rightContent={
+                <QuickAddForm
+                  onAdd={handleQuickAdd}
+                  categories={categories}
+                  open={isQuickAddOpen}
+                  onOpenChange={setIsQuickAddOpen}
+                  initialBarcode={prefilledQuickAddBarcode}
+                />
+              }
             />
           </div>
 
