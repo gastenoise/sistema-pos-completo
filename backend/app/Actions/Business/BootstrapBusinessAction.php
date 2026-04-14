@@ -39,5 +39,10 @@ class BootstrapBusinessAction
         $business->parameters()->firstOrCreate([
             'parameter_id' => BusinessParameter::ENABLE_BARCODE_SCANNER,
         ]);
+
+        // 4. Activar creación automática desde código desconocido por defecto
+        $business->parameters()->firstOrCreate([
+            'parameter_id' => BusinessParameter::AUTO_OPEN_ITEM_CREATE_ON_UNKNOWN_BARCODE,
+        ]);
     }
 }
