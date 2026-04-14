@@ -345,8 +345,7 @@ function POSContent() {
       items,
       addScannedItem,
       setPendingScannedCode,
-      autoOpenCreateOnUnknownBarcodeEnabled,
-      onNoMatchFound: handleNoMatchFoundAfterRefresh,
+      onNoMatchFound: autoOpenCreateOnUnknownBarcodeEnabled ? handleNoMatchFoundAfterRefresh : undefined,
     });
   }, [autoOpenCreateOnUnknownBarcodeEnabled, items, pendingScannedCode]);
 

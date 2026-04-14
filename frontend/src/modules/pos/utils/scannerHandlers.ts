@@ -61,14 +61,12 @@ export const handlePendingPosScanResolution = ({
   items,
   addScannedItem,
   setPendingScannedCode,
-  autoOpenCreateOnUnknownBarcodeEnabled = false,
   onNoMatchFound,
 }: {
   pendingScannedCode: string | null;
   items: any[];
   addScannedItem: (code: string, item: any) => boolean;
   setPendingScannedCode: (code: string | null) => void;
-  autoOpenCreateOnUnknownBarcodeEnabled?: boolean;
   onNoMatchFound?: (code: string) => void;
 }) => {
   if (!pendingScannedCode) {
@@ -78,9 +76,7 @@ export const handlePendingPosScanResolution = ({
   const exactMatch = findExactItemMatch(pendingScannedCode, items);
   if (!exactMatch) {
     setPendingScannedCode(null);
-    if (autoOpenCreateOnUnknownBarcodeEnabled) {
-      onNoMatchFound?.(pendingScannedCode);
-    }
+    onNoMatchFound?.(pendingScannedCode);
     return;
   }
 
