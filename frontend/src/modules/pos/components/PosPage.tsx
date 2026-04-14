@@ -149,7 +149,7 @@ function POSContent() {
     currentBusinessParameters[BUSINESS_PARAMETER_IDS.SHOW_CLOSED_SALE_AUTOMATICALLY]
   );
   const scannerEnabledByBusiness = currentBusinessParameters[BUSINESS_PARAMETER_IDS.ENABLE_BARCODE_SCANNER] === true;
-  const shouldAutoOpenItemCreateOnUnknownBarcode = currentBusinessParameters[BUSINESS_PARAMETER_IDS.AUTO_OPEN_ITEM_CREATE_ON_UNKNOWN_BARCODE] === true;
+  const autoOpenCreateOnUnknownBarcodeEnabled = currentBusinessParameters[BUSINESS_PARAMETER_IDS.AUTO_OPEN_ITEM_CREATE_ON_UNKNOWN_BARCODE] === true;
   const hasPaymentDialogOpen = showWizard || showCashOpenModal;
   const scannerEnabled = scannerEnabledByBusiness;
   const scannerContextId = hasPaymentDialogOpen ? 'POS_PAYMENT_DIALOG' : 'POS';
@@ -314,10 +314,6 @@ function POSContent() {
 
     lastNoMatchResolvedCodeRef.current = { code, resolvedAt: now };
 
-    if (!shouldAutoOpenItemCreateOnUnknownBarcode) {
-      return;
-    }
-
     setPendingBarcodeForCreate(code);
     setShowCreateItemModal(true);
   };
@@ -349,9 +345,9 @@ function POSContent() {
       items,
       addScannedItem,
       setPendingScannedCode,
-      onNoMatchFound: handleNoMatchFoundAfterRefresh,
+      onNoMatchFound: autoOpenCreateOnUnknownBarcodeEnabled ? handleNoMatchFoundAfterRefresh : undefined,
     });
-  }, [items, pendingScannedCode]);
+  }, [autoOpenCreateOnUnknownBarcodeEnabled, items, pendingScannedCode]);
 
   // Keyboard shortcuts
   useEffect(() => {
