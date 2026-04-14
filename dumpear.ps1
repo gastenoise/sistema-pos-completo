@@ -76,6 +76,24 @@ $archivosEspecificos = @(
 )
 
 # Directorios a excluir (comunes)
+
+# Patrones de archivos sensibles a excluir explícitamente
+$patronesSensibles = @(
+    '.env',
+    '.env.local',
+    '.env.production',
+    '.env.staging',
+    '*.pem',
+    '*.key',
+    '*.p12',
+    '*.pfx',
+    'id_rsa',
+    'id_ed25519',
+    '*credentials*',
+    '*secret*',
+    '*token*'
+)
+
 $directoriosExcluir = @(
     'node_modules',
     'vendor',
@@ -206,6 +224,16 @@ try {
             $extension = $archivo.Extension.ToLower()
             $nombre = $archivo.Name
             
+            # Excluir archivos sensibles por patrón
+            $esArchivoSensible = $false
+            foreach ($patronSensible in $patronesSensibles) {
+                if ($nombre -like $patronSensible) {
+                    $esArchivoSensible = $true
+                    break
+                }
+            }
+            if ($esArchivoSensible) { return $false }
+
             # Verificar si está en directorio excluido
             # Usar FullName y verificar si contiene alguno de los directorios excluidos
             $enDirectorioExcluido = $false
