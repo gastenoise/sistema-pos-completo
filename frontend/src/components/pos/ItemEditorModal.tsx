@@ -21,6 +21,7 @@ export default function ItemEditorModal({
   open, 
   onClose, 
   item, 
+  initialBarcode = '',
   categories = [],
   onSave,
   onDelete,
@@ -43,6 +44,10 @@ export default function ItemEditorModal({
   });
 
   useEffect(() => {
+    if (!open) {
+      return;
+    }
+
     if (item) {
       setFormData({
         name: item.name || '',
@@ -61,18 +66,41 @@ export default function ItemEditorModal({
       setFormData({
         name: '',
         sku: '',
-        barcode: '',
+        barcode: initialBarcode || '',
         category_id: NO_CATEGORY_VALUE,
         price: '',
         presentation_quantity: '',
         presentation_unit: '',
         brand: '',
         list_price: '',
-            stock_quantity: 0,
+        stock_quantity: 0,
         track_stock: false
       });
     }
   }, [item, open]);
+
+  useEffect(() => {
+    if (!open || item) {
+      return;
+    }
+
+    // Prefill only when opening the creation flow and only if user didn't type a barcode yet.
+    setFormData((prev) => {
+      if (prev.barcode) {
+        return prev;
+      }
+
+      const nextBarcode = initialBarcode || '';
+      if (prev.barcode === nextBarcode) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        barcode: nextBarcode,
+      };
+    });
+  }, [open, item, initialBarcode]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
