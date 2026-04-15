@@ -12,4 +12,5 @@ return [
     ],
     'chunk_size' => (int) env('SEPA_IMPORT_CHUNK_SIZE', 1000),
     'http_timeout' => (int) env('SEPA_HTTP_TIMEOUT', 120),
+    'lock_ttl_seconds' => (int) env('SEPA_IMPORT_LOCK_TTL_SECONDS', 7200),
 ];

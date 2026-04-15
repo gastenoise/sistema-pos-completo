@@ -2,8 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\Sepa\PrepareSepaImportJob;
-use App\Models\SepaImportRun;
+use App\Jobs\Sepa\ProcessSepaSyncJob;
 use App\Services\Sepa\SepaImportService;
 use App\Services\Sepa\SepaSourceResolver;
 use Illuminate\Console\Command;
@@ -12,10 +11,11 @@ class SepaSyncCommand extends Command
 {
     protected $signature = 'sepa:sync
         {--day= : Día en español (lunes..domingo) para forzar origen}
-        {--date= : Fecha de referencia para logging/reproceso}
-        {--sync : Ejecuta toda la corrida en modo diagnóstico, sin depender del scheduler}';
+        {--requested-date= : Fecha solicitada (auditoría); no cambia el dataset importado}
+        {--source-file= : Archivo local para usar como origen en lugar de URL}
+        {--sync : Ejecuta en modo síncrono sin cola}';
 
-    protected $description = 'Inicia la corrida SEPA del día y dispara sólo la etapa de bootstrap/descarga.';
+    protected $description = 'Sincroniza productos SEPA desde ZIP diario.';
 
     public function handle(SepaSourceResolver $sourceResolver, SepaImportService $importService): int
     {
@@ -24,71 +24,66 @@ class SepaSyncCommand extends Command
             return self::INVALID;
         }
 
-        $date = $this->normalizeRequestedDate();
-        $run = $this->findRunningRun($day, $date);
+        $requestedDate = $this->option('requested-date');
+        $requestedDate = is_string($requestedDate) ? $requestedDate : null;
 
-        if ($run === null) {
-            $run = $importService->startRun($day, $date);
-            $this->info("Corrida SEPA iniciada. Run #{$run->id} -> {$run->stage} ({$run->status})");
-        } else {
-            $this->info("Reutilizando corrida SEPA activa. Run #{$run->id} -> {$run->stage} ({$run->status})");
+        if (!$this->usesSourceFile() && !$this->validateConfiguredUrl($sourceResolver, $day)) {
+            return self::INVALID;
         }
 
         if ($this->option('sync')) {
-            while ($run->status === 'running' && $run->canAdvance()) {
-                $run = $importService->advanceRun($run);
-            }
-
-            $this->info("SEPA sync completado en modo diagnóstico. Run #{$run->id} -> {$run->stage} ({$run->status})");
+            $run = $importService->import($day, $requestedDate);
+            $this->info("SEPA sync finalizado. Run #{$run->id} ({$run->status})");
 
             return self::SUCCESS;
         }
 
-        $jobClass = $this->dispatchBootstrapJob($run);
-        if ($jobClass === null) {
-            $this->info("La corrida SEPA #{$run->id} queda a la espera del scheduler de avance ({$run->stage}/{$run->status}).");
-
-            return self::SUCCESS;
-        }
-
-        $this->info("Bootstrap SEPA encolado. Run #{$run->id} -> {$run->stage} via {$jobClass}");
+        ProcessSepaSyncJob::dispatch($day, $requestedDate);
+        $this->info("SEPA sync encolado para [{$day}]");
 
         return self::SUCCESS;
     }
 
-    private function findRunningRun(string $day, ?string $requestedDate): ?SepaImportRun
+    private function usesSourceFile(): bool
     {
-        return SepaImportRun::query()
-            ->where('day', $day)
-            ->when(
-                $requestedDate !== null,
-                fn ($query) => $query->where('requested_date', $requestedDate),
-                fn ($query) => $query->whereNull('requested_date')
-            )
-            ->where('status', 'running')
-            ->latest('id')
-            ->first();
+        $sourceFile = $this->option('source-file');
+
+        return is_string($sourceFile) && trim($sourceFile) !== '';
     }
 
-    private function dispatchBootstrapJob(SepaImportRun $run): ?string
+    private function validateConfiguredUrl(SepaSourceResolver $sourceResolver, string $day): bool
     {
-        if (!in_array($run->stage, [
-            SepaImportService::STAGE_PENDING_DOWNLOAD,
-            SepaImportService::STAGE_DOWNLOADED,
-        ], true)) {
-            return null;
+        $url = config('sepa.day_urls.'.$day);
+        if (!is_string($url) || trim($url) === '') {
+            if ($day === 'lunes') {
+                $this->error('Configurá `SEPA_URL_LUNES` en .env');
+            } else {
+                $envKey = $this->resolveDayEnvKey($day);
+                $this->error("Configurá `{$envKey}` en .env");
+            }
+
+            return false;
         }
 
-        PrepareSepaImportJob::dispatch($run->id);
+        if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+            if ($day === 'lunes') {
+                $this->error('La URL configurada para lunes no es válida');
+            } else {
+                $this->error("La URL configurada para {$day} no es válida");
+            }
 
-        return PrepareSepaImportJob::class;
+            return false;
+        }
+
+        return in_array($day, $sourceResolver->supportedDays(), true);
     }
 
-    private function normalizeRequestedDate(): ?string
+    private function resolveDayEnvKey(string $day): string
     {
-        $date = $this->option('date');
-
-        return is_string($date) && trim($date) !== '' ? trim($date) : null;
+        return match ($day) {
+            'miercoles' => 'SEPA_URL_MIERCOLES',
+            default => 'SEPA_URL_'.mb_strtoupper($day),
+        };
     }
 
     private function resolveDay(SepaSourceResolver $sourceResolver): ?string

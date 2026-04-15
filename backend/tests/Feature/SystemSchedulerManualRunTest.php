@@ -46,48 +46,25 @@ class SystemSchedulerManualRunTest extends TestCase
         ]);
     }
 
-    public function test_it_starts_sepa_run_asynchronously_by_default(): void
+    public function test_it_runs_manual_sepa_sync_with_requested_date_for_auditing_only(): void
     {
-        Artisan::shouldReceive('call')->once()->with('sepa:sync', [])->andReturn(0);
-        Artisan::shouldReceive('output')->once()->andReturn("bootstrap queued\n");
+        Artisan::shouldReceive('call')
+            ->once()
+            ->with('sepa:sync', [
+                '--sync' => true,
+                '--requested-date' => '2026-04-07',
+            ]);
+        Artisan::shouldReceive('output')->once()->andReturn('ok');
 
-        $response = $this->postJson('/system/sepa-sync', [], [
-            'X-Cron-Token' => 'test-token'
+        $response = $this->postJson('/system/sepa-sync', [
+            'requested_date' => '2026-04-07',
+        ], [
+            'X-Cron-Token' => 'test-token',
         ]);
 
         $response->assertStatus(200);
-        $response->assertJson([
-            'success' => true,
-            'message' => 'Corrida SEPA iniciada.',
-        ]);
-    }
-
-    public function test_it_can_advance_a_single_sepa_stage_manually(): void
-    {
-        Artisan::shouldReceive('call')->once()->with('sepa:advance', [])->andReturn(0);
-        Artisan::shouldReceive('output')->once()->andReturn("advanced\n");
-
-        $response = $this->postJson('/system/sepa-sync', ['action' => 'advance'], [
-            'X-Cron-Token' => 'test-token'
-        ]);
-
-        $response->assertStatus(200);
-        $response->assertJson([
-            'success' => true,
-            'message' => 'Corrida SEPA avanzada una etapa.',
-        ]);
-    }
-
-    public function test_it_rejects_unknown_sepa_action(): void
-    {
-        $response = $this->postJson('/system/sepa-sync', ['action' => 'foo'], [
-            'X-Cron-Token' => 'test-token'
-        ]);
-
-        $response->assertStatus(422);
-        $response->assertJson([
-            'success' => false,
-            'message' => 'Acción SEPA inválida. Use start, advance o diagnostic.',
-        ]);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('requested_date', '2026-04-07');
+        $response->assertJsonPath('message', 'Sincronización SEPA ejecutada. requested_date se registra solo para auditoría y no cambia el dataset importado.');
     }
 }

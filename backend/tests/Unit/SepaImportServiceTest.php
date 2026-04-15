@@ -2,34 +2,56 @@
 
 namespace Tests\Unit;
 
-use App\Jobs\Sepa\ProcessSepaImportSliceJob;
-use App\Models\SepaImportRun;
 use App\Models\SepaItem;
 use App\Services\Sepa\SepaImportService;
 use App\Services\Sepa\SepaSourceResolver;
-use RuntimeException;
-use Tests\Concerns\InteractsWithSepaImportTestData;
+use Illuminate\Contracts\Cache\Lock;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Mockery;
 use Tests\TestCase;
 
 class SepaImportServiceTest extends TestCase
 {
-    use InteractsWithSepaImportTestData;
-
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->configureSepaDayUrls();
-        $this->createSepaImportTables();
-        $this->createSepaItemsTable();
-        $this->clearSepaFilesystem();
-    }
+        Schema::dropIfExists('sepa_import_runs');
+        Schema::create('sepa_import_runs', function (Blueprint $table): void {
+            $table->id();
+            $table->string('day', 20);
+            $table->string('requested_date')->nullable();
+            $table->string('status', 20)->default('running');
+            $table->unsignedInteger('downloaded_files')->default(0);
+            $table->unsignedInteger('valid_rows')->default(0);
+            $table->unsignedInteger('invalid_rows')->default(0);
+            $table->unsignedInteger('inserted_rows')->default(0);
+            $table->unsignedInteger('updated_rows')->default(0);
+            $table->json('error_samples')->nullable();
+            $table->text('error_message')->nullable();
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('finished_at')->nullable();
+            $table->unsignedInteger('duration_seconds')->nullable();
+            $table->timestamps();
+        });
 
-    protected function tearDown(): void
-    {
-        $this->clearSepaFilesystem();
-
-        parent::tearDown();
+        Schema::dropIfExists('sepa_items');
+        Schema::create('sepa_items', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('barcode')->unique();
+            $table->decimal('price', 12, 2);
+            $table->decimal('presentation_quantity', 12, 2)->nullable();
+            $table->string('presentation_unit', 20)->nullable();
+            $table->string('brand', 120)->nullable();
+            $table->decimal('list_price', 12, 2)->nullable();
+            $table->timestamps();
+        });
     }
 
     public function test_it_normalizes_presentation_unit_variants_in_build_record(): void
@@ -124,15 +146,8 @@ class SepaImportServiceTest extends TestCase
             'updated_rows' => 0,
             'error_samples' => [],
         ];
-        $fileMetrics = [
-            'valid_rows' => 1,
-            'invalid_rows' => 0,
-            'inserted_rows' => 0,
-            'updated_rows' => 0,
-            'error_samples' => [],
-        ];
 
-        $this->invokePrivate($service, 'persistChunk', [$batch, &$metrics, &$fileMetrics]);
+        $this->invokePrivate($service, 'persistChunk', [$batch, &$metrics]);
 
         $this->assertDatabaseHas('sepa_items', [
             'barcode' => '7791234567890',
@@ -146,112 +161,141 @@ class SepaImportServiceTest extends TestCase
 
         $this->assertSame(0, $metrics['inserted_rows']);
         $this->assertSame(1, $metrics['updated_rows']);
-        $this->assertSame(1, $fileMetrics['updated_rows']);
     }
 
-    public function test_it_can_resume_a_run_downloaded_but_not_processed(): void
+    public function test_it_cleans_up_temporary_directory_after_import_failure(): void
     {
-        $this->fakeSepaDownload($this->sampleArchives());
-        $service = $this->service();
-
-        $run = $service->startRun('lunes', '2026-03-19');
-        $run = $service->downloadArtifacts($run);
-
-        $this->assertSame('running', $run->status);
-        $this->assertSame(SepaImportService::STAGE_DOWNLOADED, $run->stage);
-        $this->assertNotNull($run->main_zip_path);
-        $this->assertDirectoryExists($run->main_extract_dir);
-        $this->assertDirectoryExists(storage_path('app/sepa/tmp/run_'.$run->id));
-
-        $run = $service->advanceRun($run);
-        $run = $run->fresh(['files']);
-
-        $this->assertSame(SepaImportService::STAGE_READY_TO_PROCESS, $run->stage);
-        $this->assertSame(2, $run->total_zip_files);
-        $this->assertSame(0, $run->next_file_index);
-        $this->assertCount(2, $run->files);
-        $this->assertSame(['pending', 'pending'], $run->files->pluck('status')->all());
-        $this->assertTrue($run->canAdvance());
-        $this->assertFalse($run->canFinalize());
-    }
-
-    public function test_it_can_continue_from_file_three_of_n(): void
-    {
-        $this->fakeSepaDownload([
-            [['id_producto' => '7790000000001', 'productos_ean' => '7790000000001', 'productos_descripcion' => 'Producto Uno', 'productos_precio_lista' => '100.00', 'productos_precio_vta1' => '100.00', 'productos_cantidad_presentacion' => '1', 'productos_unidad_medida_presentacion' => 'UNIDAD', 'productos_marca' => 'Marca Uno']],
-            [['id_producto' => '7790000000002', 'productos_ean' => '7790000000002', 'productos_descripcion' => 'Producto Dos', 'productos_precio_lista' => '200.00', 'productos_precio_vta1' => '200.00', 'productos_cantidad_presentacion' => '1', 'productos_unidad_medida_presentacion' => 'UNIDAD', 'productos_marca' => 'Marca Dos']],
-            [['id_producto' => '7790000000003', 'productos_ean' => '7790000000003', 'productos_descripcion' => 'Producto Tres', 'productos_precio_lista' => '300.00', 'productos_precio_vta1' => '300.00', 'productos_cantidad_presentacion' => '1', 'productos_unidad_medida_presentacion' => 'UNIDAD', 'productos_marca' => 'Marca Tres']],
-        ]);
-        $service = $this->service();
-
-        $run = $service->startRun('lunes', '2026-03-19');
-        $run = $service->downloadArtifacts($run);
-        $run = $service->discoverInnerArchives($run);
-        $run = $service->processNextArchive($run);
-        $run = $service->processNextArchive($run);
-        $run = $run->fresh(['files']);
-
-        $this->assertSame(2, $run->next_file_index);
-        $this->assertSame(SepaImportService::STAGE_READY_TO_PROCESS, $run->stage);
-        $this->assertSame(['done', 'done', 'pending'], $run->files->pluck('status')->all());
-        $this->assertDatabaseCount('sepa_items', 2);
-
-        $job = new ProcessSepaImportSliceJob($run->id);
-        $job->handle($service);
-
-        $run = $run->fresh(['files']);
-
-        $this->assertSame(SepaImportService::STAGE_FINALIZING, $run->stage);
-        $this->assertSame(3, $run->next_file_index);
-        $this->assertSame(['done', 'done', 'done'], $run->files->pluck('status')->all());
-        $this->assertSame(3, $run->valid_rows);
-        $this->assertSame(3, SepaItem::query()->count());
-        $this->assertSame(1, $run->file_metrics[2]['valid_rows']);
-    }
-
-    public function test_cleanup_happens_only_when_run_completes_or_fails_definitively(): void
-    {
-        $this->fakeSepaDownload($this->sampleArchives());
-        $service = $this->service();
-
-        $run = $service->startRun('lunes', '2026-03-19');
-        $run = $service->downloadArtifacts($run);
-        $run = $service->discoverInnerArchives($run);
-        $run = $service->processNextArchive($run);
-
-        $this->assertDirectoryExists(storage_path('app/sepa/tmp/run_'.$run->id));
-
-        $run = $service->processNextArchive($run);
-        $this->assertDirectoryExists(storage_path('app/sepa/tmp/run_'.$run->id));
-
-        $run = $service->finalizeRun($run);
-
-        $this->assertSame(SepaImportService::STAGE_SUCCESS, $run->stage);
-        $this->assertDirectoryDoesNotExist(storage_path('app/sepa/tmp/run_'.$run->id));
-
         $resolver = $this->createMock(SepaSourceResolver::class);
         $resolver->method('resolveUrlForDay')->willReturn('http://example.com/sepa.zip');
 
-        $failingService = new class($resolver) extends SepaImportService {
-            protected function downloadMainZip(string $url, string $destinationPath): void
-            {
-                file_put_contents($destinationPath, 'broken');
-                throw new RuntimeException('Simulated import failure');
-            }
-        };
+        // We'll mock the internal executeImport to create a directory and then throw
+        $service = $this->getMockBuilder(SepaImportService::class)
+            ->setConstructorArgs([$resolver])
+            ->onlyMethods(['executeImport'])
+            ->getMock();
+
+        $service->expects($this->once())
+            ->method('executeImport')
+            ->willReturnCallback(function ($day, $runId) {
+                $dir = storage_path("app/sepa/tmp/run_{$runId}");
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0775, true);
+                }
+                file_put_contents($dir . '/test.txt', 'test');
+                throw new \RuntimeException('Simulated import failure');
+            });
 
         try {
-            $failingService->import('lunes');
-            $this->fail('The import should throw an exception.');
-        } catch (RuntimeException $e) {
+            $service->import('lunes');
+        } catch (\RuntimeException $e) {
             $this->assertSame('Simulated import failure', $e->getMessage());
         }
 
-        $failedRun = SepaImportRun::query()->latest('id')->firstOrFail();
+        $tmpDir = storage_path('app/sepa/tmp/run_1');
+        $this->assertDirectoryDoesNotExist($tmpDir);
+    }
 
-        $this->assertSame('failed', $failedRun->status);
-        $this->assertSame(SepaImportService::STAGE_FAILED, $failedRun->stage);
-        $this->assertDirectoryDoesNotExist(storage_path('app/sepa/tmp/run_'.$failedRun->id));
+    public function test_it_skips_import_when_lock_is_not_acquired(): void
+    {
+        $lock = Mockery::mock(Lock::class);
+        $lock->shouldReceive('get')->once()->andReturnFalse();
+
+        Cache::shouldReceive('lock')->once()->with('sepa:sync:lunes', Mockery::type('int'))->andReturn($lock);
+        Log::shouldReceive('warning')->once();
+
+        $run = $this->service()->import('lunes', '2026-04-07');
+
+        $this->assertSame('skipped_locked', $run->status);
+        $this->assertSame('lunes', $run->day);
+        $this->assertSame('2026-04-07', $run->requested_date);
+        $this->assertSame(0, $run->duration_seconds);
+        $this->assertDatabaseCount('sepa_items', 0);
+    }
+
+    public function test_it_releases_lock_after_import_finishes(): void
+    {
+        $resolver = $this->createMock(SepaSourceResolver::class);
+        $lock = Mockery::mock(Lock::class);
+        $lock->shouldReceive('get')->once()->andReturnTrue();
+        $lock->shouldReceive('release')->once();
+
+        Cache::shouldReceive('lock')->once()->with('sepa:sync:lunes', Mockery::type('int'))->andReturn($lock);
+
+        $service = $this->getMockBuilder(SepaImportService::class)
+            ->setConstructorArgs([$resolver])
+            ->onlyMethods(['executeImport'])
+            ->getMock();
+
+        $service->expects($this->once())
+            ->method('executeImport')
+            ->willReturn([
+                'downloaded_files' => 1,
+                'valid_rows' => 1,
+                'invalid_rows' => 0,
+                'inserted_rows' => 1,
+                'updated_rows' => 0,
+                'error_samples' => [],
+            ]);
+
+        $run = $service->import('lunes');
+
+        $this->assertSame('success', $run->status);
+        $this->assertSame(1, $run->downloaded_files);
+    }
+
+    public function test_download_main_zip_streams_content_to_destination_file(): void
+    {
+        Http::fake([
+            'example.com/*' => Http::response('zip-content', 200),
+        ]);
+
+        $service = $this->service();
+        $destination = storage_path('app/sepa/tmp/test-main.zip');
+        File::delete($destination);
+
+        $this->invokePrivate($service, 'downloadMainZip', ['https://example.com/sepa.zip', $destination]);
+
+        $this->assertFileExists($destination);
+        $this->assertGreaterThan(0, filesize($destination));
+        $this->assertSame('zip-content', file_get_contents($destination));
+    }
+
+    public function test_download_main_zip_includes_url_and_status_in_error_message(): void
+    {
+        Http::fake([
+            'example.com/*' => Http::response('error', 503),
+        ]);
+
+        $service = $this->service();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('https://example.com/sepa.zip');
+        $this->expectExceptionMessage('Código HTTP: 503');
+
+        $this->invokePrivate(
+            $service,
+            'downloadMainZip',
+            ['https://example.com/sepa.zip', storage_path('app/sepa/tmp/error-main.zip')]
+        );
+    }
+
+    public function test_download_main_zip_rejects_empty_downloads(): void
+    {
+        Http::fake([
+            'example.com/*' => Http::response('', 200),
+        ]);
+
+        $service = $this->service();
+        $destination = storage_path('app/sepa/tmp/empty-main.zip');
+
+        try {
+            $this->invokePrivate($service, 'downloadMainZip', ['https://example.com/sepa.zip', $destination]);
+            $this->fail('Se esperaba RuntimeException para descarga vacía.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Descarga SEPA vacía', $exception->getMessage());
+        }
+
+        $this->assertFileDoesNotExist($destination);
     }
 
     private function service(): SepaImportService
