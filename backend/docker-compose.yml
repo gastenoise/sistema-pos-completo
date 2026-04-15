@@ -7,14 +7,17 @@ services:
     container_name: pos_app
     restart: unless-stopped
     working_dir: /var/www
+    env_file: .env
     volumes:
       - ./:/var/www
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
     networks:
       - pos-network
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   webserver:
     image: nginx:alpine
@@ -34,6 +37,7 @@ services:
     image: postgres:17.9-alpine
     container_name: pos_db
     restart: unless-stopped
+    env_file: .env
     environment:
       POSTGRES_DB: ${DB_DATABASE:-openventa}
       POSTGRES_USER: ${DB_USERNAME:-postgres}
@@ -44,6 +48,11 @@ services:
       - dbdata:/var/lib/postgresql/data
     networks:
       - pos-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-openventa}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:alpine
@@ -55,19 +64,23 @@ services:
     image: laravel-pos-app
     container_name: pos_queue
     restart: unless-stopped
+    env_file: .env
     command: php artisan queue:work --tries=3
     volumes:
       - ./:/var/www
     networks:
       - pos-network
     depends_on:
-      - app
-      - db
+      app:
+        condition: service_started
+      db:
+        condition: service_healthy
 
   scheduler:
     image: laravel-pos-app
     container_name: pos_scheduler
     restart: unless-stopped
+    env_file: .env
     # En producción usar supervisord, aquí un loop simple para dev
     command: sh -c "while true; do php artisan schedule:run --verbose --no-interaction & sleep 60; done"
     volumes:
@@ -75,7 +88,10 @@ services:
     networks:
       - pos-network
     depends_on:
-      - app
+      app:
+        condition: service_started
+      db:
+        condition: service_healthy
 
 networks:
   pos-network:
