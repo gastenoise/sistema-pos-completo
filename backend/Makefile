@@ -1,4 +1,4 @@
-.PHONY: up down up-nocache composer-install migrate seed dbreset test bash keygen artisan-cache all sepa-sync
+.PHONY: up down up-nocache composer-install migrate seed dbreset test bash keygen artisan-cache all sepa-sync env-file wait-db
 
 up:
 	docker compose up -d
@@ -39,7 +39,24 @@ artisan-cache:
 	docker compose exec app php artisan route:clear
 	docker compose exec app php artisan view:clear
 
-setup: up-nocache composer-install refresh-db keygen artisan-cache
+env-file:
+	@if [ ! -f .env ]; then cp .env.example .env; fi
+
+wait-db:
+	@echo "Waiting for database..."
+	@docker compose exec app php -r 'for ($$i=0; $$i<60; $$i++) { try { \
+		$$driver = getenv("DB_CONNECTION") ?: "pgsql"; \
+		$$host = getenv("DB_HOST") ?: "127.0.0.1"; \
+		$$port = getenv("DB_PORT") ?: 5432; \
+		$$db   = getenv("DB_DATABASE") ?: ""; \
+		$$user = getenv("DB_USERNAME") ?: ""; \
+		$$pass = getenv("DB_PASSWORD") ?: ""; \
+		$$dsn = "$$driver:host=$$host;port=$$port;dbname=$$db"; \
+		new PDO($$dsn, $$user, $$pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]); \
+		exit(0); \
+	} catch (Exception $$e) { sleep(2); } } exit(1);'
+
+setup: env-file up-nocache composer-install wait-db refresh-db keygen artisan-cache
 
 sepa-sync:
 	docker compose exec app php artisan sepa:sync --sync
