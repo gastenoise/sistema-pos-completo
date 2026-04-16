@@ -41,7 +41,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - dbdata:/var/lib/postgresql/data
+      # Use a dedicated PostgreSQL volume name to avoid reusing any previously-mounted
+      # MySQL data directory (which can include stale `mysql.sock`/InnoDB files).
+      - pgdata:/var/lib/postgresql/data
     networks:
       - pos-network
 
@@ -82,4 +84,4 @@ networks:
     driver: bridge
 
 volumes:
-  dbdata:
+  pgdata:
