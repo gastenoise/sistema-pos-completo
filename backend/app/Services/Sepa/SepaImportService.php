@@ -5,8 +5,6 @@ namespace App\Services\Sepa;
 use App\Models\SepaImportRun;
 use App\Models\SepaItem;
 use Illuminate\Support\Carbon;
-use Illuminate\Contracts\Cache\Lock;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
@@ -19,42 +17,16 @@ class SepaImportService
 {
     private const EXPECTED_MIN_COLUMNS = 8;
     private const ERROR_SAMPLE_LIMIT = 10;
-    private const LOCK_TTL_SECONDS = 7200;
-
     public function __construct(private readonly SepaSourceResolver $sourceResolver)
     {
     }
 
     public function import(string $day, ?string $requestedDate = null): SepaImportRun
     {
-        $lock = Cache::lock($this->resolveLockKey($day), $this->resolveLockTtlSeconds());
-        if (!$lock->get()) {
-            Log::warning('SEPA sync omitido: lock activo.', [
-                'lock_key' => $this->resolveLockKey($day),
-                'day' => $day,
-                'requested_date' => $requestedDate,
-            ]);
-
-            return SepaImportRun::create([
-                'day' => $day,
-                'requested_date' => $requestedDate,
-                'status' => 'skipped_locked',
-                'started_at' => now(),
-                'finished_at' => now(),
-                'duration_seconds' => 0,
-                'error_message' => 'Importación omitida por lock activo',
-                'downloaded_files' => 0,
-                'valid_rows' => 0,
-                'invalid_rows' => 0,
-                'inserted_rows' => 0,
-                'updated_rows' => 0,
-            ]);
-        }
-
-        return $this->runImport($day, $requestedDate, $lock);
+        return $this->runImport($day, $requestedDate);
     }
 
-    private function runImport(string $day, ?string $requestedDate, Lock $lock): SepaImportRun
+    private function runImport(string $day, ?string $requestedDate): SepaImportRun
     {
         $startedAt = now();
 
@@ -95,21 +67,11 @@ class SepaImportService
             throw $exception;
         } finally {
             File::deleteDirectory(storage_path("app/sepa/tmp/run_{$run->id}"));
-            $lock->release();
         }
 
         return $run->fresh();
     }
 
-    private function resolveLockKey(string $day): string
-    {
-        return "sepa:sync:{$day}";
-    }
-
-    private function resolveLockTtlSeconds(): int
-    {
-        return max((int) config('sepa.lock_ttl_seconds', self::LOCK_TTL_SECONDS), 3600);
-    }
 
     private function safeDurationSeconds(Carbon $startedAt): int
     {
