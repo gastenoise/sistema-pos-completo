@@ -243,6 +243,58 @@ class SepaImportServiceTest extends TestCase
         $this->assertSame(1, $run->downloaded_files);
     }
 
+    public function test_it_handles_batch_with_duplicate_barcodes_gracefully(): void
+    {
+        $service = $this->service();
+
+        $batch = [
+            [
+                'name' => 'Producto 1',
+                'barcode' => '123456',
+                'price' => 100,
+                'presentation_quantity' => 1,
+                'presentation_unit' => 'un',
+                'brand' => 'Brand A',
+                'list_price' => 100,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Producto 1 Duplicado',
+                'barcode' => '123456',
+                'price' => 110,
+                'presentation_quantity' => 1,
+                'presentation_unit' => 'un',
+                'brand' => 'Brand A',
+                'list_price' => 110,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ];
+
+        $metrics = [
+            'downloaded_files' => 0,
+            'valid_rows' => 2,
+            'invalid_rows' => 0,
+            'inserted_rows' => 0,
+            'updated_rows' => 0,
+            'error_samples' => [],
+        ];
+
+        // This would fail on PostgreSQL as reported if not deduplicated.
+        $this->invokePrivate($service, 'persistChunk', [$batch, &$metrics]);
+
+        $this->assertDatabaseCount('sepa_items', 1);
+        $this->assertDatabaseHas('sepa_items', [
+            'barcode' => '123456',
+            'name' => 'Producto 1 Duplicado',
+            'price' => 110.00,
+        ]);
+
+        $this->assertSame(1, $metrics['inserted_rows']);
+        $this->assertSame(0, $metrics['updated_rows']);
+    }
+
     public function test_download_main_zip_streams_content_to_destination_file(): void
     {
         Http::fake([

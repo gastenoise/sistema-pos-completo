@@ -20,10 +20,13 @@ class SepaSyncCommandTest extends TestCase
         config(['sepa.day_urls.lunes' => 'https://example.com/lunes.zip']);
 
         $importService = Mockery::mock(SepaImportService::class);
+        $run = new \App\Models\SepaImportRun();
+        $run->forceFill(['id' => 99, 'status' => 'success']);
+
         $importService->shouldReceive('import')
             ->once()
             ->with('lunes', '2026-04-07')
-            ->andReturn((object) ['id' => 99, 'status' => 'success']);
+            ->andReturn($run);
         $this->app->instance(SepaImportService::class, $importService);
 
         $this->artisan('sepa:sync', [

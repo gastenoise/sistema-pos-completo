@@ -522,6 +522,8 @@ class SepaImportService
      */
     private function persistChunk(array $batch, array &$metrics): void
     {
+        $batch = collect($batch)->keyBy('barcode')->values()->all();
+
         $barcodes = array_column($batch, 'barcode');
         $existingRows = SepaItem::query()
             ->whereIn('barcode', $barcodes)
