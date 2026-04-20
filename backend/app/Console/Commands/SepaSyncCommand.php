@@ -10,7 +10,8 @@ use Illuminate\Console\Command;
 class SepaSyncCommand extends Command
 {
     protected $signature = 'sepa:sync
-        {--day= : Día en español (lunes..domingo) para forzar origen}
+        {day? : Día en español (lunes..domingo). Si no se envía, usa el día actual}
+        {--day= : [DEPRECADO] Día en español (lunes..domingo) para forzar origen}
         {--requested-date= : Fecha solicitada (auditoría); no cambia el dataset importado}
         {--source-file= : Archivo local para usar como origen en lugar de URL}
         {--sync : Ejecuta en modo síncrono sin cola}';
@@ -88,8 +89,15 @@ class SepaSyncCommand extends Command
 
     private function resolveDay(SepaSourceResolver $sourceResolver): ?string
     {
-        $day = $this->option('day');
-        $day = is_string($day) && trim($day) !== '' ? mb_strtolower(trim($day)) : $this->currentSpanishDay();
+        $argumentDay = $this->argument('day');
+        if (is_string($argumentDay) && trim($argumentDay) !== '') {
+            $day = mb_strtolower(trim($argumentDay));
+        } else {
+            $optionDay = $this->option('day');
+            $day = is_string($optionDay) && trim($optionDay) !== ''
+                ? mb_strtolower(trim($optionDay))
+                : $this->currentSpanishDay();
+        }
 
         if (!in_array($day, $sourceResolver->supportedDays(), true)) {
             $supported = implode(', ', $sourceResolver->supportedDays());

@@ -7,21 +7,11 @@ use Tests\TestCase;
 
 class SepaSyncSchedulingTest extends TestCase
 {
-    public function test_it_registers_sepa_sync_in_scheduler(): void
+    public function test_it_does_not_register_sepa_sync_in_scheduler_anymore(): void
     {
         $event = collect(app(Schedule::class)->events())
             ->first(fn ($event) => str_contains((string) $event->command, 'sepa:sync'));
 
-        $this->assertNotNull($event, 'No se encontró la tarea sepa:sync en el scheduler.');
-    }
-
-    public function test_it_runs_sepa_sync_at_1530_argentina_timezone(): void
-    {
-        $event = collect(app(Schedule::class)->events())
-            ->first(fn ($event) => str_contains((string) $event->command, 'sepa:sync'));
-
-        $this->assertNotNull($event, 'No se encontró la tarea sepa:sync en el scheduler.');
-        $this->assertSame('30 15 * * *', $event->expression);
-        $this->assertSame('America/Argentina/Buenos_Aires', $event->timezone);
+        $this->assertNull($event, 'La tarea sepa:sync no debe estar registrada en el scheduler.');
     }
 }

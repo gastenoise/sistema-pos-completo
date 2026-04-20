@@ -47,24 +47,19 @@ Usar endpoints de Items/Ventas enviando X-Business-Id header (o confiando en la 
 Scheduler & Queue
 El docker-compose.yml levanta un contenedor queue y scheduler.
 
-Para deshabilitar cron, comentar el servicio scheduler en docker-compose.yml.
+La sincronización SEPA ya no depende del scheduler: se ejecuta de forma manual cuando se invoca `php artisan sepa:sync`.
 
 ### Operación SEPA
 
 #### 1) Local con Docker Compose (este repo)
 
-1. **Confirmar `scheduler` activo** (ejecuta `php artisan schedule:run` cada 60s):
-   ```bash
-   docker compose ps scheduler
-   docker compose logs -f scheduler
-   ```
-2. **Confirmar `queue` activo** (`php artisan queue:work --tries=3`):
+1. **Confirmar `queue` activo** (`php artisan queue:work --tries=3`), si vas a correr `sepa:sync` sin `--sync`:
    ```bash
    docker compose ps queue
    docker compose logs -f queue
    ```
    > `sepa:sync` encola `ProcessSepaSyncJob` salvo que se ejecute con `--sync`.
-3. **Verificar variables obligatorias en `.env`**:
+2. **Verificar variables obligatorias en `.env`**:
    - `SEPA_URL_LUNES`
    - `SEPA_URL_MARTES`
    - `SEPA_URL_MIERCOLES`
@@ -77,36 +72,37 @@ Para deshabilitar cron, comentar el servicio scheduler en docker-compose.yml.
    ```bash
    rg '^SEPA_URL_(LUNES|MARTES|MIERCOLES|JUEVES|VIERNES|SABADO|DOMINGO)=' .env
    ```
-4. **Observar ejecución cerca de 15:30 AR** revisando logs de `scheduler` y `queue`.
+3. **Ejecutar sincronización manual**:
+   ```bash
+   # Usa el link del día actual (lunes..domingo)
+   php artisan sepa:sync --sync
+
+   # Fuerza un día específico
+   php artisan sepa:sync lunes --sync
+   ```
 
 #### 2) Local sin Docker
 
-- Configurar cron del SO:
-  ```cron
-  * * * * * cd /ruta/backend && php artisan schedule:run >> storage/logs/scheduler.log 2>&1
+- Ejecutar manualmente cuando lo necesites:
+  ```bash
+  php artisan sepa:sync --sync
+  php artisan sepa:sync lunes --sync
   ```
-- Correr worker en paralelo:
+- Si querés modo asíncrono, mantener worker en paralelo:
   ```bash
   php artisan queue:work --tries=3
   ```
 
 #### 3) Producción recomendada
 
-- Cron del sistema ejecutando `php artisan schedule:run` **cada minuto**.
-- `queue:work` siempre vivo con **Supervisor/Systemd** (o **Laravel Horizon** si aplica).
-- Timezone:
-  - Recomendado: definir timezone explícita en el Scheduler:
-    ```php
-    Schedule::command('sepa:sync')->dailyAt('15:30')->timezone('America/Argentina/Buenos_Aires');
-    ```
-  - Además, alinear timezone de host/contenedor/PHP para evitar desfasajes.
+- Ejecutar `php artisan sepa:sync` de forma manual (por consola o endpoint interno controlado).
+- `queue:work` siempre vivo con **Supervisor/Systemd** (o **Laravel Horizon** si aplica) solo si usás modo asíncrono.
 
 #### 4) Checklist de verificación
 
-- A las **15:30 AR** aparece ejecución en logs.
-- Se crea registro en `sepa_import_runs`.
-- No hay duplicados (una sola ejecución diaria).
-- El día resuelto (`lunes..domingo`) coincide con la fecha argentina.
+- Se crea registro en `sepa_import_runs` al disparar manualmente la sincronización.
+- No hay corridas duplicadas para el mismo disparo manual.
+- El día resuelto (`lunes..domingo`) coincide con el argumento provisto, o con la fecha actual si no se pasó argumento.
 
 
 - `--requested-date=YYYY-MM-DD` **no cambia el origen real del dataset** (la URL se sigue resolviendo por día). Se guarda sólo para auditoría en `sepa_import_runs.requested_date`.
@@ -114,17 +110,14 @@ Para deshabilitar cron, comentar el servicio scheduler en docker-compose.yml.
 
 Comandos útiles de diagnóstico:
 ```bash
-# Revisar próximas ejecuciones del scheduler
-php artisan schedule:list
-
 # Ejecutar importación de forma síncrona para diagnóstico inmediato
-php artisan sepa:sync --sync --requested-date=2026-04-07
+php artisan sepa:sync lunes --sync --requested-date=2026-04-07
 
 # Revisar últimas corridas registradas
 php artisan tinker --execute="App\\Models\\SepaImportRun::query()->latest()->limit(5)->get(['id','day','requested_date','status','started_at','finished_at'])->toArray();"
 ```
 
-> Evitá configurar **más de un scheduler** para el mismo entorno (por ejemplo, cron + contenedor scheduler al mismo tiempo), para prevenir ejecuciones duplicadas.
+> Si ejecutás el comando en modo asíncrono sin `--sync`, evitá dispararlo múltiples veces en paralelo para prevenir encolados innecesarios.
 
 Tests
 Ejecutar make test para correr Pest/PHPUnit.
