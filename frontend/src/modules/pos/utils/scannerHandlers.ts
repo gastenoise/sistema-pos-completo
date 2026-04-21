@@ -88,20 +88,26 @@ export const handlePendingPosScanResolution = ({
 
 export const handleItemsScanComplete = ({
   rawCode,
+  items,
+  setPendingScannedCode,
   hasOffsetPagination,
   currentPage,
   setBarcodeOrSkuQuery,
   setSearchQuery,
   setPage,
   focusAndHighlightBarcodeInput,
+  invalidateItems,
 }: {
   rawCode: string;
+  items: any[];
+  setPendingScannedCode: (code: string | null) => void;
   hasOffsetPagination: boolean;
   currentPage: number;
   setBarcodeOrSkuQuery: (code: string) => void;
   setSearchQuery: (value: string) => void;
   setPage: (page: number) => void;
   focusAndHighlightBarcodeInput: () => void;
+  invalidateItems: () => void;
 }) => {
   const code = String(rawCode ?? '').trim();
   if (!code) {
@@ -115,5 +121,39 @@ export const handleItemsScanComplete = ({
     setPage(1);
   }
 
+  const localMatch = findExactItemMatch(code, items);
+  if (localMatch) {
+    setPendingScannedCode(null);
+    focusAndHighlightBarcodeInput();
+    return;
+  }
+
+  setPendingScannedCode(code);
+  invalidateItems();
   focusAndHighlightBarcodeInput();
+};
+
+export const handlePendingItemsScanResolution = ({
+  pendingScannedCode,
+  items,
+  setPendingScannedCode,
+  onNoMatchFound,
+}: {
+  pendingScannedCode: string | null;
+  items: any[];
+  setPendingScannedCode: (code: string | null) => void;
+  onNoMatchFound?: (code: string) => void;
+}) => {
+  if (!pendingScannedCode) {
+    return;
+  }
+
+  const exactMatch = findExactItemMatch(pendingScannedCode, items);
+  if (!exactMatch) {
+    setPendingScannedCode(null);
+    onNoMatchFound?.(pendingScannedCode);
+    return;
+  }
+
+  setPendingScannedCode(null);
 };

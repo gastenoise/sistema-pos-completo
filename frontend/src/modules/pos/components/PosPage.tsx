@@ -29,6 +29,7 @@ import SaleCart from '@/components/pos/SaleCart';
 import PaymentWizard from '@/components/pos/PaymentWizard';
 import CashRegisterOpenModal from '@/components/pos/CashRegisterOpenModal';
 import QuickAddForm from '@/components/pos/QuickAddForm';
+import ItemEditorModal from '@/components/pos/ItemEditorModal';
 import NetworkIndicator from '@/components/pos/NetworkIndicator';
 import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import TicketActions from '@/components/sales/TicketActions';
@@ -76,7 +77,7 @@ function POSContent() {
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
   const [isProcessingItemsAction, setIsProcessingItemsAction] = useState(false);
   const [pendingScannedCode, setPendingScannedCode] = useState<string | null>(null);
-  const [showCreateItemModal, setShowCreateItemModal] = useState(false);
+  const [showScanItemEditorModal, setShowScanItemEditorModal] = useState(false);
   const [pendingBarcodeForCreate, setPendingBarcodeForCreate] = useState('');
   const { role } = useAuthorization();
   
@@ -305,6 +306,33 @@ function POSContent() {
     return true;
   };
 
+  const appendCreatedItemToItemsCache = (createdItem: any) => {
+    if (!createdItem?.id) {
+      return;
+    }
+
+    queryClient.setQueriesData({ queryKey: ['items', businessId] }, (previous: any) => {
+      if (Array.isArray(previous)) {
+        const alreadyExists = previous.some((item: any) => String(item?.id) === String(createdItem.id));
+        return alreadyExists ? previous : [createdItem, ...previous];
+      }
+
+      if (previous && Array.isArray(previous.items)) {
+        const alreadyExists = previous.items.some((item: any) => String(item?.id) === String(createdItem.id));
+        if (alreadyExists) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+          items: [createdItem, ...previous.items],
+        };
+      }
+
+      return previous;
+    });
+  };
+
   const handleNoMatchFoundAfterRefresh = (code: string) => {
     const now = Date.now();
     const lastNoMatch = lastNoMatchResolvedCodeRef.current;
@@ -315,7 +343,7 @@ function POSContent() {
     lastNoMatchResolvedCodeRef.current = { code, resolvedAt: now };
 
     setPendingBarcodeForCreate(code);
-    setShowCreateItemModal(true);
+    setShowScanItemEditorModal(true);
   };
 
   useKeyboardScanner({
@@ -493,6 +521,7 @@ function POSContent() {
         throw new Error('No se pudo crear el item en catálogo');
       }
 
+      appendCreatedItemToItemsCache(createdItem);
       addToCart({
         id: createdItem.id,
         name: createdItem.name,
@@ -502,7 +531,7 @@ function POSContent() {
       });
 
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
-      setShowCreateItemModal(false);
+      setShowScanItemEditorModal(false);
       setPendingBarcodeForCreate('');
     } catch (error) {
       toast.error(error?.message || TOAST_MESSAGES.items.saveError);
@@ -600,14 +629,6 @@ function POSContent() {
                 <QuickAddForm
                   onAdd={handleQuickAdd}
                   categories={categories}
-                  open={showCreateItemModal}
-                  onOpenChange={(nextOpen) => {
-                    setShowCreateItemModal(nextOpen);
-                    if (!nextOpen) {
-                      setPendingBarcodeForCreate('');
-                    }
-                  }}
-                  initialBarcode={pendingBarcodeForCreate}
                 />
               }
             />
@@ -754,6 +775,19 @@ function POSContent() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ItemEditorModal
+        open={showScanItemEditorModal}
+        onClose={() => {
+          setShowScanItemEditorModal(false);
+          setPendingBarcodeForCreate('');
+        }}
+        item={null}
+        initialBarcode={pendingBarcodeForCreate}
+        categories={categories}
+        onSave={handleSaveItemFromScan}
+        loading={isProcessingItemsAction}
+      />
     </div>
   );
 }
