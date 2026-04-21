@@ -36,7 +36,7 @@ import ItemsFiltersDialog from '@/components/items/ItemsFiltersDialog';
 import { useItemFilters } from '@/modules/items/hooks/useItemFilters';
 import { useKeyboardScanner } from '@/components/scanner/useKeyboardScanner';
 import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
-import { handleItemsScanComplete } from '@/modules/pos/utils/scannerHandlers';
+import { handleItemsScanComplete, handlePendingItemsScanResolution } from '@/modules/pos/utils/scannerHandlers';
 
 export default function Items() {
   const { businessId, currentBusiness, businesses } = useBusiness();
@@ -67,6 +67,7 @@ export default function Items() {
   const [savingItem, setSavingItem] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [barcodeInputHighlighted, setBarcodeInputHighlighted] = useState(false);
+  const [pendingScannedCode, setPendingScannedCode] = useState<string | null>(null);
   const barcodeInputRef = useRef<HTMLInputElement | null>(null);
 
   const getItemSelectionKey = (item) => `${item.source || 'local'}:${item.source === 'sepa' ? (item.sepa_item_id || item.id) : item.id}`;
@@ -153,6 +154,7 @@ export default function Items() {
     ...normalizeBusinessParameters(currentBusiness),
   };
   const scannerEnabled = currentBusinessParameters[BUSINESS_PARAMETER_IDS.ENABLE_BARCODE_SCANNER] === true;
+  const autoOpenCreateOnUnknownBarcodeEnabled = currentBusinessParameters[BUSINESS_PARAMETER_IDS.AUTO_OPEN_ITEM_CREATE_ON_UNKNOWN_BARCODE] === true;
 
   // Create/Update mutation
   const itemMutation = useSaveItemMutation();
@@ -177,6 +179,28 @@ export default function Items() {
   );
   const showItemsOverlay = !loadingItems && (fetchingItems || isMutatingItems);
 
+  const appendCreatedItemToItemsCache = (createdItem: any) => {
+    if (!createdItem?.id) {
+      return;
+    }
+
+    queryClient.setQueriesData({ queryKey: ['items', businessId] }, (previous: any) => {
+      if (!previous || !Array.isArray(previous.items)) {
+        return previous;
+      }
+
+      const alreadyExists = previous.items.some((item: any) => String(item?.id) === String(createdItem.id));
+      if (alreadyExists) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        items: [createdItem, ...previous.items],
+      };
+    });
+  };
+
   const handleSaveItem = async (itemData) => {
     setSavingItem(true);
     try {
@@ -193,7 +217,8 @@ export default function Items() {
         updateItemsCache(saved);
         toast.success(TOAST_MESSAGES.items.updated);
       } else {
-        await itemMutation.mutateAsync(itemData);
+        const createdItem = await itemMutation.mutateAsync(itemData);
+        appendCreatedItemToItemsCache(createdItem);
         if (page !== 1) {
           setPage(1);
         }
@@ -454,15 +479,35 @@ export default function Items() {
     onScanComplete: (rawCode) => {
       handleItemsScanComplete({
         rawCode,
+        items,
+        setPendingScannedCode,
         hasOffsetPagination,
         currentPage,
         setBarcodeOrSkuQuery,
         setSearchQuery,
         setPage,
         focusAndHighlightBarcodeInput,
+        invalidateItems: () => {
+          queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+        },
       });
     },
   });
+
+  useEffect(() => {
+    handlePendingItemsScanResolution({
+      pendingScannedCode,
+      items,
+      setPendingScannedCode,
+      onNoMatchFound: autoOpenCreateOnUnknownBarcodeEnabled
+        ? (code: string) => {
+            setBarcodeOrSkuQuery(code);
+            setEditingItem(null);
+            setShowEditorModal(true);
+          }
+        : undefined,
+    });
+  }, [autoOpenCreateOnUnknownBarcodeEnabled, items, pendingScannedCode, setBarcodeOrSkuQuery]);
 
   return (
     <div className="min-h-screen bg-slate-50">

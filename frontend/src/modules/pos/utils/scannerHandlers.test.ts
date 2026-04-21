@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 
-import { handleItemsScanComplete, handlePendingPosScanResolution, handlePosScanComplete } from './scannerHandlers';
+import {
+  handleItemsScanComplete,
+  handlePendingItemsScanResolution,
+  handlePendingPosScanResolution,
+  handlePosScanComplete,
+} from './scannerHandlers';
 
 describe('POS scanner handling', () => {
   it('scan válido agrega item al carrito automáticamente', () => {
@@ -51,25 +56,50 @@ describe('POS scanner handling', () => {
 
 describe('Items scanner handling', () => {
   it('scan válido setea barcodeOrSkuQuery y resetea página', () => {
+    const setPendingScannedCode = vi.fn();
+    const invalidateItems = vi.fn();
     const setBarcodeOrSkuQuery = vi.fn();
     const setSearchQuery = vi.fn();
     const setPage = vi.fn();
     const focusAndHighlightBarcodeInput = vi.fn();
+    const items = [{ id: 1, barcode: 'ABC123' }];
 
     handleItemsScanComplete({
       rawCode: 'ABC123',
+      items,
+      setPendingScannedCode,
       hasOffsetPagination: true,
       currentPage: 4,
       setBarcodeOrSkuQuery,
       setSearchQuery,
       setPage,
       focusAndHighlightBarcodeInput,
+      invalidateItems,
     });
 
     expect(setBarcodeOrSkuQuery).toHaveBeenCalledWith('ABC123');
     expect(setSearchQuery).toHaveBeenCalledWith('');
     expect(setPage).toHaveBeenCalledWith(1);
+    expect(setPendingScannedCode).toHaveBeenCalledWith(null);
+    expect(invalidateItems).not.toHaveBeenCalled();
     expect(focusAndHighlightBarcodeInput).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Items pending scanner resolution', () => {
+  it('ejecuta callback cuando no hay match luego del refresh y limpia pending code', () => {
+    const setPendingScannedCode = vi.fn();
+    const onNoMatchFound = vi.fn();
+
+    handlePendingItemsScanResolution({
+      pendingScannedCode: '779999',
+      items: [{ id: 1, barcode: '779123' }],
+      setPendingScannedCode,
+      onNoMatchFound,
+    });
+
+    expect(setPendingScannedCode).toHaveBeenCalledWith(null);
+    expect(onNoMatchFound).toHaveBeenCalledWith('779999');
   });
 });
 
