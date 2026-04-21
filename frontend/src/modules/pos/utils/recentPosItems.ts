@@ -1,5 +1,16 @@
 const STORAGE_PREFIX = 'pos_recent_items_v1';
 const MAX_RECENT_ITEMS = 60;
+type LocalStorageLike = {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+};
+
+const getLocalStorage = (): LocalStorageLike | null => {
+  const storageCandidate = (globalThis as any)?.localStorage;
+  if (!storageCandidate) return null;
+  if (typeof storageCandidate.getItem !== 'function' || typeof storageCandidate.setItem !== 'function') return null;
+  return storageCandidate as LocalStorageLike;
+};
 
 const normalizeItemKey = (item: any): string | null => {
   if (!item) return null;
@@ -19,10 +30,11 @@ export const loadRecentPosItemKeys = (
   userId: string | number | null | undefined
 ): string[] => {
   const storageKey = getStorageKey(businessId, userId);
-  if (!storageKey || typeof window === 'undefined') return [];
+  const storage = getLocalStorage();
+  if (!storageKey || !storage) return [];
 
   try {
-    const raw = window.localStorage.getItem(storageKey);
+    const raw = storage.getItem(storageKey);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -39,11 +51,12 @@ export const recordRecentPosItem = (
 ): void => {
   const storageKey = getStorageKey(businessId, userId);
   const itemKey = normalizeItemKey(item);
-  if (!storageKey || !itemKey || typeof window === 'undefined') return;
+  const storage = getLocalStorage();
+  if (!storageKey || !itemKey || !storage) return;
 
   const current = loadRecentPosItemKeys(businessId, userId);
   const updated = [itemKey, ...current.filter((key) => key !== itemKey)].slice(0, MAX_RECENT_ITEMS);
-  window.localStorage.setItem(storageKey, JSON.stringify(updated));
+  storage.setItem(storageKey, JSON.stringify(updated));
 };
 
 export const sortItemsByRecentUsage = (items: any[], recentKeys: string[]): any[] => {
