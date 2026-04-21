@@ -20,6 +20,7 @@ import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { useAuthorization } from '@/components/auth/AuthorizationContext';
 import { useKeyboardScanner } from '@/components/scanner/useKeyboardScanner';
 import { handlePendingPosScanResolution, handlePosScanComplete } from '@/modules/pos/utils/scannerHandlers';
+import { loadRecentPosItemKeys, recordRecentPosItem, sortItemsByRecentUsage } from '@/modules/pos/utils/recentPosItems';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useCart, CartProvider } from '@/components/pos/CartContext';
@@ -79,6 +80,7 @@ function POSContent() {
   const [pendingScannedCode, setPendingScannedCode] = useState<string | null>(null);
   const [showScanItemEditorModal, setShowScanItemEditorModal] = useState(false);
   const [pendingBarcodeForCreate, setPendingBarcodeForCreate] = useState('');
+  const [recentItemKeysSnapshot, setRecentItemKeysSnapshot] = useState<string[]>([]);
   const { role } = useAuthorization();
   
   const searchInputRef = useRef(null);
@@ -377,6 +379,10 @@ function POSContent() {
     });
   }, [autoOpenCreateOnUnknownBarcodeEnabled, items, pendingScannedCode]);
 
+  useEffect(() => {
+    setRecentItemKeysSnapshot(loadRecentPosItemKeys(businessId, user?.id));
+  }, [businessId, user?.id]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -396,6 +402,7 @@ function POSContent() {
   }, [cartItems]);
 
   const handleItemClick = (item) => {
+    recordRecentPosItem(businessId, user?.id, item);
     addToCart(item);
     toast.success(TOAST_MESSAGES.pos.itemAdded(item.name));
   };
@@ -524,10 +531,16 @@ function POSContent() {
       appendCreatedItemToItemsCache(createdItem);
       addToCart({
         id: createdItem.id,
+        source: createdItem.source || 'local',
         name: createdItem.name,
         price: Number(createdItem.price),
         barcode: createdItem.barcode ?? itemData.barcode ?? null,
         category_id: createdItem.category_id ?? itemData.category_id ?? null,
+      });
+
+      recordRecentPosItem(businessId, user?.id, {
+        id: createdItem.id,
+        source: createdItem.source || 'local',
       });
 
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
@@ -596,7 +609,17 @@ function POSContent() {
 
   const showItemsOverlay = !loadingItems && (fetchingItems || isProcessingItemsAction);
 
-  const filteredItems = items;
+  const hasCatalogFiltersApplied = Boolean(
+    searchQuery?.trim()
+    || barcodeOrSkuQuery?.trim()
+    || sourceFilter !== 'all'
+    || String(categoryFilter) !== 'all'
+    || onlyPriceUpdated
+  );
+
+  const filteredItems = hasCatalogFiltersApplied
+    ? items
+    : sortItemsByRecentUsage(items, recentItemKeysSnapshot);
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
