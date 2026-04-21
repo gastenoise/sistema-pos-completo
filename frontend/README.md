@@ -12,7 +12,8 @@ This frontend communicates directly with the backend API configured in your envi
 4. Create an `.env.local` file with:
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8000
+VITE_API_URL=/api
+VITE_BACKEND_URL=http://localhost:8080
 ```
 
 Run the app:
@@ -23,7 +24,8 @@ npm run dev
 
 ## Backend integration
 
-- Start backend API locally and point `VITE_API_BASE_URL` to that backend.
+- Start backend API locally and keep browser calls in same-origin with `VITE_API_URL=/api`.
+- Vite dev server proxies `/api/*` and `/sanctum/*` to `VITE_BACKEND_URL` (default `http://localhost:8080`).
 - API calls are made through `src/api/client.js`.
 - For protected business-scoped endpoints, the client sends `X-Business-Id` when there is a selected business in context/localStorage.
 
@@ -109,5 +111,5 @@ Pasos:
 Verificación rápida en browser (Network):
 
 - `GET /api/sanctum/csrf-cookie` devuelve cookies.
-- `POST /api/public/login` incluye header `X-XSRF-TOKEN` y responde 200/204.
+- `POST /api/protected/auth/login` incluye header `X-XSRF-TOKEN` y responde 200/204.
 
