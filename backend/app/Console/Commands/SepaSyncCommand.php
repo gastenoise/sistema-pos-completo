@@ -42,17 +42,16 @@ class SepaSyncCommand extends Command
                         break;
 
                     case 'download_progress':
-                        if ($data['total'] > 0) {
-                            if ($progressBar === null) {
-                                $progressBar = $this->output->createProgressBar($data['total']);
-                                $progressBar->setFormat(' %current%/%max% [%bar%] %percent:3s%% -- %message%');
-                                $progressBar->setMessage('Descargando...');
-                                $progressBar->start();
-                            }
-                            $progressBar->setProgress($data['current']);
-                        } else {
-                            $this->output->write('.');
+                        if ($progressBar === null) {
+                            $progressBar = $this->output->createProgressBar($data['total'] > 0 ? $data['total'] : 0);
+                            $format = $data['total'] > 0
+                                ? ' %current%/%max% [%bar%] %percent:3s%% -- %message%'
+                                : ' %current% bytes -- %message%';
+                            $progressBar->setFormat($format);
+                            $progressBar->setMessage('Descargando...');
+                            $progressBar->start();
                         }
+                        $progressBar->setProgress($data['current']);
                         break;
 
                     case 'extract_start':
