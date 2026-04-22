@@ -12,6 +12,7 @@ test('items hook query options: success scenario', async () => {
     categoryFilter: 'all',
     source: 'all',
     onlyPriceUpdated: false,
+    onlyWithPrice: false,
     page: 2,
   }, {
     getItems: async (params) => {
@@ -20,7 +21,7 @@ test('items hook query options: success scenario', async () => {
     }
   });
 
-  assert.deepEqual(options.queryKey, itemsQueryKey(7, 'yerba', '779', 'all', 'all', false, 2));
+  assert.deepEqual(options.queryKey, itemsQueryKey(7, 'yerba', '779', 'all', 'all', false, false, 2));
   assert.equal(options.enabled, true);
 
   await options.queryFn();
@@ -36,6 +37,7 @@ test('items hook query options: disabled/error-ready scenario when no businessId
     categoryFilter: 'all',
     source: 'all',
     onlyPriceUpdated: false,
+    onlyWithPrice: false,
     page: 1,
   }, { getItems: null as any });
 

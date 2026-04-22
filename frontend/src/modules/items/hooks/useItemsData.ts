@@ -21,9 +21,10 @@ export const useItemsQuery = ({
   categoryFilter,
   source,
   onlyPriceUpdated,
+  onlyWithPrice,
   page,
 }) => useQuery(buildItemsQueryOptions(
-  { businessId, searchQuery, barcodeOrSku, categoryFilter, source, onlyPriceUpdated, page },
+  { businessId, searchQuery, barcodeOrSku, categoryFilter, source, onlyPriceUpdated, onlyWithPrice, page },
   { getItems }
 ));
 

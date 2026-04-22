@@ -174,6 +174,12 @@ class CatalogQueryService
             }
         }
 
+        if (filter_var($filters['only_with_price'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            if ($table === 'sepa_items') {
+                $query->whereNotNull('sibp.price');
+            }
+        }
+
         if ($table === 'sepa_items' && filter_var($filters['only_sepa_price_overridden'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
             $query->whereNotNull('sibp.price');
         }

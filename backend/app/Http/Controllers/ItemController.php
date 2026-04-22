@@ -54,6 +54,7 @@ class ItemController extends Controller
             'source' => ['nullable', Rule::in(['local', 'sepa', 'all'])],
             'only_sepa_price_overridden' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'only_price_updated' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
+            'only_with_price' => ['nullable', Rule::in(['1', '0', 1, 0, true, false, 'true', 'false'])],
             'barcode_or_sku' => ['nullable', 'string', 'max:255'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],

@@ -6,6 +6,7 @@ export const DEFAULT_ITEM_FILTERS = {
   category: 'all',
   source: 'all',
   onlyPriceUpdated: false,
+  onlyWithPrice: false,
 };
 
 export const useItemFilters = ({
@@ -23,6 +24,7 @@ export const useItemFilters = ({
   const [categoryFilter, setCategoryFilter] = useState(mergedInitialFilters.category);
   const [sourceFilter, setSourceFilter] = useState(mergedInitialFilters.source);
   const [onlyPriceUpdated, setOnlyPriceUpdated] = useState(Boolean(mergedInitialFilters.onlyPriceUpdated));
+  const [onlyWithPrice, setOnlyWithPrice] = useState(Boolean(mergedInitialFilters.onlyWithPrice));
   const [page, setPage] = useState(initialPage);
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export const useItemFilters = ({
     }
 
     setPage(1);
-  }, [withPagination, searchQuery, barcodeOrSkuQuery, categoryFilter, sourceFilter, onlyPriceUpdated]);
+  }, [withPagination, searchQuery, barcodeOrSkuQuery, categoryFilter, sourceFilter, onlyPriceUpdated, onlyWithPrice]);
 
   const apiFilters = useMemo(() => ({
     search: searchQuery.trim(),
@@ -39,7 +41,8 @@ export const useItemFilters = ({
     category: categoryFilter,
     source: sourceFilter,
     only_price_updated: onlyPriceUpdated,
-  }), [searchQuery, barcodeOrSkuQuery, categoryFilter, sourceFilter, onlyPriceUpdated]);
+    only_with_price: onlyWithPrice,
+  }), [searchQuery, barcodeOrSkuQuery, categoryFilter, sourceFilter, onlyPriceUpdated, onlyWithPrice]);
 
   return {
     searchQuery,
@@ -52,6 +55,8 @@ export const useItemFilters = ({
     setSourceFilter,
     onlyPriceUpdated,
     setOnlyPriceUpdated,
+    onlyWithPrice,
+    setOnlyWithPrice,
     page,
     setPage,
     apiFilters,
