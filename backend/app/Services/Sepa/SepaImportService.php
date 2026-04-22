@@ -21,12 +21,12 @@ class SepaImportService
     {
     }
 
-    public function import(string $day, ?string $requestedDate = null): SepaImportRun
+    public function import(string $day, ?string $requestedDate = null, ?\Closure $onProgress = null): SepaImportRun
     {
-        return $this->runImport($day, $requestedDate);
+        return $this->runImport($day, $requestedDate, $onProgress);
     }
 
-    private function runImport(string $day, ?string $requestedDate): SepaImportRun
+    private function runImport(string $day, ?string $requestedDate, ?\Closure $onProgress): SepaImportRun
     {
         $startedAt = now();
 
@@ -43,7 +43,7 @@ class SepaImportService
         ]);
 
         try {
-            $metrics = $this->executeImport($day, $run->id);
+            $metrics = $this->executeImport($day, $run->id, $onProgress);
 
             $run->update([
                 'status' => 'success',
@@ -81,7 +81,7 @@ class SepaImportService
     /**
      * @return array<string, int|array<int, array<string, mixed>>>
      */
-    protected function executeImport(string $day, int $runId): array
+    protected function executeImport(string $day, int $runId, ?\Closure $onProgress = null): array
     {
         $url = $this->sourceResolver->resolveUrlForDay($day);
         $baseTmpDir = storage_path("app/sepa/tmp/run_{$runId}");
@@ -89,12 +89,21 @@ class SepaImportService
             mkdir($baseTmpDir, 0775, true);
         }
 
+        if ($onProgress) {
+            $onProgress('download_start', ['url' => $url]);
+        }
         $mainZipPath = $baseTmpDir.'/sepa_main.zip';
-        $this->downloadMainZip($url, $mainZipPath);
+        $this->downloadMainZip($url, $mainZipPath, $onProgress);
 
+        if ($onProgress) {
+            $onProgress('extract_start', ['file' => 'sepa_main.zip']);
+        }
         $mainExtractDir = $baseTmpDir.'/main_extracted';
         $this->extractZip($mainZipPath, $mainExtractDir);
 
+        if ($onProgress) {
+            $onProgress('discovery_start', []);
+        }
         $discovery = $this->discoverImportSources($mainExtractDir);
         $innerZipFiles = $discovery['zip_files'];
         $directCsvFiles = $discovery['csv_files'];
@@ -116,6 +125,9 @@ class SepaImportService
 
         if ($innerZipFiles !== []) {
             foreach ($innerZipFiles as $index => $zipPath) {
+                if ($onProgress) {
+                    $onProgress('extract_start', ['file' => basename($zipPath)]);
+                }
                 $innerExtractDir = $baseTmpDir.'/inner_'.($index + 1);
                 $this->extractZip($zipPath, $innerExtractDir);
 
@@ -128,20 +140,26 @@ class SepaImportService
                     continue;
                 }
 
-                $this->parseAndUpsertCsv($csvPath, $metrics);
+                if ($onProgress) {
+                    $onProgress('parse_start', ['file' => basename($csvPath), 'source' => basename($zipPath)]);
+                }
+                $this->parseAndUpsertCsv($csvPath, $metrics, $onProgress);
             }
 
             return $metrics;
         }
 
         foreach ($directCsvFiles as $csvPath) {
-            $this->parseAndUpsertCsv($csvPath, $metrics);
+            if ($onProgress) {
+                $onProgress('parse_start', ['file' => basename($csvPath)]);
+            }
+            $this->parseAndUpsertCsv($csvPath, $metrics, $onProgress);
         }
 
         return $metrics;
     }
 
-    private function downloadMainZip(string $url, string $destinationPath): void
+    private function downloadMainZip(string $url, string $destinationPath, ?\Closure $onProgress = null): void
     {
         $response = Http::withOptions(['stream' => true])
             ->timeout((int) config('sepa.http_timeout', 120))
@@ -150,6 +168,11 @@ class SepaImportService
 
         if (!$response->successful()) {
             throw new RuntimeException("No se pudo descargar SEPA desde {$url}. Código HTTP: {$status}");
+        }
+
+        $totalBytes = (int) ($response->header('Content-Length') ?: 0);
+        if ($onProgress) {
+            $onProgress('download_progress', ['total' => $totalBytes, 'current' => 0]);
         }
 
         $destinationDir = dirname($destinationPath);
@@ -177,6 +200,9 @@ class SepaImportService
                 }
 
                 $bytesWritten += $written;
+                if ($onProgress) {
+                    $onProgress('download_progress', ['total' => $totalBytes, 'current' => $bytesWritten]);
+                }
             }
         } finally {
             fclose($handle);
@@ -356,7 +382,7 @@ class SepaImportService
     /**
      * @param array<string, int|array<int, array<string, mixed>>> $metrics
      */
-    private function parseAndUpsertCsv(string $csvPath, array &$metrics): void
+    private function parseAndUpsertCsv(string $csvPath, array &$metrics, ?\Closure $onProgress = null): void
     {
         $file = new SplFileObject($csvPath);
         $file->setFlags(SplFileObject::READ_CSV | SplFileObject::DROP_NEW_LINE | SplFileObject::SKIP_EMPTY);
@@ -408,6 +434,15 @@ class SepaImportService
             if (count($batch) >= $chunkSize) {
                 $this->persistChunk($batch, $metrics);
                 $batch = [];
+
+                if ($onProgress) {
+                    $onProgress('parse_progress', [
+                        'valid' => $metrics['valid_rows'],
+                        'invalid' => $metrics['invalid_rows'],
+                        'inserted' => $metrics['inserted_rows'],
+                        'updated' => $metrics['updated_rows'],
+                    ]);
+                }
             }
         }
 
@@ -422,6 +457,15 @@ class SepaImportService
 
         if ($batch !== []) {
             $this->persistChunk($batch, $metrics);
+
+            if ($onProgress) {
+                $onProgress('parse_progress', [
+                    'valid' => $metrics['valid_rows'],
+                    'invalid' => $metrics['invalid_rows'],
+                    'inserted' => $metrics['inserted_rows'],
+                    'updated' => $metrics['updated_rows'],
+                ]);
+            }
         }
     }
 
