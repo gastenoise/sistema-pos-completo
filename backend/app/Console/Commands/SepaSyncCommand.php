@@ -33,7 +33,73 @@ class SepaSyncCommand extends Command
         }
 
         if ($this->option('sync')) {
-            $run = $importService->import($day, $requestedDate);
+            $progressBar = null;
+
+            $onProgress = function (string $stage, array $data) use (&$progressBar) {
+                switch ($stage) {
+                    case 'download_start':
+                        $this->info("Descargando desde: {$data['url']}");
+                        break;
+
+                    case 'download_progress':
+                        if ($data['total'] > 0) {
+                            if ($progressBar === null) {
+                                $progressBar = $this->output->createProgressBar($data['total']);
+                                $progressBar->setFormat(' %current%/%max% [%bar%] %percent:3s%% -- %message%');
+                                $progressBar->setMessage('Descargando...');
+                                $progressBar->start();
+                            }
+                            $progressBar->setProgress($data['current']);
+                        } else {
+                            $this->output->write('.');
+                        }
+                        break;
+
+                    case 'extract_start':
+                        if ($progressBar) {
+                            $progressBar->finish();
+                            $this->output->newLine();
+                            $progressBar = null;
+                        }
+                        $this->comment("Extraer: {$data['file']}");
+                        break;
+
+                    case 'discovery_start':
+                        $this->comment('Buscando archivos para importar...');
+                        break;
+
+                    case 'parse_start':
+                        if ($progressBar) {
+                            $progressBar->finish();
+                            $this->output->newLine();
+                            $progressBar = null;
+                        }
+                        $msg = isset($data['source'])
+                            ? "Procesando: {$data['file']} (desde {$data['source']})"
+                            : "Procesando: {$data['file']}";
+                        $this->info($msg);
+                        break;
+
+                    case 'parse_progress':
+                        if ($progressBar === null) {
+                            $progressBar = $this->output->createProgressBar();
+                            $progressBar->setFormat(' %current% filas -- %message%');
+                            $progressBar->setMessage('Importando...');
+                            $progressBar->start();
+                        }
+                        $progressBar->setProgress($data['valid']);
+                        $progressBar->setMessage("Ins: {$data['inserted']} | Upd: {$data['updated']} | Err: {$data['invalid']}");
+                        break;
+                }
+            };
+
+            $run = $importService->import($day, $requestedDate, $onProgress);
+
+            if ($progressBar) {
+                $progressBar->finish();
+                $this->output->newLine();
+            }
+
             $this->info("SEPA sync finalizado. Run #{$run->id} ({$run->status})");
 
             return self::SUCCESS;
