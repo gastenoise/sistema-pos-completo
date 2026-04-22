@@ -32,6 +32,8 @@ export default function ItemsFiltersDialog({
   onOnlyPriceUpdatedChange,
   onApplyFilters,
   onClearFilters,
+  onlyWithPrice,
+  onOnlyWithPriceChange,
   categories = [],
   searchInputRef,
   barcodeInputRef = null,
@@ -44,6 +46,7 @@ export default function ItemsFiltersDialog({
   const [draftCategory, setDraftCategory] = useState(String(categoryValue));
   const [draftSource, setDraftSource] = useState(sourceValue);
   const [draftOnlyPriceUpdated, setDraftOnlyPriceUpdated] = useState(Boolean(onlyPriceUpdated));
+  const [draftOnlyWithPrice, setDraftOnlyWithPrice] = useState(Boolean(onlyWithPrice));
 
   useEffect(() => {
     if (!open) return;
@@ -51,13 +54,15 @@ export default function ItemsFiltersDialog({
     setDraftCategory(String(categoryValue));
     setDraftSource(sourceValue);
     setDraftOnlyPriceUpdated(Boolean(onlyPriceUpdated));
-  }, [open, categoryValue, sourceValue, onlyPriceUpdated]);
+    setDraftOnlyWithPrice(Boolean(onlyWithPrice));
+  }, [open, categoryValue, sourceValue, onlyPriceUpdated, onlyWithPrice]);
 
   const handleApplyFilters = () => {
     const payload = {
       category: draftCategory,
       source: draftSource,
       onlyPriceUpdated: draftOnlyPriceUpdated,
+      onlyWithPrice: draftOnlyWithPrice,
     };
 
     if (onApplyFilters) {
@@ -66,6 +71,7 @@ export default function ItemsFiltersDialog({
       onCategoryChange(payload.category);
       onSourceChange(payload.source);
       onOnlyPriceUpdatedChange(payload.onlyPriceUpdated);
+      onOnlyWithPriceChange?.(payload.onlyWithPrice);
     }
 
     setOpen(false);
@@ -81,9 +87,11 @@ export default function ItemsFiltersDialog({
     setDraftCategory('all');
     setDraftSource('all');
     setDraftOnlyPriceUpdated(false);
+    setDraftOnlyWithPrice(false);
     onCategoryChange('all');
     onSourceChange('all');
     onOnlyPriceUpdatedChange(false);
+    onOnlyWithPriceChange?.(false);
     setOpen(false);
   };
 
@@ -127,13 +135,23 @@ export default function ItemsFiltersDialog({
               <DialogTitle>Filtros</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
-              <label className="flex items-center gap-2 text-sm text-slate-600">
-                <Checkbox
-                  checked={draftOnlyPriceUpdated}
-                  onCheckedChange={(checked) => setDraftOnlyPriceUpdated(Boolean(checked))}
-                />
-                Con precio actualizado
-              </label>
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-sm text-slate-600">
+                  <Checkbox
+                    checked={draftOnlyPriceUpdated}
+                    onCheckedChange={(checked) => setDraftOnlyPriceUpdated(Boolean(checked))}
+                  />
+                  Con precio actualizado
+                </label>
+
+                <label className="flex items-center gap-2 text-sm text-slate-600">
+                  <Checkbox
+                    checked={draftOnlyWithPrice}
+                    onCheckedChange={(checked) => setDraftOnlyWithPrice(Boolean(checked))}
+                  />
+                  Solo con precio de venta
+                </label>
+              </div>
 
               <div className="space-y-2">
                 <p className="text-sm font-medium text-slate-700">Categoría</p>

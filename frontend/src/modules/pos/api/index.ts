@@ -15,6 +15,13 @@ export const getPosItems = async (filters) => {
   if (filters?.categoryFilter && filters.categoryFilter !== 'all') query.set('category', filters.categoryFilter);
   if (filters?.onlyPriceUpdated) query.set('only_price_updated', 'true');
 
+  const onlyWithPrice = filters?.onlyWithPrice ?? true;
+  // Solo mostrar items con precio si no se está buscando por un barcode específico
+  // Esto permite que el scanner encuentre items SEPA sin precio para editarlos
+  if (onlyWithPrice && !trimmedBarcodeOrSku) {
+    query.set('only_with_price', 'true');
+  }
+
   if (!trimmedSearch && !trimmedBarcodeOrSku && (filters?.sourceFilter || 'all') === 'all' && (filters?.categoryFilter || 'all') === 'all') {
     query.set('recent_first', 'true');
   }
@@ -62,6 +69,16 @@ export const confirmSalePayment = async (saleId, paymentId, payload) => normaliz
   payload
 ));
 export const createItem = async (payload) => normalizeEntityResponse(await apiClient.post('/protected/items', payload));
+
+export const saveSepaItemPrice = async (itemData) => {
+  const sepaItemId = itemData?.sepa_item_id ?? itemData?.id;
+  const response = await apiClient.put(`/protected/sepa-items/${sepaItemId}/price`, {
+    price: itemData.price ?? null,
+    category_id: itemData.category_id ?? null
+  });
+
+  return normalizeEntityResponse(response);
+};
 
 export const extractSaleId = (response) => (
   response?.id

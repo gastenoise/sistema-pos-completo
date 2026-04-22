@@ -49,6 +49,7 @@ import {
   getPosItems,
   getPosPaymentMethods,
   getSaleById,
+  saveSepaItemPrice,
   startSale
 } from '@/modules/pos/api';
 
@@ -69,7 +70,9 @@ function POSContent() {
     setCategoryFilter,
     onlyPriceUpdated,
     setOnlyPriceUpdated,
-  } = useItemFilters();
+    onlyWithPrice,
+    setOnlyWithPrice,
+  } = useItemFilters({ initialFilters: { onlyWithPrice: true } });
   const [showWizard, setShowWizard] = useState(false);
   const [showCashOpenModal, setShowCashOpenModal] = useState(false);
   const [isOpeningCashRegister, setIsOpeningCashRegister] = useState(false);
@@ -79,6 +82,7 @@ function POSContent() {
   const [isProcessingItemsAction, setIsProcessingItemsAction] = useState(false);
   const [pendingScannedCode, setPendingScannedCode] = useState<string | null>(null);
   const [showScanItemEditorModal, setShowScanItemEditorModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [pendingBarcodeForCreate, setPendingBarcodeForCreate] = useState('');
   const [recentItemKeysSnapshot, setRecentItemKeysSnapshot] = useState<string[]>([]);
   const { role } = useAuthorization();
@@ -89,7 +93,7 @@ function POSContent() {
 
   // Fetch items (server-side top-N search)
   const { data: itemsData = [], isLoading: loadingItems, isFetching: fetchingItems } = useQuery({
-    queryKey: ['items', businessId, searchQuery, barcodeOrSkuQuery, sourceFilter, categoryFilter, onlyPriceUpdated],
+    queryKey: ['items', businessId, searchQuery, barcodeOrSkuQuery, sourceFilter, categoryFilter, onlyPriceUpdated, onlyWithPrice],
     queryFn: async () => {
       if (!businessId) return [];
       return getPosItems({
@@ -97,7 +101,8 @@ function POSContent() {
         barcodeOrSkuQuery,
         sourceFilter,
         categoryFilter,
-        onlyPriceUpdated
+        onlyPriceUpdated,
+        onlyWithPrice
       });
     },
     enabled: !!businessId
@@ -402,6 +407,11 @@ function POSContent() {
   }, [cartItems]);
 
   const handleItemClick = (item) => {
+    if (item.source === 'sepa' && !item.is_price_overridden) {
+      setEditingItem(item);
+      setShowScanItemEditorModal(true);
+      return;
+    }
     recordRecentPosItem(businessId, user?.id, item);
     addToCart(item);
     toast.success(TOAST_MESSAGES.pos.itemAdded(item.name));
@@ -514,37 +524,49 @@ function POSContent() {
   const handleSaveItemFromScan = async (itemData) => {
     setIsProcessingItemsAction(true);
     try {
-      const payload = {
-        name: itemData.name,
-        price: Number(itemData.price),
-        is_active: true,
-        ...(itemData.barcode ? { barcode: itemData.barcode } : {}),
-        ...(itemData.category_id !== undefined && { category_id: itemData.category_id }),
-      };
+      let finalItem;
+      if (editingItem?.source === 'sepa') {
+        finalItem = await saveSepaItemPrice({
+          sepa_item_id: editingItem.sepa_item_id || editingItem.id,
+          ...itemData
+        });
+        toast.success(TOAST_MESSAGES.items.sepaPriceUpdated);
+      } else {
+        const payload = {
+          name: itemData.name,
+          price: Number(itemData.price),
+          is_active: true,
+          ...(itemData.barcode ? { barcode: itemData.barcode } : {}),
+          ...(itemData.category_id !== undefined && { category_id: itemData.category_id }),
+        };
 
-      const createdItem = await createItem(payload);
-
-      if (!createdItem?.id) {
-        throw new Error('No se pudo crear el item en catálogo');
+        finalItem = await createItem(payload);
+        toast.success(TOAST_MESSAGES.items.created);
       }
 
-      appendCreatedItemToItemsCache(createdItem);
+      if (!finalItem?.id) {
+        throw new Error('No se pudo procesar el item');
+      }
+
+      appendCreatedItemToItemsCache(finalItem);
       addToCart({
-        id: createdItem.id,
-        source: createdItem.source || 'local',
-        name: createdItem.name,
-        price: Number(createdItem.price),
-        barcode: createdItem.barcode ?? itemData.barcode ?? null,
-        category_id: createdItem.category_id ?? itemData.category_id ?? null,
+        id: finalItem.id,
+        source: finalItem.source || (editingItem?.source === 'sepa' ? 'sepa' : 'local'),
+        name: finalItem.name,
+        price: Number(finalItem.price),
+        barcode: finalItem.barcode ?? itemData.barcode ?? null,
+        category_id: finalItem.category_id ?? itemData.category_id ?? null,
+        ...(finalItem.sepa_item_id && { sepa_item_id: finalItem.sepa_item_id }),
       });
 
       recordRecentPosItem(businessId, user?.id, {
-        id: createdItem.id,
-        source: createdItem.source || 'local',
+        id: finalItem.id,
+        source: finalItem.source || (editingItem?.source === 'sepa' ? 'sepa' : 'local'),
       });
 
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setShowScanItemEditorModal(false);
+      setEditingItem(null);
       setPendingBarcodeForCreate('');
     } catch (error) {
       toast.error(error?.message || TOAST_MESSAGES.items.saveError);
@@ -589,16 +611,18 @@ function POSContent() {
     logout();
   };
 
-  const handleApplyCatalogFilters = ({ category, source, onlyPriceUpdated: priceUpdated }) => {
+  const handleApplyCatalogFilters = ({ category, source, onlyPriceUpdated: priceUpdated, onlyWithPrice }) => {
     setCategoryFilter(category);
     setSourceFilter(source);
     setOnlyPriceUpdated(Boolean(priceUpdated));
+    setOnlyWithPrice(Boolean(onlyWithPrice));
   };
 
   const handleClearCatalogFilters = () => {
     setCategoryFilter('all');
     setSourceFilter('all');
     setOnlyPriceUpdated(false);
+    setOnlyWithPrice(false);
   };
 
   const getItemIcon = (item) => {
@@ -642,6 +666,8 @@ function POSContent() {
               onSourceChange={setSourceFilter}
               onlyPriceUpdated={onlyPriceUpdated}
               onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
+              onlyWithPrice={onlyWithPrice}
+              onOnlyWithPriceChange={setOnlyWithPrice}
               onApplyFilters={handleApplyCatalogFilters}
               onClearFilters={handleClearCatalogFilters}
               categories={categories}
@@ -803,9 +829,10 @@ function POSContent() {
         open={showScanItemEditorModal}
         onClose={() => {
           setShowScanItemEditorModal(false);
+          setEditingItem(null);
           setPendingBarcodeForCreate('');
         }}
-        item={null}
+        item={editingItem}
         initialBarcode={pendingBarcodeForCreate}
         categories={categories}
         onSave={handleSaveItemFromScan}

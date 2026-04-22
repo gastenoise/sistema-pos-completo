@@ -54,6 +54,8 @@ export default function Items() {
     setSourceFilter,
     onlyPriceUpdated,
     setOnlyPriceUpdated,
+    onlyWithPrice,
+    setOnlyWithPrice,
     page,
     setPage,
   } = useItemFilters({ withPagination: true });
@@ -128,6 +130,7 @@ export default function Items() {
     categoryFilter,
     source: sourceFilter,
     onlyPriceUpdated,
+    onlyWithPrice,
     page,
   });
 
@@ -439,7 +442,7 @@ export default function Items() {
     logout();
   };
 
-  const handleApplyCatalogFilters = ({ category, source, onlyPriceUpdated: priceUpdated }: any) => {
+  const handleApplyCatalogFilters = ({ category, source, onlyPriceUpdated: priceUpdated, onlyWithPrice }: any) => {
     if (category === 'all' || category === 'uncategorized') {
       setCategoryFilter(category);
     } else {
@@ -448,12 +451,14 @@ export default function Items() {
 
     setSourceFilter(source);
     setOnlyPriceUpdated(Boolean(priceUpdated));
+    setOnlyWithPrice(Boolean(onlyWithPrice));
   };
 
   const handleClearCatalogFilters = () => {
     setCategoryFilter('all');
     setSourceFilter('all');
     setOnlyPriceUpdated(false);
+    setOnlyWithPrice(false);
   };
 
   const focusAndHighlightBarcodeInput = () => {
@@ -545,6 +550,8 @@ export default function Items() {
             onSourceChange={setSourceFilter}
             onlyPriceUpdated={onlyPriceUpdated}
             onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
+            onlyWithPrice={onlyWithPrice}
+            onOnlyWithPriceChange={setOnlyWithPrice}
             onApplyFilters={handleApplyCatalogFilters}
             onClearFilters={handleClearCatalogFilters}
             categories={categories}
