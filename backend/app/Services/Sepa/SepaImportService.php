@@ -21,12 +21,12 @@ class SepaImportService
     {
     }
 
-    public function import(string $day, ?string $requestedDate = null, ?\Closure $onProgress = null): SepaImportRun
+    public function import(string $day, ?string $requestedDate = null, ?\Closure $onProgress = null, ?\Closure $depthResolver = null): SepaImportRun
     {
-        return $this->runImport($day, $requestedDate, $onProgress);
+        return $this->runImport($day, $requestedDate, $onProgress, $depthResolver);
     }
 
-    private function runImport(string $day, ?string $requestedDate, ?\Closure $onProgress): SepaImportRun
+    private function runImport(string $day, ?string $requestedDate, ?\Closure $onProgress, ?\Closure $depthResolver): SepaImportRun
     {
         $startedAt = now();
 
@@ -43,7 +43,7 @@ class SepaImportService
         ]);
 
         try {
-            $metrics = $this->executeImport($day, $run->id, $onProgress);
+            $metrics = $this->executeImport($day, $run->id, $onProgress, $depthResolver);
 
             $run->update([
                 'status' => 'success',
@@ -81,7 +81,7 @@ class SepaImportService
     /**
      * @return array<string, int|array<int, array<string, mixed>>>
      */
-    protected function executeImport(string $day, int $runId, ?\Closure $onProgress = null): array
+    protected function executeImport(string $day, int $runId, ?\Closure $onProgress = null, ?\Closure $depthResolver = null): array
     {
         $url = $this->sourceResolver->resolveUrlForDay($day);
         $baseTmpDir = storage_path("app/sepa/tmp/run_{$runId}");
@@ -107,6 +107,17 @@ class SepaImportService
         $discovery = $this->discoverImportSources($mainExtractDir);
         $innerZipFiles = $discovery['zip_files'];
         $directCsvFiles = $discovery['csv_files'];
+
+        if ($innerZipFiles !== []) {
+            usort($innerZipFiles, static function (string $left, string $right): int {
+                return filesize($left) <=> filesize($right);
+            });
+
+            if ($depthResolver !== null) {
+                $selectedDepth = $depthResolver($innerZipFiles);
+                $innerZipFiles = array_slice($innerZipFiles, 0, (int) $selectedDepth);
+            }
+        }
 
         Log::info('SEPA discovery strategy selected', [
             'strategy' => $discovery['strategy'],

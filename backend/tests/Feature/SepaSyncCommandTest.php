@@ -25,7 +25,7 @@ class SepaSyncCommandTest extends TestCase
 
         $importService->shouldReceive('import')
             ->once()
-            ->with('lunes', '2026-04-07')
+            ->with('lunes', '2026-04-07', Mockery::any(), Mockery::any())
             ->andReturn($run);
         $this->app->instance(SepaImportService::class, $importService);
 
@@ -52,7 +52,7 @@ class SepaSyncCommandTest extends TestCase
 
         $importService->shouldReceive('import')
             ->once()
-            ->with('lunes', null)
+            ->with('lunes', null, Mockery::any(), Mockery::any())
             ->andReturn($run);
         $this->app->instance(SepaImportService::class, $importService);
 
