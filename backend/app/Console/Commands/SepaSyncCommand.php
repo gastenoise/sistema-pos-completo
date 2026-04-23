@@ -6,6 +6,7 @@ use App\Jobs\Sepa\ProcessSepaSyncJob;
 use App\Services\Sepa\SepaImportService;
 use App\Services\Sepa\SepaSourceResolver;
 use Illuminate\Console\Command;
+use Illuminate\Support\Number;
 
 class SepaSyncCommand extends Command
 {
@@ -14,7 +15,8 @@ class SepaSyncCommand extends Command
         {--day= : [DEPRECADO] Día en español (lunes..domingo) para forzar origen}
         {--requested-date= : Fecha solicitada (auditoría); no cambia el dataset importado}
         {--source-file= : Archivo local para usar como origen en lugar de URL}
-        {--sync : Ejecuta en modo síncrono sin cola}';
+        {--sync : Ejecuta en modo síncrono sin cola}
+        {--by-depth : Permite elegir cuántos archivos internos procesar (solo en modo --sync)}';
 
     protected $description = 'Sincroniza productos SEPA desde ZIP diario.';
 
@@ -30,6 +32,10 @@ class SepaSyncCommand extends Command
 
         if (!$this->usesSourceFile() && !$this->validateConfiguredUrl($sourceResolver, $day)) {
             return self::INVALID;
+        }
+
+        if ($this->option('by-depth') && !$this->option('sync')) {
+            $this->warn('El parámetro --by-depth solo tiene efecto cuando se usa --sync. Se ignorará.');
         }
 
         if ($this->option('sync')) {
@@ -60,7 +66,10 @@ class SepaSyncCommand extends Command
                             $this->output->newLine();
                             $progressBar = null;
                         }
-                        $this->comment("Extraer: {$data['file']}");
+                        $prefix = isset($data['current'], $data['total'])
+                            ? "[{$data['current']}/{$data['total']}] "
+                            : '';
+                        $this->comment("{$prefix}Extraer: {$data['file']}");
                         break;
 
                     case 'discovery_start':
@@ -73,9 +82,12 @@ class SepaSyncCommand extends Command
                             $this->output->newLine();
                             $progressBar = null;
                         }
+                        $prefix = isset($data['current'], $data['total'])
+                            ? "[{$data['current']}/{$data['total']}] "
+                            : '';
                         $msg = isset($data['source'])
-                            ? "Procesando: {$data['file']} (desde {$data['source']})"
-                            : "Procesando: {$data['file']}";
+                            ? "{$prefix}Procesando: {$data['file']} (desde {$data['source']})"
+                            : "{$prefix}Procesando: {$data['file']}";
                         $this->info($msg);
                         break;
 
@@ -92,7 +104,30 @@ class SepaSyncCommand extends Command
                 }
             };
 
-            $run = $importService->import($day, $requestedDate, $onProgress);
+            $depthResolver = null;
+            if ($this->option('by-depth')) {
+                $depthResolver = function (array $innerZipFiles) {
+                    $count = count($innerZipFiles);
+                    $this->info("Se encontraron {$count} archivos .zip internos:");
+
+                    $rows = [];
+                    foreach ($innerZipFiles as $index => $path) {
+                        $size = filesize($path);
+                        $rows[] = [
+                            '#' => $index + 1,
+                            'Archivo' => basename($path),
+                            'Peso' => Number::fileSize($size, precision: 2),
+                        ];
+                    }
+                    $this->table(['#', 'Archivo', 'Peso'], $rows);
+
+                    $selected = $this->ask("¿Qué profundidad de archivos usar? (1-{$count})", $count);
+
+                    return max(1, min((int) $selected, $count));
+                };
+            }
+
+            $run = $importService->import($day, $requestedDate, $onProgress, $depthResolver);
 
             if ($progressBar) {
                 $progressBar->finish();
