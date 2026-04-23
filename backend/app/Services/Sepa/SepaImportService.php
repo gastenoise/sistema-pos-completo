@@ -135,11 +135,17 @@ class SepaImportService
         ];
 
         if ($innerZipFiles !== []) {
+            $totalInnerFiles = count($innerZipFiles);
             foreach ($innerZipFiles as $index => $zipPath) {
+                $currentIndex = $index + 1;
                 if ($onProgress) {
-                    $onProgress('extract_start', ['file' => basename($zipPath)]);
+                    $onProgress('extract_start', [
+                        'file' => basename($zipPath),
+                        'current' => $currentIndex,
+                        'total' => $totalInnerFiles,
+                    ]);
                 }
-                $innerExtractDir = $baseTmpDir.'/inner_'.($index + 1);
+                $innerExtractDir = $baseTmpDir.'/inner_'.$currentIndex;
                 $this->extractZip($zipPath, $innerExtractDir);
 
                 $csvPath = $this->findProductosCsv($innerExtractDir);
@@ -152,7 +158,12 @@ class SepaImportService
                 }
 
                 if ($onProgress) {
-                    $onProgress('parse_start', ['file' => basename($csvPath), 'source' => basename($zipPath)]);
+                    $onProgress('parse_start', [
+                        'file' => basename($csvPath),
+                        'source' => basename($zipPath),
+                        'current' => $currentIndex,
+                        'total' => $totalInnerFiles,
+                    ]);
                 }
                 $this->parseAndUpsertCsv($csvPath, $metrics, $onProgress);
             }

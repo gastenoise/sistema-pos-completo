@@ -66,7 +66,10 @@ class SepaSyncCommand extends Command
                             $this->output->newLine();
                             $progressBar = null;
                         }
-                        $this->comment("Extraer: {$data['file']}");
+                        $prefix = isset($data['current'], $data['total'])
+                            ? "[{$data['current']}/{$data['total']}] "
+                            : '';
+                        $this->comment("{$prefix}Extraer: {$data['file']}");
                         break;
 
                     case 'discovery_start':
@@ -79,9 +82,12 @@ class SepaSyncCommand extends Command
                             $this->output->newLine();
                             $progressBar = null;
                         }
+                        $prefix = isset($data['current'], $data['total'])
+                            ? "[{$data['current']}/{$data['total']}] "
+                            : '';
                         $msg = isset($data['source'])
-                            ? "Procesando: {$data['file']} (desde {$data['source']})"
-                            : "Procesando: {$data['file']}";
+                            ? "{$prefix}Procesando: {$data['file']} (desde {$data['source']})"
+                            : "{$prefix}Procesando: {$data['file']}";
                         $this->info($msg);
                         break;
 
