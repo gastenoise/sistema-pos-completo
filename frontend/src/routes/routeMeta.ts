@@ -68,7 +68,7 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   },
   Login: {
     label: 'Iniciar Sesión',
-    showStatusBar: false,
+    showStatusBar: true,
     statusBarContext: 'default',
     contentWidth: 'default',
     useShell: false,

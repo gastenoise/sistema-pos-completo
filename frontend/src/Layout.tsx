@@ -1,9 +1,8 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import TopNav from '@/components/pos/TopNav';
 import AppStatusBar from '@/components/layout/AppStatusBar';
-import { useAuth } from '@/lib/AuthContext';
 import { cn } from '@/lib/utils';
-import { getRouteMeta } from '@/routes/routeMeta';
+import { useShellState } from '@/hooks/useShellState';
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -13,35 +12,28 @@ type LayoutProps = {
 
 export default function Layout({
   children,
-  currentPageName,
+  currentPageName = '',
   contentClassName,
 }: LayoutProps) {
-  const { user, logout } = useAuth();
-
-  const meta = useMemo(() => {
-    return getRouteMeta(currentPageName || '');
-  }, [currentPageName]);
+  const { topNavProps, statusBarProps, layoutFlags } = useShellState(currentPageName);
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <TopNav user={user} onLogout={logout} currentPage={meta.label} />
+      {layoutFlags.useShell && <TopNav {...topNavProps} />}
 
       <main
         className={cn(
           'w-full px-4 py-4 lg:px-6 lg:py-6 pb-16',
-          meta.contentWidth === 'full' && 'max-w-none',
-          meta.contentWidth === 'wide' && 'mx-auto max-w-7xl',
-          meta.contentWidth === 'default' && 'mx-auto max-w-4xl',
+          layoutFlags.contentWidth === 'full' && 'max-w-none',
+          layoutFlags.contentWidth === 'wide' && 'mx-auto max-w-7xl',
+          layoutFlags.contentWidth === 'default' && 'mx-auto max-w-4xl',
           contentClassName,
         )}
       >
         {children}
       </main>
 
-      <AppStatusBar
-        context={meta.statusBarContext}
-        visible={meta.showStatusBar}
-      />
+      {layoutFlags.useShell && <AppStatusBar {...statusBarProps} />}
     </div>
   );
 }
