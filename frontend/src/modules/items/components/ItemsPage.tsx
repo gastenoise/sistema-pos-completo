@@ -26,8 +26,6 @@ import {
 } from '@/modules/items/hooks/useItemsData';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
-import { useAuth } from '@/lib/AuthContext';
-import TopNav from '@/components/pos/TopNav';
 import ItemRow from '@/components/pos/ItemRow';
 import ItemEditorModal from '@/components/pos/ItemEditorModal';
 import BulkActionsBar from '@/components/pos/BulkActionsBar';
@@ -41,7 +39,6 @@ import { handleItemsScanComplete, handlePendingItemsScanResolution } from '@/mod
 export default function Items() {
   const { businessId, currentBusiness, businesses } = useBusiness();
   const queryClient = useQueryClient();
-  const { user, logout } = useAuth();
   
   const {
     searchQuery,
@@ -435,10 +432,6 @@ export default function Items() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-  };
-
   const handleApplyCatalogFilters = ({ category, source, onlyPriceUpdated: priceUpdated }: any) => {
     if (category === 'all' || category === 'uncategorized') {
       setCategoryFilter(category);
@@ -510,10 +503,8 @@ export default function Items() {
   }, [autoOpenCreateOnUnknownBarcodeEnabled, items, pendingScannedCode, setBarcodeOrSkuQuery]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <TopNav user={user} onLogout={handleLogout} currentPage="Items" />
-      
-      <div className="max-w-7xl mx-auto p-4 lg:p-6">
+    <>
+      <div>
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
@@ -671,6 +662,6 @@ export default function Items() {
         previewData={importPreviewData}
         loading={importLoading}
       />
-    </div>
+    </>
   );
 }

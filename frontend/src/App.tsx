@@ -5,6 +5,7 @@ import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
+import type { ReactNode } from 'react';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -29,8 +30,30 @@ const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
-const LayoutWrapper = ({ children, currentPageName }) => Layout ?
-  <Layout currentPageName={currentPageName}>{children}</Layout>
+const getShellPropsForRoute = (routeKey) => {
+  if (routeKey === 'POS') {
+    return { fullWidth: true };
+  }
+
+  if (routeKey === 'CashRegister' || routeKey === 'Settings') {
+    return { contentClassName: 'max-w-4xl mx-auto' };
+  }
+
+  return {};
+};
+
+const LayoutWrapper = ({
+  children,
+  currentPageName,
+  contentClassName,
+  fullWidth,
+}: {
+  children: ReactNode;
+  currentPageName?: string;
+  contentClassName?: string;
+  fullWidth?: boolean;
+}) => Layout ?
+  <Layout currentPageName={currentPageName} contentClassName={contentClassName} fullWidth={fullWidth}>{children}</Layout>
   : <>{children}</>;
 
 const PermissionGuard = ({
@@ -101,6 +124,7 @@ const AuthenticatedApp = () => {
 
   // Frontend guard is UX-only; backend permission checks remain the source of truth.
   const userCanAccessRoute = (path) => canAccessRoute(path, can);
+  const shouldUseAuthenticatedShell = (path) => path !== 'BusinessSelect';
 
   // Render the main app
   return (
@@ -123,9 +147,13 @@ const AuthenticatedApp = () => {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={
-          <LayoutWrapper currentPageName={mainPageKey}>
+          shouldUseAuthenticatedShell(mainPageKey) ? (
+            <LayoutWrapper currentPageName={mainPageKey} {...getShellPropsForRoute(mainPageKey)}>
+              <MainPage />
+            </LayoutWrapper>
+          ) : (
             <MainPage />
-          </LayoutWrapper>
+          )
         } />
         {Object.entries(Pages).map(([path, Page]) => (
           <Route
@@ -138,14 +166,22 @@ const AuthenticatedApp = () => {
                   redirectTo="/POS"
                   message="No tenés permisos para ver Caja."
                 >
-                  <LayoutWrapper currentPageName={path}>
+                  {shouldUseAuthenticatedShell(path) ? (
+                    <LayoutWrapper currentPageName={path} {...getShellPropsForRoute(path)}>
+                      <Page />
+                    </LayoutWrapper>
+                  ) : (
                     <Page />
-                  </LayoutWrapper>
+                  )}
                 </PermissionGuard>
               ) : userCanAccessRoute(path) ? (
-                <LayoutWrapper currentPageName={path}>
+                shouldUseAuthenticatedShell(path) ? (
+                  <LayoutWrapper currentPageName={path} {...getShellPropsForRoute(path)}>
+                    <Page />
+                  </LayoutWrapper>
+                ) : (
                   <Page />
-                </LayoutWrapper>
+                )
               ) : <Navigate to="/POS" replace />
             }
           />

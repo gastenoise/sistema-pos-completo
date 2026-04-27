@@ -54,7 +54,6 @@ import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useAuth } from '@/lib/AuthContext';
-import TopNav from '@/components/pos/TopNav';
 import { BUSINESS_BOOLEAN_PARAMETERS, normalizeBusinessParameters } from '@/lib/businessParameters';
 import ColorPickerField from '@/components/common/ColorPickerField';
 import IconPickerField from '@/components/common/IconPickerField';
@@ -76,7 +75,7 @@ const OWNER_SUPERUSER_CAN_MANAGE_PERMISSIONS = true;
 export default function Settings() {
   const { businessId, currentBusiness, refreshCurrentBusiness } = useBusiness();
   const queryClient = useQueryClient();
-  const { user, logout, updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const { role, can } = useBusinessPermissions(businessId);
   
   const [businessData, setBusinessData] = useState({
@@ -484,9 +483,6 @@ export default function Settings() {
     toast.success(TOAST_MESSAGES.settings.moduleToggleSuccess(!modules[moduleKey]));
   };
 
-  const handleLogout = () => {
-    logout();
-  };
 
   const handleSaveAllowedLoginIp = async (event) => {
     event?.preventDefault();
@@ -546,10 +542,8 @@ export default function Settings() {
 
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <TopNav user={user} onLogout={handleLogout} currentPage="Ajustes" />
-      
-      <div className="max-w-4xl mx-auto p-4 lg:p-6">
+    <>
+      <div className="max-w-4xl">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900">Ajustes del Negocio</h1>
           <p className="text-slate-500">Administrá la configuración de tu negocio</p>
@@ -1321,6 +1315,6 @@ export default function Settings() {
       </Dialog>
 
 
-    </div>
+    </>
   );
 }

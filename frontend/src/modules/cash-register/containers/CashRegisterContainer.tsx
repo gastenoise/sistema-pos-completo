@@ -27,8 +27,6 @@ import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useAuthorization } from '@/components/auth/AuthorizationContext';
-import { useAuth } from '@/lib/AuthContext';
-import TopNav from '@/components/pos/TopNav';
 import CashRegisterOpenModal from '@/components/pos/CashRegisterOpenModal';
 import {
   useCashStatusQuery,
@@ -41,7 +39,6 @@ import {
 export default function CashRegister() {
   const { businessId, currentBusiness } = useBusiness();
   const queryClient = useQueryClient();
-  const { user, logout } = useAuth();
   const { can } = useAuthorization();
   const canViewCashRegister = can('cash_register.view');
   
@@ -137,35 +134,27 @@ export default function CashRegister() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-  };
 
   const showCashOverlay = !loadingSession && (fetchingSession || fetchingRecentSessions || fetchingExpectedTotals || loading);
 
   if (!canViewCashRegister) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <TopNav user={user} onLogout={handleLogout} currentPage="Caja" />
-        <div className="max-w-4xl mx-auto p-4 lg:p-6">
-          <Card className="border-amber-200 bg-amber-50">
-            <CardHeader>
-              <CardTitle className="text-amber-900">Acceso restringido</CardTitle>
-              <CardDescription className="text-amber-800">
-                No tenés permisos para ver ni operar la caja registradora.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
+      <div className="max-w-4xl">
+        <Card className="border-amber-200 bg-amber-50">
+          <CardHeader>
+            <CardTitle className="text-amber-900">Acceso restringido</CardTitle>
+            <CardDescription className="text-amber-800">
+              No tenés permisos para ver ni operar la caja registradora.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <TopNav user={user} onLogout={handleLogout} currentPage="Caja" />
-      
-      <div className="max-w-4xl mx-auto p-4 lg:p-6">
+    <>
+      <div className="max-w-4xl">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900">Caja Registradora</h1>
@@ -481,6 +470,6 @@ export default function CashRegister() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

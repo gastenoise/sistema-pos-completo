@@ -45,8 +45,6 @@ import { getIconComponent } from '@/lib/iconCatalog';
 import { getSaleStatusLabel } from '@/lib/saleStatus';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
-import { useAuth } from '@/lib/AuthContext';
-import TopNav from '@/components/pos/TopNav';
 import CsvExportButton from '@/components/pos/CsvExportButton';
 import SaleDetailsDialog from '@/components/sales/SaleDetailsDialog';
 import {
@@ -69,7 +67,6 @@ function getTomorrowISODateLocal(referenceDate = new Date()) {
 export default function Reports() {
   const { businessId, currentBusiness } = useBusiness() as any;
   const queryClient = useQueryClient();
-  const { user, logout } = useAuth();
 
   // Keep yyyy-MM-dd for API compatibility; dates are computed from the browser local day.
   const today = getTodayISODateLocal();
@@ -259,9 +256,6 @@ export default function Reports() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-  };
 
   const setQuickDate = (preset) => {
     const now = new Date();
@@ -308,10 +302,8 @@ export default function Reports() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <TopNav user={user} onLogout={handleLogout} currentPage="Reportes" />
-
-      <div className="max-w-7xl mx-auto p-4 lg:p-6">
+    <>
+      <div>
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
@@ -680,6 +672,6 @@ export default function Reports() {
           queryClient.invalidateQueries({ queryKey: ['sales-summary', businessId] });
         }}
       />
-    </div>
+    </>
   );
 }
