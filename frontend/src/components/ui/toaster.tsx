@@ -7,9 +7,6 @@ export function Toaster() {
       closeButton
       expand
       position="bottom-left"
-      containerStyle={{
-        bottom: 'var(--status-bar-height)',
-      }}
       toastOptions={{
         className: 'sonner-toast'
       }}
