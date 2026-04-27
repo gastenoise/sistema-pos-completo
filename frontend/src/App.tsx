@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
+import { getRouteMeta } from './routes/routeMeta'
 import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
@@ -30,30 +31,14 @@ const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
-const getShellPropsForRoute = (routeKey) => {
-  if (routeKey === 'POS') {
-    return { fullWidth: true };
-  }
-
-  if (routeKey === 'CashRegister' || routeKey === 'Settings') {
-    return { contentClassName: 'max-w-4xl mx-auto' };
-  }
-
-  return {};
-};
-
 const LayoutWrapper = ({
   children,
   currentPageName,
-  contentClassName,
-  fullWidth,
 }: {
   children: ReactNode;
   currentPageName?: string;
-  contentClassName?: string;
-  fullWidth?: boolean;
 }) => Layout ?
-  <Layout currentPageName={currentPageName} contentClassName={contentClassName} fullWidth={fullWidth}>{children}</Layout>
+  <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
 
 const PermissionGuard = ({
@@ -124,7 +109,6 @@ const AuthenticatedApp = () => {
 
   // Frontend guard is UX-only; backend permission checks remain the source of truth.
   const userCanAccessRoute = (path) => canAccessRoute(path, can);
-  const shouldUseAuthenticatedShell = (path) => path !== 'BusinessSelect';
 
   // Render the main app
   return (
@@ -147,45 +131,48 @@ const AuthenticatedApp = () => {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={
-          shouldUseAuthenticatedShell(mainPageKey) ? (
-            <LayoutWrapper currentPageName={mainPageKey} {...getShellPropsForRoute(mainPageKey)}>
+          getRouteMeta(mainPageKey).useShell ? (
+            <LayoutWrapper currentPageName={mainPageKey}>
               <MainPage />
             </LayoutWrapper>
           ) : (
             <MainPage />
           )
         } />
-        {Object.entries(Pages).map(([path, Page]) => (
-          <Route
-            key={path}
-            path={`/${path}`}
-            element={
-              path === 'CashRegister' ? (
-                <PermissionGuard
-                  canAccess={userCanAccessRoute(path)}
-                  redirectTo="/POS"
-                  message="No tenés permisos para ver Caja."
-                >
-                  {shouldUseAuthenticatedShell(path) ? (
-                    <LayoutWrapper currentPageName={path} {...getShellPropsForRoute(path)}>
+        {Object.entries(Pages).map(([path, Page]) => {
+          const meta = getRouteMeta(path);
+          return (
+            <Route
+              key={path}
+              path={`/${path}`}
+              element={
+                path === 'CashRegister' ? (
+                  <PermissionGuard
+                    canAccess={userCanAccessRoute(path)}
+                    redirectTo="/POS"
+                    message="No tenés permisos para ver Caja."
+                  >
+                    {meta.useShell ? (
+                      <LayoutWrapper currentPageName={path}>
+                        <Page />
+                      </LayoutWrapper>
+                    ) : (
+                      <Page />
+                    )}
+                  </PermissionGuard>
+                ) : userCanAccessRoute(path) ? (
+                  meta.useShell ? (
+                    <LayoutWrapper currentPageName={path}>
                       <Page />
                     </LayoutWrapper>
                   ) : (
                     <Page />
-                  )}
-                </PermissionGuard>
-              ) : userCanAccessRoute(path) ? (
-                shouldUseAuthenticatedShell(path) ? (
-                  <LayoutWrapper currentPageName={path} {...getShellPropsForRoute(path)}>
-                    <Page />
-                  </LayoutWrapper>
-                ) : (
-                  <Page />
-                )
-              ) : <Navigate to="/POS" replace />
-            }
-          />
-        ))}
+                  )
+                ) : <Navigate to="/POS" replace />
+              }
+            />
+          );
+        })}
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </>

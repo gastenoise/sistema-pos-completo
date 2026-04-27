@@ -5,8 +5,14 @@ import { useBusinessPermissions } from '@/hooks/useBusinessPermissions';
 import { useCashStatusQuery } from '@/modules/cash-register/hooks/useCashRegisterData';
 import { cn } from '@/lib/utils';
 import { Clock, User, Shield, Wallet } from 'lucide-react';
+import { StatusBarContext } from '@/routes/routeMeta';
 
-export default function AppStatusBar() {
+interface AppStatusBarProps {
+  context?: StatusBarContext;
+  visible?: boolean;
+}
+
+export default function AppStatusBar({ context = 'default', visible = true }: AppStatusBarProps) {
   const { user } = useAuth();
   const { currentBusiness } = useBusiness();
   const businessId = currentBusiness?.business_id ?? currentBusiness?.id;
@@ -31,6 +37,8 @@ export default function AppStatusBar() {
   const roleDisplayName = role ? role.charAt(0).toUpperCase() + role.slice(1) : '...';
 
   const isCashOpen = (cashStatus as any)?.status === 'open';
+
+  if (!visible) return null;
 
   return (
     <footer className="fixed inset-x-0 bottom-0 z-40 h-8 border-t border-slate-200 bg-white/95 backdrop-blur">

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/lib/AuthContext';
 import { createPageUrl } from '@/utils';
 import AppStatusBar from '@/components/layout/AppStatusBar';
+import { getRouteMeta } from '@/routes/routeMeta';
 
 const getRedirectTarget = (search) => {
   const params = new URLSearchParams(search);
@@ -68,6 +69,8 @@ export default function Login() {
       setIsSubmitting(false);
     }
   };
+
+  const meta = getRouteMeta('Login');
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
@@ -135,7 +138,7 @@ export default function Login() {
           </form>
         </CardContent>
       </Card>
-      <AppStatusBar />
+      <AppStatusBar context={meta.statusBarContext} visible={meta.showStatusBar} />
     </div>
   );
 }
