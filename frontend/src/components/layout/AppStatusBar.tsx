@@ -30,7 +30,7 @@ export default function AppStatusBar() {
   const userDisplayName = user?.name || user?.email?.split('@')[0] || 'Usuario';
   const roleDisplayName = role ? role.charAt(0).toUpperCase() + role.slice(1) : '...';
 
-  const isCashOpen = cashStatus?.is_open || false;
+  const isCashOpen = (cashStatus as any)?.status === 'open';
 
   return (
     <footer className="fixed inset-x-0 bottom-0 z-40 h-8 border-t border-slate-200 bg-white/95 backdrop-blur">
