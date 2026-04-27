@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/lib/AuthContext';
 import { createPageUrl } from '@/utils';
+import AppStatusBar from '@/components/layout/AppStatusBar';
 
 const getRedirectTarget = (search) => {
   const params = new URLSearchParams(search);
@@ -134,6 +135,7 @@ export default function Login() {
           </form>
         </CardContent>
       </Card>
+      <AppStatusBar />
     </div>
   );
 }

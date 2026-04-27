@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import TopNav from '@/components/pos/TopNav';
+import AppStatusBar from '@/components/layout/AppStatusBar';
 import { useAuth } from '@/lib/AuthContext';
 import { useBusiness } from '@/components/pos/BusinessContext';
-import { useCart } from '@/components/pos/CartContext';
 import { cn } from '@/lib/utils';
 
 type LayoutProps = {
@@ -28,20 +28,6 @@ export default function Layout({
 }: LayoutProps) {
   const { user, logout } = useAuth();
   const { currentBusiness } = useBusiness();
-  const { offlineQueue } = useCart();
-  const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
-
-  useEffect(() => {
-    const goOnline = () => setIsOnline(true);
-    const goOffline = () => setIsOnline(false);
-    window.addEventListener('online', goOnline);
-    window.addEventListener('offline', goOffline);
-
-    return () => {
-      window.removeEventListener('online', goOnline);
-      window.removeEventListener('offline', goOffline);
-    };
-  }, []);
 
   const resolvedPageName = useMemo(() => {
     if (!currentPageName) return undefined;
@@ -62,16 +48,7 @@ export default function Layout({
         {children}
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-2 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between text-xs text-slate-600">
-          <span className="truncate">{currentBusiness?.name || 'Negocio'}</span>
-          <span className="flex items-center gap-3">
-            <span>{resolvedPageName || 'App'}</span>
-            <span>{isOnline ? 'Online' : 'Offline'}</span>
-            <span>Cola: {offlineQueue?.length || 0}</span>
-          </span>
-        </div>
-      </div>
+      <AppStatusBar />
     </div>
   );
 }
