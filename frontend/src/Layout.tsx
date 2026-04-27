@@ -23,7 +23,7 @@ export default function Layout({
 
       <main
         className={cn(
-          'w-full px-4 py-4 lg:px-6 lg:py-6 pb-16',
+          'w-full px-4 py-4 lg:px-6 lg:py-6 pb-[calc(1.5rem+var(--status-bar-height))]',
           layoutFlags.contentWidth === 'full' && 'max-w-none',
           layoutFlags.contentWidth === 'wide' && 'mx-auto max-w-7xl',
           layoutFlags.contentWidth === 'default' && 'mx-auto max-w-4xl',

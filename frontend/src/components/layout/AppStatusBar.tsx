@@ -40,7 +40,7 @@ export default function AppStatusBar({
   if (!visible) return null;
 
   return (
-    <footer className="fixed inset-x-0 bottom-0 z-40 h-8 border-t border-slate-200 bg-white/95 backdrop-blur">
+    <footer className="fixed inset-x-0 bottom-0 z-40 h-[var(--status-bar-height)] border-t border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 text-[10px] sm:text-xs text-slate-500">
         {/* Left: Operational Info */}
         <div className="flex items-center gap-4 overflow-hidden">

@@ -618,7 +618,7 @@ function POSContent() {
 
   return (
     <>
-      <div className="flex min-h-[calc(100vh-8rem)] flex-col lg:flex-row">
+      <div className="flex min-h-[calc(100vh-var(--top-nav-height)-var(--status-bar-height)-2.5rem)] flex-col lg:flex-row">
         {/* Items Panel */}
         <div className="flex-1 flex flex-col p-4">
           {/* Search Bar */}

@@ -71,7 +71,7 @@ export default function SaleCart({ onCharge }) {
       </div>
 
       {/* Cart Footer - Fixed */}
-      <div className="border-t border-slate-200 p-4 bg-white sticky bottom-0 shadow-lg">
+      <div className="border-t border-slate-200 p-4 bg-white sticky bottom-[var(--status-bar-height)] shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <span className="text-lg font-medium text-slate-700">Total</span>
           <span className="text-2xl font-bold text-slate-900">{formatPrice(total, currentBusiness)}</span>

@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    --status-bar-height: 2rem;
+    --top-nav-height: 3.5rem;
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
@@ -93,6 +95,10 @@
 
 .sonner-toast[data-state='closed'] {
   animation: toast-exit 220ms ease-in;
+}
+
+[data-sonner-toaster] {
+  bottom: var(--status-bar-height) !important;
 }
 
 @keyframes toast-enter {

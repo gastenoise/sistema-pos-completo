@@ -21,7 +21,7 @@ export default function NetworkIndicator({ onSyncQueue }) {
   }
 
   return (
-    <div className={`fixed bottom-4 right-4 z-50 ${
+    <div className={`fixed bottom-[calc(1rem+var(--status-bar-height))] right-4 z-50 ${
       isOnline ? 'bg-amber-100 border-amber-300' : 'bg-red-100 border-red-300'
     } border rounded-lg p-3 shadow-lg`}>
       <div className="flex items-center gap-3">

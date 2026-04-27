@@ -16,7 +16,7 @@ export default function ScanProgressOverlay({
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[70]">
+    <div className="pointer-events-none fixed bottom-[calc(1rem+var(--status-bar-height))] right-4 z-[70]">
       <div
         className={cn(
           'w-[280px] rounded-lg border bg-background/95 p-3 shadow-lg backdrop-blur transition-all',
