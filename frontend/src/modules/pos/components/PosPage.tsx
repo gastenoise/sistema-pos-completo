@@ -25,7 +25,6 @@ import { loadRecentPosItemKeys, recordRecentPosItem, sortItemsByRecentUsage } fr
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useCart, CartProvider } from '@/components/pos/CartContext';
 import { useAuth } from '@/lib/AuthContext';
-import TopNav from '@/components/pos/TopNav';
 import SaleCart from '@/components/pos/SaleCart';
 import PaymentWizard from '@/components/pos/PaymentWizard';
 import CashRegisterOpenModal from '@/components/pos/CashRegisterOpenModal';
@@ -56,7 +55,7 @@ function POSContent() {
   const { businessId, currentBusiness, businesses } = useBusiness();
   const { addToCart, cartItems, clearCart, offlineQueue, clearOfflineQueue } = useCart();
   const queryClient = useQueryClient();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   
   const {
     searchQuery,
@@ -585,10 +584,6 @@ function POSContent() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-  };
-
   const handleApplyCatalogFilters = ({ category, source, onlyPriceUpdated: priceUpdated }) => {
     setCategoryFilter(category);
     setSourceFilter(source);
@@ -622,10 +617,8 @@ function POSContent() {
     : sortItemsByRecentUsage(items, recentItemKeysSnapshot);
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col">
-      <TopNav user={user} onLogout={handleLogout} currentPage="POS" />
-      
-      <div className="flex-1 flex flex-col lg:flex-row">
+    <>
+      <div className="flex min-h-[calc(100vh-8rem)] flex-col lg:flex-row">
         {/* Items Panel */}
         <div className="flex-1 flex flex-col p-4">
           {/* Search Bar */}
@@ -811,7 +804,7 @@ function POSContent() {
         onSave={handleSaveItemFromScan}
         loading={isProcessingItemsAction}
       />
-    </div>
+    </>
   );
 }
 
