@@ -24,6 +24,9 @@ import { toast } from 'sonner';
 import { formatPrice } from '@/lib/formatPrice';
 import { formatDateTimeLocal } from '@/lib/dateTime';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
+import PageContainer from '@/components/layout/PageContainer';
+import PageHeader from '@/components/layout/PageHeader';
+import PageSection from '@/components/layout/PageSection';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useAuthorization } from '@/components/auth/AuthorizationContext';
@@ -139,7 +142,7 @@ export default function CashRegister() {
 
   if (!canViewCashRegister) {
     return (
-      <div className="max-w-4xl">
+      <PageContainer>
         <Card className="border-amber-200 bg-amber-50">
           <CardHeader>
             <CardTitle className="text-amber-900">Acceso restringido</CardTitle>
@@ -148,18 +151,17 @@ export default function CashRegister() {
             </CardDescription>
           </CardHeader>
         </Card>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
     <>
-      <div className="max-w-4xl">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Caja Registradora</h1>
-          <p className="text-slate-500">Gestioná tus aperturas y cierres de caja</p>
-        </div>
+      <PageContainer>
+        <PageHeader
+          title="Caja Registradora"
+          description="Gestioná tus aperturas y cierres de caja"
+        />
 
         {loadingSession && (
           <div className="flex items-center justify-center h-64">
@@ -167,7 +169,7 @@ export default function CashRegister() {
           </div>
         )}
         {!loadingSession && (
-          <div className="relative">
+          <PageSection>
             {showCashOverlay && (
               <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/50">
                 <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow">
@@ -400,9 +402,9 @@ export default function CashRegister() {
             )}
           </div>
           )}
-        </div>
+          </PageSection>
         )}
-      </div>
+      </PageContainer>
 
       {/* Open Dialog */}
       <CashRegisterOpenModal

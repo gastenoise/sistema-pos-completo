@@ -11,6 +11,9 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { formatDateTimeLocal } from '@/lib/dateTime';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
+import PageContainer from '@/components/layout/PageContainer';
+import PageHeader from '@/components/layout/PageHeader';
+import PageSection from '@/components/layout/PageSection';
 
 /** @typedef {import('@/types/user').CanonicalUserProfile} CanonicalUserProfile */
 
@@ -96,22 +99,21 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-3xl mx-auto p-4 lg:p-8">
-        <Link 
-          to={createPageUrl('POS')} 
-          className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to POS
-        </Link>
+    <PageContainer>
+      <Link
+        to={createPageUrl('POS')}
+        className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to POS
+      </Link>
 
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900">Mi Perfil</h1>
-          <p className="text-slate-500 mt-1">Actualizá los datos de tu cuenta en el sistema</p>
-        </div>
+      <PageHeader
+        title="Mi Perfil"
+        description="Actualizá los datos de tu cuenta en el sistema"
+      />
 
-        <div className="space-y-6">
+      <PageSection className="space-y-6">
           {/* Profile Information */}
           <Card>
             <CardHeader>
@@ -248,8 +250,7 @@ export default function Profile() {
               )}
             </CardContent>
           </Card>
-        </div>
-      </div>
-    </div>
+      </PageSection>
+    </PageContainer>
   );
 }

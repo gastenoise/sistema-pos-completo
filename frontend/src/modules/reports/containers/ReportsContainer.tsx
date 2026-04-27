@@ -43,6 +43,9 @@ import {
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 import { getIconComponent } from '@/lib/iconCatalog';
 import { getSaleStatusLabel } from '@/lib/saleStatus';
+import PageContainer from '@/components/layout/PageContainer';
+import PageHeader from '@/components/layout/PageHeader';
+import PageSection from '@/components/layout/PageSection';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
 import CsvExportButton from '@/components/pos/CsvExportButton';
@@ -303,18 +306,16 @@ export default function Reports() {
 
   return (
     <>
-      <div>
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Reportes de Ventas</h1>
-            <p className="text-slate-500">Visualiza y exporta la información de tus ventas</p>
-          </div>
-          <CsvExportButton onExport={handleExportCsv} />
-        </div>
+      <PageContainer>
+        <PageHeader
+          title="Reportes de Ventas"
+          description="Visualiza y exporta la información de tus ventas"
+          actions={<CsvExportButton onExport={handleExportCsv} />}
+        />
 
         {/* Filters */}
-        <Card className="mb-6">
+        <PageSection>
+          <Card>
           <CardContent className="p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:gap-4">
               <div className="flex flex-wrap gap-2 w-full lg:w-auto">
@@ -403,7 +404,8 @@ export default function Reports() {
               </div>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </PageSection>
 
         <Dialog open={isMoreFiltersOpen} onOpenChange={handleOpenMoreFilters}>
           <DialogContent className="max-w-md">
@@ -450,7 +452,8 @@ export default function Reports() {
         </Dialog>
 
         {/* Summary Card */}
-        <Card className="mb-6">
+        <PageSection>
+          <Card>
           <CardContent className="p-6">
             <div className="space-y-4">
               {/* Top Row: Transactions and Total Sales */}
@@ -556,10 +559,12 @@ export default function Reports() {
               )}
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </PageSection>
 
         {/* Sales Table */}
-        <Card className="relative">
+        <PageSection>
+          <Card className="relative">
           {showSalesOverlay && (
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/60">
               <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow">
@@ -655,8 +660,9 @@ export default function Reports() {
               </div>
             )}
           </CardContent>
-        </Card>
-      </div>
+          </Card>
+        </PageSection>
+      </PageContainer>
 
       {/* Sale Detail Dialog */}
       <SaleDetailsDialog

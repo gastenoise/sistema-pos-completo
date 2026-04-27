@@ -3,6 +3,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Upload, Package, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import PageContainer from '@/components/layout/PageContainer';
+import PageHeader from '@/components/layout/PageHeader';
+import PageSection from '@/components/layout/PageSection';
 import {
   Table,
   TableBody,
@@ -504,27 +507,26 @@ export default function Items() {
 
   return (
     <>
-      <div>
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Items</h1>
-            <p className="text-slate-500">Administrá tus productos y servicios</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowImportWizard(true)}>
-              <Upload className="w-4 h-4 mr-2" />
-              Importar
-            </Button>
-            <Button onClick={() => { setEditingItem(null); setShowEditorModal(true); }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar Item
-            </Button>
-          </div>
-        </div>
+      <PageContainer>
+        <PageHeader
+          title="Items"
+          description="Administrá tus productos y servicios"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => setShowImportWizard(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                Importar
+              </Button>
+              <Button onClick={() => { setEditingItem(null); setShowEditorModal(true); }}>
+                <Plus className="w-4 h-4 mr-2" />
+                Agregar Item
+              </Button>
+            </>
+          }
+        />
 
         {/* Filters */}
-        <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4">
+        <PageSection className="bg-white rounded-xl border border-slate-200 p-4">
           <ItemsFiltersDialog
             searchValue={searchQuery}
             onSearchChange={setSearchQuery}
@@ -545,11 +547,11 @@ export default function Items() {
             searchInputRef={null as any}
             barcodeInputRef={barcodeInputRef}
           />
-        </div>
+        </PageSection>
 
         {/* Bulk Actions */}
         {selectedItems.length > 0 && (
-          <div className="mb-4">
+          <PageSection>
             <BulkActionsBar
               selectedCount={selectedItems.length}
               onClear={() => setSelectedItems([])}
@@ -559,11 +561,11 @@ export default function Items() {
               onSetFixedPrice={handleSetFixedPrice}
               loading={bulkLoading}
             />
-          </div>
+          </PageSection>
         )}
 
         {/* Table */}
-        <div className="relative bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <PageSection className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           {showItemsOverlay && (
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/60">
               <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow">
@@ -638,8 +640,8 @@ export default function Items() {
               </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </PageSection>
+      </PageContainer>
 
       {/* Modals */}
       <ItemEditorModal
