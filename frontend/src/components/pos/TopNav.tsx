@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { useBusiness } from './BusinessContext';
-import { useCart } from './CartContext';
-import { useAuthorization } from '@/components/auth/AuthorizationContext';
 import { 
   Menu, X, ChevronDown, Store, LogOut, Settings, 
   BarChart3, Package, ShoppingCart,
@@ -19,11 +16,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export default function TopNav({ user, onLogout, currentPage }) {
+export default function TopNav({
+  user,
+  onLogout,
+  currentPage,
+  currentBusiness,
+  businesses = [],
+  selectBusiness,
+  can
+}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { currentBusiness, businesses, selectBusiness } = useBusiness();
-  const { can } = useAuthorization();
-  const { isOnline: _isOnline, offlineQueue: _offlineQueue } = useCart();
 
   const iconByKey = {
     ShoppingCart,
@@ -44,8 +46,10 @@ export default function TopNav({ user, onLogout, currentPage }) {
   };
 
   const handleBusinessSwitch = (business) => {
-    selectBusiness(business);
-    window.location.reload(); // Reload to refresh business-scoped data
+    if (selectBusiness) {
+      selectBusiness(business);
+      window.location.reload(); // Reload to refresh business-scoped data
+    }
   };
 
   return (
@@ -63,7 +67,6 @@ export default function TopNav({ user, onLogout, currentPage }) {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="gap-2 text-sm flex items-center">
-                    {/* Solo el ícono, sin fondo, con color personalizado si corresponde */}
                     <Store
                       className="w-6 h-6 mr-2"
                       style={{
@@ -119,16 +122,6 @@ export default function TopNav({ user, onLogout, currentPage }) {
 
           {/* Right side */}
           <div className="flex items-center gap-3">
-            {/* Network indicator */}
-            {/* <div className={`flex items-center gap-1 text-xs ${isOnline ? 'text-green-600' : 'text-red-500'}`}>
-              {isOnline ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-              {offlineQueue.length > 0 && (
-                <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full text-xs">
-                  {offlineQueue.length} queued
-                </span>
-              )}
-            </div> */}
-
             {/* User menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -146,12 +139,6 @@ export default function TopNav({ user, onLogout, currentPage }) {
                     Mi Perfil
                   </Link>
                 </DropdownMenuItem>
-                {/* <DropdownMenuItem asChild>
-                  <Link to={createPageUrl('Settings')}>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Business Settings
-                  </Link>
-                </DropdownMenuItem> */}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onLogout} className="text-red-600">
                   <LogOut className="w-4 h-4 mr-2" />

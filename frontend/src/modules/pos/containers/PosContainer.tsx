@@ -24,7 +24,6 @@ import { useAuthorization } from '@/components/auth/AuthorizationContext';
 import { useBusiness } from '@/components/pos/BusinessContext';
 import { useCart, CartProvider } from '@/components/pos/CartContext';
 import { useAuth } from '@/lib/AuthContext';
-import TopNav from '@/components/pos/TopNav';
 import SaleCart from '@/components/pos/SaleCart';
 import PaymentWizard from '@/components/pos/PaymentWizard';
 import CashRegisterOpenModal from '@/components/pos/CashRegisterOpenModal';
@@ -40,7 +39,7 @@ function POSContent() {
   const { businessId, currentBusiness, businesses } = useBusiness();
   const { addToCart, cartItems, clearCart, offlineQueue, clearOfflineQueue } = useCart();
   const queryClient = useQueryClient();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   
   const {
     searchQuery,
@@ -443,7 +442,7 @@ function POSContent() {
   };
 
   const handleLogout = () => {
-    logout();
+    // This will be handled by the shell now, but keeping for compatibility if used internally
   };
 
   const handleApplyCatalogFilters = ({ category, source, onlyPriceUpdated: priceUpdated }) => {
@@ -471,111 +470,107 @@ function POSContent() {
   const filteredItems = items;
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col">
-      <TopNav user={user} onLogout={handleLogout} currentPage="POS" />
-      
-      <div className="flex-1 flex flex-col lg:flex-row">
-        {/* Items Panel */}
-        <div className="flex-1 flex flex-col p-4">
-          {/* Search Bar */}
-          <div className="mb-4">
-            <ItemsFiltersDialog
-              searchInputRef={searchInputRef}
-              searchValue={searchQuery}
-              onSearchChange={setSearchQuery}
-              barcodeOrSkuValue={barcodeOrSkuQuery}
-              onBarcodeOrSkuChange={setBarcodeOrSkuQuery}
-              categoryValue={String(categoryFilter)}
-              onCategoryChange={(value) => setCategoryFilter(value)}
-              sourceValue={sourceFilter}
-              onSourceChange={setSourceFilter}
-              onlyPriceUpdated={onlyPriceUpdated}
-              onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
-              onApplyFilters={handleApplyCatalogFilters}
-              onClearFilters={handleClearCatalogFilters}
-              categories={categories}
-              inputClassName="h-12"
-              searchInputClassName="flex-1 min-w-[240px]"
-              barcodeInputClassName="sm:w-44 md:w-52"
-              rightContent={<QuickAddForm onAdd={handleQuickAdd} categories={categories} />}
-            />
-          </div>
-
-          {/* Items Grid */}
-          <div className="relative flex-1 overflow-auto">
-            {showItemsOverlay && (
-              <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/60">
-                <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Cargando…
-                </div>
-              </div>
-            )}
-            {loadingItems ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-              </div>
-            ) : filteredItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-                <Package className="w-12 h-12 mb-3" />
-                <p className="text-lg font-medium">No se encontraron items</p>
-                <p className="text-sm">
-                  {searchQuery ? 'Probá con un filtro diferente' : 'Empezá escribiendo para buscar ítems'}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {filteredItems.map((item) => {
-                  const { Icon, color } = getItemIcon(item);
-                  return (
-                    <button
-                      key={`${(item as any).source || 'local'}-${(item as any).id}`}
-                      onClick={() => handleItemClick(item)}
-                      className="bg-white rounded-xl p-3 text-left hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    >
-                      <div 
-                        className="w-full aspect-video rounded-lg mb-2 flex items-center justify-center"
-                        style={{ backgroundColor: color + '20' }}
-                      >
-                        <Icon className="w-7 h-7" style={{ color: color }} />
-                      </div>
-                      <p className="font-medium text-slate-900 truncate text-sm">{item.name}</p>
-                      <p className="text-base font-bold text-blue-600">{formatPrice(item.price, currentBusiness)}</p>
-                      {item.barcode && (
-                        <p className="text-xs text-slate-400 mt-0.5">CB: {item.barcode}</p>
-                      )}
-                      {item.sku && (
-                        <p className="text-xs text-slate-400 mt-0.5">SKU: {item.sku}</p>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+    <div className="flex-1 flex flex-col lg:flex-row">
+      {/* Items Panel */}
+      <div className="flex-1 flex flex-col p-4">
+        {/* Search Bar */}
+        <div className="mb-4">
+          <ItemsFiltersDialog
+            searchInputRef={searchInputRef}
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            barcodeOrSkuValue={barcodeOrSkuQuery}
+            onBarcodeOrSkuChange={setBarcodeOrSkuQuery}
+            categoryValue={String(categoryFilter)}
+            onCategoryChange={(value) => setCategoryFilter(value)}
+            sourceValue={sourceFilter}
+            onSourceChange={setSourceFilter}
+            onlyPriceUpdated={onlyPriceUpdated}
+            onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
+            onApplyFilters={handleApplyCatalogFilters}
+            onClearFilters={handleClearCatalogFilters}
+            categories={categories}
+            inputClassName="h-12"
+            searchInputClassName="flex-1 min-w-[240px]"
+            barcodeInputClassName="sm:w-44 md:w-52"
+            rightContent={<QuickAddForm onAdd={handleQuickAdd} categories={categories} />}
+          />
         </div>
 
-        {/* Cart Panel */}
-        <div className="w-full lg:w-[450px] bg-white border-l border-slate-200 flex flex-col">
-          <div className="p-4 border-b border-slate-200">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-lg font-bold text-slate-900">Esta venta</h2>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 disabled:text-slate-400"
-                disabled={!lastCompletedSale?.id}
-                onClick={() => setIsLastSaleDialogOpen(true)}
-              >
-                <Eye className="w-3.5 h-3.5" />
-                Venta anterior
-              </button>
+        {/* Items Grid */}
+        <div className="relative flex-1 overflow-auto">
+          {showItemsOverlay && (
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/60">
+              <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Cargando…
+              </div>
             </div>
-            {cashRegisterStatus?.status === 'closed' && (
-              <p className="text-xs text-amber-600 mt-1">La caja está cerrada</p>
-            )}
-          </div>
-          <SaleCart onCharge={handleCharge} />
+          )}
+          {loadingItems ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+              <Package className="w-12 h-12 mb-3" />
+              <p className="text-lg font-medium">No se encontraron items</p>
+              <p className="text-sm">
+                {searchQuery ? 'Probá con un filtro diferente' : 'Empezá escribiendo para buscar ítems'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {filteredItems.map((item) => {
+                const { Icon, color } = getItemIcon(item);
+                return (
+                  <button
+                    key={`${(item as any).source || 'local'}-${(item as any).id}`}
+                    onClick={() => handleItemClick(item)}
+                    className="bg-white rounded-xl p-3 text-left hover:shadow-lg hover:scale-[1.02] transition-all duration-200 border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  >
+                    <div
+                      className="w-full aspect-video rounded-lg mb-2 flex items-center justify-center"
+                      style={{ backgroundColor: color + '20' }}
+                    >
+                      <Icon className="w-7 h-7" style={{ color: color }} />
+                    </div>
+                    <p className="font-medium text-slate-900 truncate text-sm">{item.name}</p>
+                    <p className="text-base font-bold text-blue-600">{formatPrice(item.price, currentBusiness)}</p>
+                    {item.barcode && (
+                      <p className="text-xs text-slate-400 mt-0.5">CB: {item.barcode}</p>
+                    )}
+                    {item.sku && (
+                      <p className="text-xs text-slate-400 mt-0.5">SKU: {item.sku}</p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Cart Panel */}
+      <div className="w-full lg:w-[450px] bg-white border-l border-slate-200 flex flex-col">
+        <div className="p-4 border-b border-slate-200">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-bold text-slate-900">Esta venta</h2>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 disabled:text-slate-400"
+              disabled={!lastCompletedSale?.id}
+              onClick={() => setIsLastSaleDialogOpen(true)}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              Venta anterior
+            </button>
+          </div>
+          {cashRegisterStatus?.status === 'closed' && (
+            <p className="text-xs text-amber-600 mt-1">La caja está cerrada</p>
+          )}
+        </div>
+        <SaleCart onCharge={handleCharge} />
       </div>
 
       {/* Payment Wizard */}

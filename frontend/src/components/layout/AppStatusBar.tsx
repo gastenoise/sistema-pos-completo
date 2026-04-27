@@ -1,27 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/lib/AuthContext';
-import { useBusiness } from '@/components/pos/BusinessContext';
-import { useBusinessPermissions } from '@/hooks/useBusinessPermissions';
-import { useCashStatusQuery } from '@/modules/cash-register/hooks/useCashRegisterData';
 import { cn } from '@/lib/utils';
 import { Clock, User, Shield, Wallet } from 'lucide-react';
 import { StatusBarContext } from '@/routes/routeMeta';
 
 interface AppStatusBarProps {
+  user?: any;
+  role?: string | null;
+  can?: (permission: string) => boolean;
+  cashStatus?: any;
   context?: StatusBarContext;
   visible?: boolean;
 }
 
-export default function AppStatusBar({ context = 'default', visible = true }: AppStatusBarProps) {
-  const { user } = useAuth();
-  const { currentBusiness } = useBusiness();
-  const businessId = currentBusiness?.business_id ?? currentBusiness?.id;
-  const { role, can } = useBusinessPermissions(businessId);
-
-  // Only fetch cash status if user has permission to view it
-  const canViewCash = can('view_cash_register');
-  const { data: cashStatus } = useCashStatusQuery(businessId, !!businessId && canViewCash);
-
+export default function AppStatusBar({
+  user,
+  role,
+  can,
+  cashStatus,
+  context = 'default',
+  visible = true
+}: AppStatusBarProps) {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -36,7 +34,8 @@ export default function AppStatusBar({ context = 'default', visible = true }: Ap
   const userDisplayName = user?.name || user?.email?.split('@')[0] || 'Usuario';
   const roleDisplayName = role ? role.charAt(0).toUpperCase() + role.slice(1) : '...';
 
-  const isCashOpen = (cashStatus as any)?.status === 'open';
+  const canViewCash = can ? can('view_cash_register') : false;
+  const isCashOpen = cashStatus?.status === 'open';
 
   if (!visible) return null;
 
@@ -55,7 +54,7 @@ export default function AppStatusBar({ context = 'default', visible = true }: Ap
             <span>{roleDisplayName}</span>
           </div>
 
-          {canViewCash && (
+          {canViewCash && cashStatus && (
             <div className="flex items-center gap-1.5 shrink-0">
               <Wallet className="h-3 w-3" />
               <span className={cn(

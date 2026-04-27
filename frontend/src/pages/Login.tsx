@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/lib/AuthContext';
 import { createPageUrl } from '@/utils';
 import AppStatusBar from '@/components/layout/AppStatusBar';
-import { getRouteMeta } from '@/routes/routeMeta';
+import { useShellState } from '@/hooks/useShellState';
 
 const getRedirectTarget = (search) => {
   const params = new URLSearchParams(search);
@@ -46,6 +46,8 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const sessionMessage = getSessionMessage(location.search);
 
+  const { statusBarProps } = useShellState('Login');
+
   const handleChange = (field) => (event) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
   };
@@ -69,8 +71,6 @@ export default function Login() {
       setIsSubmitting(false);
     }
   };
-
-  const meta = getRouteMeta('Login');
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
@@ -138,7 +138,7 @@ export default function Login() {
           </form>
         </CardContent>
       </Card>
-      <AppStatusBar context={meta.statusBarContext} visible={meta.showStatusBar} />
+      <AppStatusBar {...statusBarProps} />
     </div>
   );
 }
