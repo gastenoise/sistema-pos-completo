@@ -57,6 +57,9 @@ import { useAuth } from '@/lib/AuthContext';
 import { BUSINESS_BOOLEAN_PARAMETERS, normalizeBusinessParameters } from '@/lib/businessParameters';
 import ColorPickerField from '@/components/common/ColorPickerField';
 import IconPickerField from '@/components/common/IconPickerField';
+import PageContainer from '@/components/layout/PageContainer';
+import PageHeader from '@/components/layout/PageHeader';
+import PageSection from '@/components/layout/PageSection';
 import { DEFAULT_COLOR_HEX, normalizeHexColor } from '@/lib/colors';
 import { DEFAULT_ICON_NAME, getIconComponent, resolveIconId, resolveIconName } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
@@ -543,13 +546,13 @@ export default function Settings() {
 
   return (
     <>
-      <div className="max-w-4xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Ajustes del Negocio</h1>
-          <p className="text-slate-500">Administrá la configuración de tu negocio</p>
-        </div>
+      <PageContainer>
+        <PageHeader
+          title="Ajustes del Negocio"
+          description="Administrá la configuración de tu negocio"
+        />
 
-        <div className="relative">
+        <PageSection>
           {showSettingsOverlay && (
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-white/50">
               <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow">
@@ -1214,8 +1217,8 @@ export default function Settings() {
             </Card>
           </TabsContent>
         </Tabs>
-        </div>
-      </div>
+        </PageSection>
+      </PageContainer>
 
       {/* Premium Dialog */}
       <Dialog open={showPremiumDialog} onOpenChange={setShowPremiumDialog}>
