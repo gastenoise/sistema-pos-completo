@@ -32,9 +32,11 @@ import { useBusiness } from '@/components/pos/BusinessContext';
 import ItemRow from '@/components/pos/ItemRow';
 import ItemEditorModal from '@/components/pos/ItemEditorModal';
 import BulkActionsBar from '@/components/pos/BulkActionsBar';
+import BulkActionsDialog from '@/components/items/BulkActionsDialog';
 import CsvImportWizard from '@/components/pos/CsvImportWizard';
 import ItemsFiltersDialog from '@/components/items/ItemsFiltersDialog';
 import { useItemFilters } from '@/modules/items/hooks/useItemFilters';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { useKeyboardScanner } from '@/components/scanner/useKeyboardScanner';
 import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
 import { handleItemsScanComplete, handlePendingItemsScanResolution } from '@/modules/pos/utils/scannerHandlers';
@@ -43,6 +45,7 @@ export default function Items() {
   const { businessId, currentBusiness, businesses } = useBusiness();
   const queryClient = useQueryClient();
   
+  const isMobile = useIsMobile();
   const {
     searchQuery,
     setSearchQuery,
@@ -293,8 +296,10 @@ export default function Items() {
       setSelectedItems([]);
       const updatedCount = response?.updated_count || selectedItems.length;
       toast.success(TOAST_MESSAGES.items.categoryAssignSuccess(updatedCount));
+      return true;
     } catch (error) {
       toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.items.categoryAssignError));
+      return false;
     } finally {
       setBulkLoading(false);
     }
@@ -313,8 +318,10 @@ export default function Items() {
       setSelectedItems([]);
       const updatedCount = response?.updated_count || selectedItems.length;
       toast.success(TOAST_MESSAGES.items.priceUpdated(updatedCount));
+      return true;
     } catch (error) {
       toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.items.setPriceError));
+      return false;
     } finally {
       setBulkLoading(false);
     }
@@ -332,8 +339,10 @@ export default function Items() {
       setSelectedItems([]);
       const updatedCount = response?.updated_count || selectedItems.length;
       toast.success(TOAST_MESSAGES.items.increasePriceSuccess(percent, updatedCount));
+      return true;
     } catch (error) {
       toast.error(mapApiErrorMessage(error, TOAST_MESSAGES.items.updatePricesError));
+      return false;
     } finally {
       setBulkLoading(false);
     }
@@ -551,8 +560,8 @@ export default function Items() {
 
         {/* Bulk Actions */}
         {selectedItems.length > 0 && (
-          <PageSection>
-            <BulkActionsBar
+          isMobile ? (
+            <BulkActionsDialog
               selectedCount={selectedItems.length}
               onClear={() => setSelectedItems([])}
               categories={categories}
@@ -561,7 +570,19 @@ export default function Items() {
               onSetFixedPrice={handleSetFixedPrice}
               loading={bulkLoading}
             />
-          </PageSection>
+          ) : (
+            <PageSection>
+              <BulkActionsBar
+                selectedCount={selectedItems.length}
+                onClear={() => setSelectedItems([])}
+                categories={categories}
+                onAssignCategory={handleAssignCategory}
+                onApplyPriceIncrease={handleApplyPriceIncrease}
+                onSetFixedPrice={handleSetFixedPrice}
+                loading={bulkLoading}
+              />
+            </PageSection>
+          )
         )}
 
         {/* Table */}
