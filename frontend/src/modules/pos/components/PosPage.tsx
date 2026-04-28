@@ -659,9 +659,9 @@ function POSContent() {
 
   return (
     <>
-      <div className="flex min-h-[calc(100vh-var(--top-nav-height)-var(--status-bar-height)-2.5rem)] flex-col lg:flex-row">
+      <div className="flex h-[calc(100dvh-var(--top-nav-height)-var(--status-bar-height)-2.5rem)] lg:h-[calc(100vh-var(--top-nav-height)-var(--status-bar-height)-3rem)] flex-col lg:flex-row overflow-hidden">
         {/* Items Panel */}
-        <div className="flex-1 flex flex-col p-4">
+        <div className="flex-1 flex flex-col p-4 overflow-hidden">
           {/* Search Bar Desktop */}
           <div className="mb-4 hidden lg:block">
             <ItemsFiltersDialog
@@ -730,7 +730,7 @@ function POSContent() {
           </div>
 
           {/* Items Grid */}
-          <div className="relative flex-1 overflow-auto">
+          <div className="relative flex-1 overflow-auto min-h-0">
             {showItemsOverlay && (
               <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/60">
                 <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow">
@@ -781,7 +781,7 @@ function POSContent() {
                 })}
               </div>
               <div className="space-y-2 lg:hidden">
-                {(mobileShowResults ? mobileItems : mobileItems.slice(0, 8)).map((item, index) => (
+                {mobileItems.map((item, index) => (
                   <button
                     key={`${(item as any).source || 'local'}-${(item as any).id}-mobile`}
                     type="button"
@@ -804,7 +804,7 @@ function POSContent() {
         </div>
 
         {/* Cart Panel */}
-        <div className="w-full lg:w-[450px] bg-white border-l border-slate-200 flex flex-col">
+        <div className="w-full lg:w-[450px] bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col h-[50dvh] lg:h-auto shrink-0">
           <div className="p-4 border-b border-slate-200">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-bold text-slate-900">Esta venta</h2>
