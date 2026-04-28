@@ -619,20 +619,29 @@ export default function Items() {
               </Table>
           )}
 
-          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200">
-            <p className="text-sm text-slate-500">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-slate-200">
+            <p className="text-sm text-slate-500 text-center sm:text-left">
               {hasKnownTotal
                 ? `Mostrando ${totalLoaded} de ${totalAvailable} ítems`
                 : `Mostrando ${totalLoaded} ítems`}
             </p>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage(Math.max(1, currentPage - 1))}>Anterior</Button>
-              <span className="text-sm text-slate-600">
+            <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-shrink-0"
+                disabled={currentPage <= 1}
+                onClick={() => setPage(Math.max(1, currentPage - 1))}
+              >
+                Anterior
+              </Button>
+              <span className="text-sm text-slate-600 flex-1 text-center min-w-[100px]">
                 {hasOffsetPagination ? `Página ${currentPage} de ${totalPages}` : `Página ${currentPage}`}
               </span>
               <Button
                 variant="outline"
                 size="sm"
+                className="flex-shrink-0"
                 disabled={hasOffsetPagination ? currentPage >= totalPages : !hasNextCursor}
                 onClick={() => setPage(hasOffsetPagination ? Math.min(totalPages, currentPage + 1) : currentPage + 1)}
               >
