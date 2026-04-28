@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
-  Package, Loader2, ShoppingBag, Coffee,
+  Package, Loader2, ShoppingBag, Coffee, Search, Clock3,
   Utensils, Shirt, Laptop, Smartphone, Book, Wrench, Home, Car, Heart,
   Gamepad, Pizza, Apple, Cake, Watch, Glasses, Plane, Music,
   Camera, Dumbbell, Paintbrush, Hammer, Scissors, Zap, Star, Gift, Tag, CreditCard, Eye
@@ -81,8 +81,12 @@ function POSContent() {
   const [pendingBarcodeForCreate, setPendingBarcodeForCreate] = useState('');
   const [recentItemKeysSnapshot, setRecentItemKeysSnapshot] = useState<string[]>([]);
   const { role } = useAuthorization();
-  
-  const searchInputRef = useRef(null);
+
+  const [mobileShowResults, setMobileShowResults] = useState(false);
+  const [mobileSelectedIndex, setMobileSelectedIndex] = useState(0);
+  const [mobileSortMode, setMobileSortMode] = useState<'recent' | 'search'>('recent');
+
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const lastScannedCodeRef = useRef<{ code: string; scannedAt: number } | null>(null);
   const lastNoMatchResolvedCodeRef = useRef<{ code: string; resolvedAt: number } | null>(null);
 
@@ -616,13 +620,50 @@ function POSContent() {
     ? items
     : sortItemsByRecentUsage(items, recentItemKeysSnapshot);
 
+  const mobileItems = useMemo(() => {
+    if (mobileSortMode === 'recent' && !hasCatalogFiltersApplied) {
+      return sortItemsByRecentUsage(items, recentItemKeysSnapshot);
+    }
+    return filteredItems;
+  }, [mobileSortMode, hasCatalogFiltersApplied, items, recentItemKeysSnapshot, filteredItems]);
+
+  useEffect(() => {
+    setMobileSelectedIndex(0);
+  }, [searchQuery, barcodeOrSkuQuery, mobileSortMode]);
+
+  const handleMobileInputKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!mobileShowResults || mobileItems.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setMobileSelectedIndex((prev) => Math.min(prev + 1, mobileItems.length - 1));
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setMobileSelectedIndex((prev) => Math.max(prev - 1, 0));
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const selectedItem = mobileItems[mobileSelectedIndex];
+      if (selectedItem) {
+        handleItemClick(selectedItem);
+        setMobileShowResults(true);
+        searchInputRef.current?.focus();
+      }
+    }
+  };
+
   return (
     <>
       <div className="flex min-h-[calc(100vh-var(--top-nav-height)-var(--status-bar-height)-2.5rem)] flex-col lg:flex-row">
         {/* Items Panel */}
         <div className="flex-1 flex flex-col p-4">
-          {/* Search Bar */}
-          <div className="mb-4">
+          {/* Search Bar Desktop */}
+          <div className="mb-4 hidden lg:block">
             <ItemsFiltersDialog
               searchInputRef={searchInputRef}
               searchValue={searchQuery}
@@ -650,6 +691,44 @@ function POSContent() {
             />
           </div>
 
+          <div className="mb-4 space-y-3 lg:hidden">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setMobileShowResults(true); }}
+                  onFocus={() => setMobileShowResults(true)}
+                  onKeyDown={handleMobileInputKeyDown}
+                  placeholder="Buscar por nombre"
+                  className="h-11 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+              <QuickAddForm onAdd={handleQuickAdd} categories={categories} />
+            </div>
+            <ItemsFiltersDialog
+              searchInputRef={searchInputRef}
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
+              barcodeOrSkuValue={barcodeOrSkuQuery}
+              onBarcodeOrSkuChange={setBarcodeOrSkuQuery}
+              categoryValue={String(categoryFilter)}
+              onCategoryChange={(value) => setCategoryFilter(value)}
+              sourceValue={sourceFilter}
+              onSourceChange={setSourceFilter}
+              onlyPriceUpdated={onlyPriceUpdated}
+              onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
+              onApplyFilters={handleApplyCatalogFilters}
+              onClearFilters={handleClearCatalogFilters}
+              categories={categories}
+            />
+            <div className="flex gap-2">
+              <button type="button" className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium ${mobileSortMode === 'recent' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`} onClick={() => setMobileSortMode('recent')}><Clock3 className="h-3.5 w-3.5" />Recientes</button>
+              <button type="button" className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium ${mobileSortMode === 'search' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`} onClick={() => setMobileSortMode('search')}><Search className="h-3.5 w-3.5" />Resultados</button>
+            </div>
+          </div>
+
           {/* Items Grid */}
           <div className="relative flex-1 overflow-auto">
             {showItemsOverlay && (
@@ -673,7 +752,8 @@ function POSContent() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              <>
+              <div className="hidden lg:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {filteredItems.map((item) => {
                   const { Icon, color } = getItemIcon(item);
                   return (
@@ -700,6 +780,25 @@ function POSContent() {
                   );
                 })}
               </div>
+              <div className="space-y-2 lg:hidden">
+                {(mobileShowResults ? mobileItems : mobileItems.slice(0, 8)).map((item, index) => (
+                  <button
+                    key={`${(item as any).source || 'local'}-${(item as any).id}-mobile`}
+                    type="button"
+                    onClick={() => { handleItemClick(item); setMobileShowResults(true); searchInputRef.current?.focus(); }}
+                    className={`w-full rounded-lg border px-3 py-2 text-left ${index === mobileSelectedIndex ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white'}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-slate-900">{item.name}</p>
+                        <p className="truncate text-xs text-slate-500">{item.barcode || item.sku ? `${item.barcode ? `CB: ${item.barcode}` : ''}${item.barcode && item.sku ? ' · ' : ''}${item.sku ? `SKU: ${item.sku}` : ''}` : 'Sin código'}</p>
+                      </div>
+                      <span className="text-sm font-bold text-blue-600">{formatPrice(item.price, currentBusiness)}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              </>
             )}
           </div>
         </div>
