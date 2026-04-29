@@ -64,6 +64,7 @@ import { DEFAULT_COLOR_HEX, normalizeHexColor } from '@/lib/colors';
 import { DEFAULT_ICON_NAME, getIconComponent, resolveIconId, resolveIconName } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { mapApiErrorMessage } from '@/api/errorMapping';
+import { getRoleLabel } from '@/lib/roleLabels';
 import { CASH_REGISTER_PERMISSION_KEYS, useRolePermissionsFlow } from '@/modules/settings/hooks/useRolePermissionsFlow';
 
 const CASH_REGISTER_PERMISSION_LABELS = {
@@ -1131,7 +1132,7 @@ export default function Settings() {
                       <tbody>
                         {['admin', 'cashier'].map((targetRole) => (
                           <tr key={targetRole} className="border-b last:border-0">
-                            <td className="px-3 py-3 font-medium uppercase text-slate-900">{targetRole}</td>
+                            <td className="px-3 py-3 font-medium text-slate-900">{getRoleLabel(targetRole)}</td>
                             {CASH_REGISTER_PERMISSION_KEYS.map((permissionKey) => (
                               <td key={`${targetRole}-${permissionKey}`} className="px-3 py-3">
                                 <Switch

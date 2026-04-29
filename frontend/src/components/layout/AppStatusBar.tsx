@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Clock, User, Shield, Wallet } from 'lucide-react';
 import { StatusBarContext } from '@/routes/routeMeta';
+import { getRoleLabel } from '@/lib/roleLabels';
 
 interface AppStatusBarProps {
   user?: any;
@@ -32,7 +33,7 @@ export default function AppStatusBar({
   };
 
   const userDisplayName = user?.name || user?.full_name || user?.email?.split('@')[0] || 'Usuario';
-  const roleDisplayName = role ? role.charAt(0).toUpperCase() + role.slice(1) : '...';
+  const roleDisplayName = getRoleLabel(role);
 
   const canViewCash = can ? can('view_cash_register') : false;
   const isCashOpen = cashStatus?.status === 'open';
