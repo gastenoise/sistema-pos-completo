@@ -10,8 +10,8 @@ test('items hook query options: success scenario', async () => {
     searchQuery: 'yerba',
     barcodeOrSku: '779',
     categoryFilter: 'all',
-    source: 'all',
-    onlyPriceUpdated: false,
+    source: 'sepa',
+    onlyPriceUpdated: true,
     page: 2,
   }, {
     getItems: async (params) => {
@@ -20,7 +20,7 @@ test('items hook query options: success scenario', async () => {
     }
   });
 
-  assert.deepEqual(options.queryKey, itemsQueryKey(7, 'yerba', '779', 'all', 'all', false, 2));
+  assert.deepEqual(options.queryKey, itemsQueryKey(7, 'yerba', '779', 'all', 'sepa', true, 2));
   assert.equal(options.enabled, true);
 
   await options.queryFn();
@@ -34,8 +34,8 @@ test('items hook query options: disabled/error-ready scenario when no businessId
     searchQuery: '',
     barcodeOrSku: '',
     categoryFilter: 'all',
-    source: 'all',
-    onlyPriceUpdated: false,
+    source: 'sepa',
+    onlyPriceUpdated: true,
     page: 1,
   }, { getItems: null as any });
 
