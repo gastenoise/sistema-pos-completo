@@ -16,9 +16,36 @@ export const normalizeUserProfile = (user) => {
     return null;
   }
 
+  // Construir nombre robusto desde múltiples posibles fuentes
+  const extractName = () => {
+    // Prioridad 1: name directo
+    if (user.name && typeof user.name === 'string' && user.name.trim()) {
+      return user.name.trim();
+    }
+    // Prioridad 2: full_name
+    if (user.full_name && typeof user.full_name === 'string' && user.full_name.trim()) {
+      return user.full_name.trim();
+    }
+    // Prioridad 3: fullname (variante sin guión)
+    if (user.fullname && typeof user.fullname === 'string' && user.fullname.trim()) {
+      return user.fullname.trim();
+    }
+    // Prioridad 4: combinación firstName + lastName
+    const firstName = user.first_name ?? user.firstName ?? '';
+    const lastName = user.last_name ?? user.lastName ?? '';
+    if (firstName && typeof firstName === 'string' && firstName.trim()) {
+      const parts = [firstName.trim(), lastName && typeof lastName === 'string' ? lastName.trim() : ''].filter(Boolean);
+      if (parts.length > 0) {
+        return parts.join(' ');
+      }
+    }
+    // Fallback: vacío
+    return '';
+  };
+
   return {
     id: typeof user.id === 'number' ? user.id : undefined,
-    name: user.name ?? user.full_name ?? '',
+    name: extractName(),
     email: user.email ?? '',
     phone: user.phone ?? null,
     allowed_login_ip: user.allowed_login_ip ?? null,

@@ -31,7 +31,7 @@ export default function AppStatusBar({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const userDisplayName = user?.name || user?.email?.split('@')[0] || 'Usuario';
+  const userDisplayName = user?.name || user?.full_name || user?.email?.split('@')[0] || 'Usuario';
   const roleDisplayName = role ? role.charAt(0).toUpperCase() + role.slice(1) : '...';
 
   const canViewCash = can ? can('view_cash_register') : false;
