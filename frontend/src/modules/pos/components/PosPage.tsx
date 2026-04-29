@@ -80,7 +80,7 @@ function POSContent() {
   const [showScanItemEditorModal, setShowScanItemEditorModal] = useState(false);
   const [pendingBarcodeForCreate, setPendingBarcodeForCreate] = useState('');
   const [recentItemKeysSnapshot, setRecentItemKeysSnapshot] = useState<string[]>([]);
-  const { role } = useAuthorization();
+  const { can } = useAuthorization();
 
   const [mobileShowResults, setMobileShowResults] = useState(false);
   const [mobileSelectedIndex, setMobileSelectedIndex] = useState(0);
@@ -144,7 +144,7 @@ function POSContent() {
     return String(id) === String(businessId);
   });
 
-  const canVoidSales = role === 'owner' || role === 'admin';
+  const canVoidSales = can('sales.void');
 
   const currentBusinessParameters: any = {
     ...normalizeBusinessParameters(selectedBusiness),

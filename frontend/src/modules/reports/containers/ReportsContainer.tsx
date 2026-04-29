@@ -89,8 +89,8 @@ export default function Reports() {
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
   const selectedCategory = categoryFilter !== 'all' ? categoryFilter : null;
 
-  const { role } = useAuthorization();
-  const canVoidSales = role === 'owner' || role === 'admin';
+  const { can } = useAuthorization();
+  const canVoidSales = can('sales.void');
   // Fetch sales
   const { data: sales = [], isLoading: loadingSales, isFetching: fetchingSales } = useSalesQuery({
     businessId,

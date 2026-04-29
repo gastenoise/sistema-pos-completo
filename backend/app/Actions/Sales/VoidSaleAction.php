@@ -4,6 +4,8 @@ namespace App\Actions\Sales;
 
 use App\Models\Sale;
 use App\Models\User;
+use App\Services\Authorization\BusinessPermissionResolver;
+use App\Support\PermissionCatalog;
 
 class VoidSaleAction
 {
@@ -13,10 +15,13 @@ class VoidSaleAction
             return ['success' => false, 'message' => 'Sale not found', 'status' => 404];
         }
 
-        if (!$user->hasRole('admin', $businessId)) {
+        $permissionResolver = app(BusinessPermissionResolver::class);
+        $permissionResolver->resolve($user, $businessId);
+
+        if (!$permissionResolver->can(PermissionCatalog::SALES_VOID)) {
             return [
                 'success' => false,
-                'message' => 'Solo los administradores pueden anular ventas.',
+                'message' => 'No tienes permiso para anular ventas.',
                 'error' => 'forbidden',
                 'status' => 403,
             ];

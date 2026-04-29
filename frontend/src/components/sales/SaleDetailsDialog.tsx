@@ -199,23 +199,25 @@ export default function SaleDetailsDialog({
                 </div>
               )}
 
-              <div className="pt-5 border-t">
+              <div className="pt-2">
                 {/* <h3 className="font-medium mb-1">Ticket</h3>
                 <p className="text-xs text-slate-500 mb-2">Abre la vista previa para descargar o compartir el ticket.</p> */}
                 <TicketActions
                   saleId={sale.id}
                   customerEmail={sale.customer_email}
+                  rightActions={canVoid && sale.status !== 'voided' && (
+                    <Button
+                      variant="destructive"
+                      onClick={handleVoid}
+                      disabled={isVoiding}
+                      className="w-full sm:w-auto"
+                    >
+                      {isVoiding && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Cancelar venta
+                    </Button>
+                  )}
                 />
               </div>
-
-              {canVoid && sale.status !== 'voided' && (
-                <div className="pt-4 border-t flex justify-end">
-                  <Button variant="destructive" onClick={handleVoid} disabled={isVoiding}>
-                    {isVoiding && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Cancelar venta (Void)
-                  </Button>
-                </div>
-              )}
             </div>
           </div>
         )}
