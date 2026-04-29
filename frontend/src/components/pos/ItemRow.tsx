@@ -81,15 +81,6 @@ export default function ItemRow({
           <div className="text-xs text-slate-500">Lista: {formatPrice(item.list_price, currentBusiness)}</div>
         )}
       </TableCell>
-      <TableCell className="px-4 py-3 text-center">
-        {item.track_stock ? (
-          <span className={item.stock_quantity <= 5 ? 'text-red-600 font-medium' : 'text-slate-600'}>
-            {item.stock_quantity}
-          </span>
-        ) : (
-          <span className="text-slate-400">—</span>
-        )}
-      </TableCell>
       <TableCell className="px-4 py-3">
         <div className="flex flex-col gap-1">
           <Badge variant="outline">{item.source === 'sepa' ? 'SEPA' : 'Local'}</Badge>
