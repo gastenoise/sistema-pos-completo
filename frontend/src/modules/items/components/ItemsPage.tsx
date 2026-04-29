@@ -619,7 +619,6 @@ export default function Items() {
                     <TableHead className="px-4">Marca</TableHead>
                     <TableHead className="px-4">Presentación</TableHead>
                     <TableHead className="px-4 text-right">Precio</TableHead>
-                    <TableHead className="px-4 text-center">Stock</TableHead>
                     <TableHead className="px-4">Origen</TableHead>
                     <TableHead className="w-12 px-4"></TableHead>
                   </TableRow>
