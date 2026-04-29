@@ -12,10 +12,10 @@ export interface RouteMeta {
 export const ROUTE_METADATA: Record<string, RouteMeta> = {
   Home: {
     label: 'Inicio',
-    showStatusBar: true,
+    showStatusBar: false,
     statusBarContext: 'default',
     contentWidth: 'wide',
-    useShell: true,
+    useShell: false,
   },
   POS: {
     label: 'POS',
