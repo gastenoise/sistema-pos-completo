@@ -470,9 +470,9 @@ function POSContent() {
   const filteredItems = items;
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row">
+    <div className="flex-1 flex flex-col lg:grid lg:grid-cols-3 h-[calc(100dvh-var(--top-nav-height)-var(--status-bar-height)-2.5rem)]">
       {/* Items Panel */}
-      <div className="flex-1 flex flex-col p-4">
+      <div className="flex-1 flex flex-col p-4 lg:col-span-2 overflow-hidden">
         {/* Search Bar */}
         <div className="mb-4">
           <ItemsFiltersDialog
@@ -552,25 +552,29 @@ function POSContent() {
       </div>
 
       {/* Cart Panel */}
-      <div className="w-full lg:w-[450px] bg-white border-l border-slate-200 flex flex-col">
-        <div className="p-4 border-b border-slate-200">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-bold text-slate-900">Esta venta</h2>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 disabled:text-slate-400"
-              disabled={!lastCompletedSale?.id}
-              onClick={() => setIsLastSaleDialogOpen(true)}
-            >
-              <Eye className="w-3.5 h-3.5" />
-              Venta anterior
-            </button>
-          </div>
-          {cashRegisterStatus?.status === 'closed' && (
-            <p className="text-xs text-amber-600 mt-1">La caja está cerrada</p>
-          )}
-        </div>
-        <SaleCart onCharge={handleCharge} />
+      <div className="w-full lg:col-span-1 lg:h-full bg-white border-l border-slate-200 flex flex-col overflow-hidden">
+        <SaleCart
+          onCharge={handleCharge}
+          header={
+            <div className="p-4 border-b border-slate-200">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-lg font-bold text-slate-900">Esta venta</h2>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 disabled:text-slate-400"
+                  disabled={!lastCompletedSale?.id}
+                  onClick={() => setIsLastSaleDialogOpen(true)}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Venta anterior
+                </button>
+              </div>
+              {cashRegisterStatus?.status === 'closed' && (
+                <p className="text-xs text-amber-600 mt-1">La caja está cerrada</p>
+              )}
+            </div>
+          }
+        />
       </div>
 
       {/* Payment Wizard */}
