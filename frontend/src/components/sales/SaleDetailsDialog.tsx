@@ -1,12 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
 
-import { apiClient } from '@/api/client';
 import { formatPrice } from '@/lib/formatPrice';
 import { formatDateTimeLocal, parseBackendDateToUtcDate } from '@/lib/dateTime';
 import { getSaleStatusLabel } from '@/lib/saleStatus';
-import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import TicketActions from '@/components/sales/TicketActions';
+import VoidSaleDialog from '@/components/sales/VoidSaleDialog';
 
 
 const getSalePaymentBreakdown = (sale, paymentMethodLookup = {}) => {
@@ -67,28 +65,21 @@ export default function SaleDetailsDialog({
   onVoided,
 }: any) {
   const [isVoiding, setIsVoiding] = useState(false);
+  const [showVoidDialog, setShowVoidDialog] = useState(false);
   const paymentBreakdown = useMemo(
     () => getSalePaymentBreakdown(sale, paymentMethodLookup),
     [sale, paymentMethodLookup]
   );
   const saleDate = useMemo(() => parseBackendDateToUtcDate(sale?.closed_at || sale?.created_at), [sale]);
 
-  const handleVoid = async () => {
+  const handleVoidClick = () => {
     if (!sale?.id || !canVoid || sale?.status === 'voided') return;
+    setShowVoidDialog(true);
+  };
 
-    const reason = window.prompt('Motivo de anulación de la venta:');
-    if (!reason) return;
-
-    setIsVoiding(true);
-    try {
-      await apiClient.post(`/protected/sales/${sale.id}/void`, { reason });
-      toast.success(TOAST_MESSAGES.sales.cancelSuccess);
-      await onVoided?.(sale.id);
-    } catch (error) {
-      toast.error(error?.message || TOAST_MESSAGES.sales.cancelError);
-    } finally {
-      setIsVoiding(false);
-    }
+  const handleVoided = async (voidedSaleId: string | number) => {
+    await onVoided?.(voidedSaleId);
+    setShowVoidDialog(false);
   };
 
   return (
@@ -208,7 +199,7 @@ export default function SaleDetailsDialog({
                   rightActions={canVoid && sale.status !== 'voided' && (
                     <Button
                       variant="destructive"
-                      onClick={handleVoid}
+                      onClick={handleVoidClick}
                       disabled={isVoiding}
                       className="w-full sm:w-auto"
                     >
@@ -222,6 +213,12 @@ export default function SaleDetailsDialog({
           </div>
         )}
       </DialogContent>
+      <VoidSaleDialog
+        open={showVoidDialog}
+        onOpenChange={setShowVoidDialog}
+        saleId={sale?.id}
+        onVoided={handleVoided}
+      />
     </Dialog>
   );
 }
