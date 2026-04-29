@@ -19,7 +19,7 @@ describe('modules/pos/api', () => {
 
     await getPosItems({ searchQuery: 'yerba', barcodeOrSkuQuery: '123' });
 
-    expect(apiClient.get).toHaveBeenCalledWith('/protected/items?source=all&per_page=24&search=yerba&barcode_or_sku=123');
+    expect(apiClient.get).toHaveBeenCalledWith('/protected/items?per_page=24&search=yerba&barcode_or_sku=123');
   });
 
   it('normaliza payment methods y completa type', async () => {

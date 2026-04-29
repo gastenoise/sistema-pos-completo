@@ -10,7 +10,9 @@ export const buildPosItemsSearchParams = ({
   perPage = 24,
 }) => {
   const query = new URLSearchParams();
-  query.set('source', sourceFilter);
+  if (sourceFilter && sourceFilter !== 'all') {
+    query.set('source', sourceFilter);
+  }
   query.set('per_page', String(perPage));
 
   const trimmedSearch = searchQuery.trim();

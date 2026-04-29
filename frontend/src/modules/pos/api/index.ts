@@ -4,7 +4,9 @@ import { normalizeEntityResponse, normalizeListResponse } from '@/lib/normalizeR
 
 export const getPosItems = async (filters) => {
   const query = new URLSearchParams();
-  query.set('source', filters?.sourceFilter || 'all');
+  if (filters?.sourceFilter && filters.sourceFilter !== 'all') {
+    query.set('source', filters.sourceFilter);
+  }
   query.set('per_page', '24');
 
   const trimmedSearch = filters?.searchQuery?.trim() || '';
