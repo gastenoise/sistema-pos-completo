@@ -19,6 +19,7 @@ import {
 import { useCart } from './CartContext';
 import { useBusiness } from './BusinessContext';
 import { formatPrice } from '@/lib/formatPrice';
+import { toCents, fromCents, sumToCents } from '@/lib/money';
 
 export default function MultiPaymentModal({ 
   open, 
@@ -45,8 +46,10 @@ export default function MultiPaymentModal({
   }, [open, total, paymentMethods]);
 
   useEffect(() => {
-    const paid = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-    setRemaining(total - paid);
+    const paidCents = sumToCents(payments.map(p => p.amount));
+    const totalCents = toCents(total);
+    const remainingCents = totalCents - paidCents;
+    setRemaining(fromCents(remainingCents));
   }, [payments, total]);
 
   const handleAddPayment = () => {
@@ -54,7 +57,13 @@ export default function MultiPaymentModal({
       !payments.some(p => p.method.id === m.id)
     ) || paymentMethods[0];
     
-    setPayments([...payments, { method: availableMethod, amount: remaining }]);
+    // Assign the remaining amount to the new payment method using safe cents arithmetic
+    const totalCents = toCents(total);
+    const currentTotalCents = sumToCents(payments.map(p => p.amount));
+    const remainingCents = totalCents - currentTotalCents;
+    const newAmount = fromCents(Math.max(0, remainingCents));
+    
+    setPayments([...payments, { method: availableMethod, amount: newAmount }]);
   };
 
   const handleUpdatePayment = (index, field, value) => {
@@ -68,7 +77,15 @@ export default function MultiPaymentModal({
   };
 
   const handleRemovePayment = (index) => {
-    setPayments(payments.filter((_, i) => i !== index));
+    const filtered = payments.filter((_, i) => i !== index);
+    
+    // If exactly one payment remains, set its amount to the full total using safe cents arithmetic
+    if (filtered.length === 1) {
+      const totalCents = toCents(total);
+      filtered[0].amount = fromCents(totalCents);
+    }
+    
+    setPayments(filtered);
   };
 
   const handleConfirm = () => {

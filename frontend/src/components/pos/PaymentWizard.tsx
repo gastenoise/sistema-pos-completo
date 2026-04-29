@@ -11,7 +11,7 @@ import {
 import { toast } from 'sonner';
 import DivisionStep from './wizard/DivisionStep';
 import ProcessStep from './wizard/ProcessStep';
-import { sumToCents, toCents } from '@/lib/money';
+import { sumToCents, toCents, fromCents } from '@/lib/money';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
 
 export default function PaymentWizard({
@@ -48,18 +48,33 @@ export default function PaymentWizard({
   }, [open, total, paymentMethods]);
 
   const handleAddPayment = (method) => {
+    const totalCents = toCents(total);
+    const currentTotalCents = sumToCents(paymentsDraft.map(p => p.amount));
+    
+    // Distribute the remaining amount to the new payment method
+    const remainingCents = totalCents - currentTotalCents;
+    const newAmount = fromCents(Math.max(0, remainingCents));
+    
     setPaymentsDraft([
       ...paymentsDraft,
       {
         id: Date.now(),
         method,
-        amount: 0
+        amount: newAmount
       }
     ]);
   };
 
   const handleRemovePayment = (id) => {
-    setPaymentsDraft(paymentsDraft.filter((p) => p.id !== id));
+    const filtered = paymentsDraft.filter((p) => p.id !== id);
+    
+    // If exactly one payment remains, set its amount to the full total using safe cents arithmetic
+    if (filtered.length === 1) {
+      const totalCents = toCents(total);
+      filtered[0].amount = fromCents(totalCents);
+    }
+    
+    setPaymentsDraft(filtered);
   };
 
   const handleChangeMethod = (id, method) => {
