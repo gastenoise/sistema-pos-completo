@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from 'sonner';
 
 export default function ItemEditorModal({ 
   open, 
@@ -106,7 +107,15 @@ export default function ItemEditorModal({
     e.preventDefault();
 
     if (isSepaItem) {
+      // For SEPA items, price is required when there's no business price set
       const nextPrice = formData.price === '' ? null : parseFloat(formData.price);
+      
+      // Validate that price is provided for SEPA items without existing business price
+      if (!item?.has_business_price && (nextPrice === null || !Number.isFinite(nextPrice))) {
+        toast.error('El precio final es obligatorio para ítems SEPA sin precio configurado');
+        return;
+      }
+      
       onSave({
         price: Number.isFinite(nextPrice) ? nextPrice : null,
         category_id: formData.category_id !== NO_CATEGORY_VALUE
@@ -144,11 +153,24 @@ export default function ItemEditorModal({
           <div className="grid grid-cols-2 gap-4">
             {isSepaItem ? (
               <>
-                {/* <div className="col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                  Solo podés modificar el precio final para ítems con origen SEPA.
-                </div> */}
+                <div className="col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                  Los ítems SEPA sincronizan su precio de lista automáticamente. 
+                  Aquí podés definir el precio final para tu negocio.
+                </div>
                 <div className="col-span-2">
-                  <Label htmlFor="price">Precio final (vacío = precio original SEPA)</Label>
+                  <Label htmlFor="list_price">Precio de lista SEPA (solo lectura)</Label>
+                  <Input
+                    id="list_price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.list_price}
+                    disabled
+                    className="bg-slate-100 cursor-not-allowed"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="price">Precio final {!item?.has_business_price && '(obligatorio)'}</Label>
                   <Input
                     id="price"
                     type="number"
@@ -158,6 +180,7 @@ export default function ItemEditorModal({
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     placeholder="0.00"
                     autoFocus
+                    required={!item?.has_business_price}
                   />
                 </div>
                 <div className="col-span-2">

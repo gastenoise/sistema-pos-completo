@@ -147,7 +147,7 @@ class CatalogQueryService
                 DB::raw('CAST(sepa_items.name AS varchar) as name'),
                 DB::raw('CAST(NULL AS varchar) as sku'), // compat API: SEPA mantiene sku en null sin depender de sepa_items.sku
                 DB::raw('CAST(sepa_items.barcode AS varchar) as barcode'),
-                DB::raw('CAST(COALESCE(sibp.price, sepa_items.list_price, sepa_items.price) AS decimal(12,2)) as price'),
+                DB::raw('CAST(COALESCE(sibp.price, sepa_items.list_price) AS decimal(12,2)) as price'),
                 DB::raw('CAST(sepa_items.presentation_quantity AS decimal(12,2)) as presentation_quantity'),
                 DB::raw('CAST(sepa_items.presentation_unit AS varchar) as presentation_unit'),
                 DB::raw('CAST(sepa_items.brand AS varchar) as brand'),
@@ -158,6 +158,7 @@ class CatalogQueryService
                 DB::raw("CAST('sepa' AS varchar) as source"),
                 DB::raw('CAST(sepa_items.id AS bigint) as sepa_item_id'),
                 DB::raw('CAST(CASE WHEN sibp.price IS NULL THEN 0 ELSE 1 END AS integer) as is_price_overridden'),
+                DB::raw('CAST(CASE WHEN sibp.price IS NULL THEN 0 ELSE 1 END AS integer) as has_business_price'),
             ]);
 
         return $this->applyCommonFilters($query, $filters, 'sepa_items');

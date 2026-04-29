@@ -36,6 +36,7 @@ import TicketActions from '@/components/sales/TicketActions';
 import ItemsFiltersDialog from '@/components/items/ItemsFiltersDialog';
 import { useItemFilters } from '@/modules/items/hooks/useItemFilters';
 import { openCashRegister } from '@/api/cash-register';
+import { saveSepaItemPrice } from '@/api/items';
 import {
   closeSale,
   confirmSalePayment,
@@ -79,6 +80,7 @@ function POSContent() {
   const [pendingScannedCode, setPendingScannedCode] = useState<string | null>(null);
   const [showScanItemEditorModal, setShowScanItemEditorModal] = useState(false);
   const [pendingBarcodeForCreate, setPendingBarcodeForCreate] = useState('');
+  const [pendingSepaItemForPrice, setPendingSepaItemForPrice] = useState<any | null>(null);
   const [recentItemKeysSnapshot, setRecentItemKeysSnapshot] = useState<string[]>([]);
   const { can } = useAuthorization();
 
@@ -405,6 +407,13 @@ function POSContent() {
   }, [cartItems]);
 
   const handleItemClick = (item) => {
+    // Check if SEPA item without business price - require price setup before adding to cart
+    if (item?.source === 'sepa' && !item?.has_business_price) {
+      setPendingSepaItemForPrice(item);
+      setShowScanItemEditorModal(true);
+      return;
+    }
+    
     recordRecentPosItem(businessId, user?.id, item);
     addToCart(item);
     toast.success(TOAST_MESSAGES.pos.itemAdded(item.name));
