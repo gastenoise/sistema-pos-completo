@@ -60,7 +60,7 @@ function POSContent() {
   const [isLastSaleDialogOpen, setIsLastSaleDialogOpen] = useState(false);
   const [syncedSaleIds, setSyncedSaleIds] = useState([]);
   const [isProcessingItemsAction, setIsProcessingItemsAction] = useState(false);
-  const { role } = useAuthorization();
+  const { can } = useAuthorization();
   
   const searchInputRef = useRef(null);
 
@@ -85,7 +85,7 @@ function POSContent() {
     return String(id) === String(businessId);
   });
 
-  const canVoidSales = role === 'owner' || role === 'admin';
+  const canVoidSales = can('sales.void');
 
   const currentBusinessParameters: any = {
     ...normalizeBusinessParameters(selectedBusiness),

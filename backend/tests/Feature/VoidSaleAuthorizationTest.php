@@ -14,6 +14,7 @@ class VoidSaleAuthorizationTest extends TestCase
     public function test_admin_can_void_a_closed_sale(): void
     {
         [$token, $businessId, $saleId] = $this->seedSaleWithRole('admin');
+        app(\App\Actions\Business\BootstrapBusinessRolePermissionsAction::class)->execute($businessId);
 
         $response = $this
             ->withHeader('Authorization', 'Bearer '.$token)
@@ -47,7 +48,7 @@ class VoidSaleAuthorizationTest extends TestCase
             ->assertForbidden()
             ->assertJson([
                 'success' => false,
-                'message' => 'Solo los administradores pueden anular ventas.',
+                'message' => 'No tienes permiso para anular ventas.',
                 'error' => 'forbidden',
             ]);
 

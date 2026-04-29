@@ -8,6 +8,7 @@ class PermissionCatalog
     public const CASH_REGISTER_OPEN = 'cash_register.open';
     public const CASH_REGISTER_CLOSE = 'cash_register.close';
     public const SETTINGS_PERMISSIONS_MANAGE = 'settings.permissions.manage';
+    public const SALES_VOID = 'sales.void';
 
     /**
      * @return list<string>
@@ -19,6 +20,7 @@ class PermissionCatalog
             self::CASH_REGISTER_OPEN,
             self::CASH_REGISTER_CLOSE,
             self::SETTINGS_PERMISSIONS_MANAGE,
+            self::SALES_VOID,
         ];
     }
 
@@ -34,6 +36,7 @@ class PermissionCatalog
                 self::CASH_REGISTER_OPEN => false,
                 self::CASH_REGISTER_CLOSE => false,
                 self::SETTINGS_PERMISSIONS_MANAGE => false,
+                self::SALES_VOID => false,
             ],
             default => [],
         };

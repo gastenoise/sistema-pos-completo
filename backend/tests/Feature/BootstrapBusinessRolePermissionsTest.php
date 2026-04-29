@@ -43,7 +43,7 @@ class BootstrapBusinessRolePermissionsTest extends TestCase
         }
 
         $this->assertEquals(
-            12,
+            15,
             DB::table('business_role_permissions')->where('business_id', $business->id)->count()
         );
     }
