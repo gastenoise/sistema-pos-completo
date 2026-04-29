@@ -80,6 +80,7 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const { user, updateUser } = useAuth();
   const { role, can } = useBusinessPermissions(businessId);
+  const [activeTab, setActiveTab] = useState('business');
   
   const [businessData, setBusinessData] = useState({
     name: '',
@@ -561,8 +562,26 @@ export default function Settings() {
               </div>
             </div>
           )}
-          <Tabs defaultValue="business">
-          <TabsList className="mb-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="mb-6 md:hidden">
+            <Select value={activeTab} onValueChange={setActiveTab}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Seleccionar sección" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="business">Negocio</SelectItem>
+                <SelectItem value="categories">Categorías</SelectItem>
+                <SelectItem value="payments">Cobros y Pagos</SelectItem>
+                <SelectItem value="integrations">Integraciones</SelectItem>
+                {canManageRolePermissions && (
+                  <SelectItem value="permissions">Permisos</SelectItem>
+                )}
+                <SelectItem value="modules">Módulos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <TabsList className="mb-6 hidden md:inline-flex">
             <TabsTrigger value="business" className="gap-2">
               <Store className="w-4 h-4" />
               Negocio
