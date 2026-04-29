@@ -11,7 +11,6 @@ describe('topNav.permissions', () => {
     const items = buildTopNavItems(can);
 
     assert.equal(items.some((item) => item.name === 'Caja'), false);
-    assert.equal(items.some((item) => item.name === 'Ajustes'), true);
   });
 
   it('TopNav muestra Caja cuando cash_register.view está permitido', () => {

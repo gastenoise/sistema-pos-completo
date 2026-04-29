@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SETTINGS_PERMISSIONS_MANAGE_PERMISSION } from '@/lib/authorizationGuards';
 
 export default function TopNav({
   user,
@@ -127,7 +128,7 @@ export default function TopNav({
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2">
                   <div className="w-7 h-7 bg-slate-200 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-slate-600" />
+                    <Settings className="w-4 h-4 text-slate-600" />
                   </div>
                   <span className="hidden sm:block text-sm">{user?.name || user?.full_name || user?.email}</span>
                 </Button>
@@ -139,6 +140,14 @@ export default function TopNav({
                     Mi Perfil
                   </Link>
                 </DropdownMenuItem>
+                {can(SETTINGS_PERMISSIONS_MANAGE_PERMISSION) && (
+                  <DropdownMenuItem asChild>
+                    <Link to={createPageUrl('Settings')}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Mi Negocio
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onLogout} className="text-red-600">
                   <LogOut className="w-4 h-4 mr-2" />
