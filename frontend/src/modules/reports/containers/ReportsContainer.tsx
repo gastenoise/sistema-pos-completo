@@ -444,9 +444,9 @@ export default function Reports() {
                 </Select>
               </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClearMoreFilters}>Eliminar filtros</Button>
-              <Button type="button" onClick={handleApplyMoreFilters}>Aplicar filtros</Button>
+            <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={handleClearMoreFilters} className="w-full sm:w-auto">Eliminar filtros</Button>
+              <Button type="button" onClick={handleApplyMoreFilters} className="w-full sm:w-auto">Aplicar filtros</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
