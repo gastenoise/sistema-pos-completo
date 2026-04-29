@@ -87,8 +87,16 @@ class ResolveCatalogSaleItem
             ? Category::query()->find($categorySnapshotId)?->name
             : null;
 
-        $basePrice = $businessPrice !== null ? (float) $businessPrice : (float) $sepaItem->price;
-        $effectivePrice = array_key_exists('unit_price_override', $rawItem)
+        // If no business override price exists and no unit_price_override is provided, reject the sale
+        $hasUnitPriceOverride = array_key_exists('unit_price_override', $rawItem);
+        if ($businessPrice === null && !$hasUnitPriceOverride) {
+            throw ValidationException::withMessages([
+                'sepa_item_id' => ['El ítem SEPA no tiene un precio final configurado para este negocio. Por favor, defina el precio antes de vender.'],
+            ]);
+        }
+
+        $basePrice = $businessPrice !== null ? (float) $businessPrice : (float) $sepaItem->list_price;
+        $effectivePrice = $hasUnitPriceOverride
             ? (float) $rawItem['unit_price_override']
             : $basePrice;
 
