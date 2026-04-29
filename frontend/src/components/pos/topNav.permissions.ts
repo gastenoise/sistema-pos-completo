@@ -1,5 +1,3 @@
-import { SETTINGS_PERMISSIONS_MANAGE_PERMISSION } from '@/lib/authorizationGuards';
-
 export const buildTopNavItems = (can, createUrl = (page) => `/${page}`) => {
   const canViewCashRegister = can('cash_register.view');
 
@@ -8,6 +6,5 @@ export const buildTopNavItems = (can, createUrl = (page) => `/${page}`) => {
     { name: 'Items', href: createUrl('Items'), iconKey: 'Package' },
     { name: 'Reportes', href: createUrl('Reports'), iconKey: 'BarChart3' },
     ...(canViewCashRegister ? [{ name: 'Caja', href: createUrl('CashRegister'), iconKey: 'CreditCard' }] : []),
-    { name: 'Ajustes', href: createUrl('Settings'), iconKey: 'Settings', requiredPermission: SETTINGS_PERMISSIONS_MANAGE_PERMISSION },
-  ].filter((item) => !item.requiredPermission || can(item.requiredPermission));
+  ];
 };
