@@ -4,8 +4,8 @@ export const DEFAULT_ITEM_FILTERS = {
   search: '',
   barcodeOrSku: '',
   category: 'all',
-  source: 'sepa',
-  onlyPriceUpdated: true,
+  source: 'all',
+  onlyPriceUpdated: false,
 };
 
 export const useItemFilters = ({
