@@ -7,8 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/lib/AuthContext';
 import { createPageUrl } from '@/utils';
-import AppStatusBar from '@/components/layout/AppStatusBar';
-import { useShellState } from '@/hooks/useShellState';
 
 const getRedirectTarget = (search) => {
   const params = new URLSearchParams(search);
@@ -45,8 +43,6 @@ export default function Login() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const sessionMessage = getSessionMessage(location.search);
-
-  const { statusBarProps } = useShellState('Login');
 
   const handleChange = (field) => (event) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }));
@@ -138,7 +134,6 @@ export default function Login() {
           </form>
         </CardContent>
       </Card>
-      <AppStatusBar {...statusBarProps} />
     </div>
   );
 }
