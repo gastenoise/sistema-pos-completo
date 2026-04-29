@@ -20,6 +20,7 @@ class BootstrapBusinessAction
             ['name' => 'Bebidas',    'color' => '#F59E0B', 'icon' => 3],  // Coffee
             ['name' => 'Cigarrillos', 'color' => '#6B7280', 'icon' => 13], // Cigarette
             ['name' => 'Limpieza',   'color' => '#8B5CF6', 'icon' => 22], // Scissors (closest match for cleaning)
+            ['name' => 'Librería',   'color' => '#6366F1', 'icon' => 8],  // Book
             ['name' => 'Servicio',   'color' => '#3B82F6', 'icon' => 9],  // Wrench
             ['name' => 'Comisión',   'color' => '#F59E0B', 'icon' => 26], // Tag
             ['name' => 'Otros',      'color' => '#EF4444', 'icon' => 24], // Star

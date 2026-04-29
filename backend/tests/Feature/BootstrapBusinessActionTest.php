@@ -26,6 +26,7 @@ class BootstrapBusinessActionTest extends TestCase
             'Bebidas',
             'Cigarrillos',
             'Limpieza',
+            'Librería',
             'Servicio',
             'Comisión',
             'Otros',
@@ -52,5 +53,27 @@ class BootstrapBusinessActionTest extends TestCase
             'business_id' => $business->id,
             'role' => 'owner',
         ]);
+    }
+
+    public function test_it_is_idempotent(): void
+    {
+        $business = Business::create([
+            'name' => 'Comercio Idempotencia',
+            'currency' => 'ARS',
+        ]);
+
+        $action = app(BootstrapBusinessAction::class);
+
+        // El Observer ya la corrió una vez al crear el negocio
+        $countAfterFirstRun = Category::where('business_id', $business->id)->count();
+        $this->assertGreaterThan(0, $countAfterFirstRun);
+
+        // Correrla de nuevo manualmente
+        $action->execute($business);
+
+        $this->assertEquals($countAfterFirstRun, Category::where('business_id', $business->id)->count(), 'Categories should not be duplicated');
+
+        // Verificar que los parámetros tampoco se dupliquen
+        $this->assertEquals(2, $business->parameters()->count(), 'Parameters should not be duplicated');
     }
 }
