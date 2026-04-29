@@ -39,9 +39,7 @@ export default function ItemEditorModal({
     presentation_quantity: '',
     presentation_unit: '',
     brand: '',
-    list_price: '',
-    stock_quantity: 0,
-    track_stock: false
+    list_price: ''
   });
 
   useEffect(() => {
@@ -59,9 +57,7 @@ export default function ItemEditorModal({
         presentation_quantity: item.presentation_quantity?.toString() || '',
         presentation_unit: item.presentation_unit || '',
         brand: item.brand || '',
-        list_price: item.list_price?.toString() || '',
-        stock_quantity: item.stock_quantity || 0,
-        track_stock: item.track_stock || false
+        list_price: item.list_price?.toString() || ''
       });
     } else {
       setFormData({
@@ -73,9 +69,7 @@ export default function ItemEditorModal({
         presentation_quantity: '',
         presentation_unit: '',
         brand: '',
-        list_price: '',
-        stock_quantity: 0,
-        track_stock: false
+        list_price: ''
       });
     }
   }, [item, open]);
@@ -134,8 +128,7 @@ export default function ItemEditorModal({
       presentation_quantity: formData.presentation_quantity ? parseFloat(formData.presentation_quantity) : null,
       presentation_unit: formData.presentation_unit?.trim() || null,
       brand: formData.brand?.trim() || null,
-      list_price: formData.list_price ? parseFloat(formData.list_price) : null,
-      stock_quantity: (parseInt(formData.stock_quantity as any) || 0) as any
+      list_price: formData.list_price ? parseFloat(formData.list_price) : null
     } as any);
   };
 
@@ -313,28 +306,6 @@ export default function ItemEditorModal({
                 placeholder="3490.00"
               />
             </div>
-
-            {/* <div className="col-span-2 flex items-center justify-between py-2">
-              <Label htmlFor="track_stock" className="cursor-pointer">Track Stock</Label>
-              <Switch
-                id="track_stock"
-                checked={formData.track_stock}
-                onCheckedChange={(checked) => setFormData({ ...formData, track_stock: checked })}
-              />
-            </div> */}
-
-            {formData.track_stock && (
-              <div className="col-span-2">
-                <Label htmlFor="stock_quantity">Stock Quantity</Label>
-                <Input
-                  id="stock_quantity"
-                  type="number"
-                  min="0"
-                  value={formData.stock_quantity}
-                  onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value as any })}
-                />
-              </div>
-            )}
             </>
             )}
           </div>

@@ -26,6 +26,17 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected $visible = [
+        'id',
+        'name',
+        'email',
+        'phone',
+        'allowed_login_ip',
+        'email_verified_at',
+        'created_at',
+        'updated_at',
+    ];
+
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
