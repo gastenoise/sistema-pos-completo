@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useBusinessPermissions } from '@/hooks/useBusinessPermissions';
 import {
@@ -516,6 +516,19 @@ export default function Settings() {
     }
   };
 
+
+  const handleRolePermissionsLoadError = useCallback((message) => {
+    toast.error(message);
+  }, []);
+
+  const handleRolePermissionsSaveError = useCallback((message) => {
+    toast.error(message);
+  }, []);
+
+  const handleRolePermissionsSaveSuccess = useCallback(() => {
+    toast.success('Permisos actualizados correctamente.');
+  }, []);
+
   const {
     canManageRolePermissions,
     rolePermissions,
@@ -527,9 +540,9 @@ export default function Settings() {
     can,
     role,
     allowOwnerOverride: OWNER_SUPERUSER_CAN_MANAGE_PERMISSIONS,
-    onLoadError: (message) => toast.error(message),
-    onSaveError: (message) => toast.error(message),
-    onSaveSuccess: () => toast.success('Permisos actualizados correctamente.'),
+    onLoadError: handleRolePermissionsLoadError,
+    onSaveError: handleRolePermissionsSaveError,
+    onSaveSuccess: handleRolePermissionsSaveSuccess,
   });
 
 
@@ -1102,6 +1115,7 @@ export default function Settings() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <p className="text-xs text-slate-500">Esta matriz solo administra permisos de caja. El permiso <code>settings.permissions.manage</code> se conserva internamente para mantener consistencia del payload.</p>
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[480px] text-sm">
                       <thead>
