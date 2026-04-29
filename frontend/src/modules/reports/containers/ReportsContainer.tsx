@@ -184,7 +184,8 @@ export default function Reports() {
     const breakdown = getSalePaymentBreakdown(sale);
     if (breakdown.length === 0) return '—';
 
-    return [...new Set(breakdown.map((entry) => entry.name))].join(', ');
+    // Join with non-breaking space after comma to prevent line breaks between items
+    return [...new Set(breakdown.map((entry) => entry.name))].join(',\u00A0');
   };
 
   const showSalesOverlay = !loadingSales && (fetchingSales || fetchingSummary);
@@ -599,24 +600,24 @@ export default function Reports() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="min-w-[768px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead>Forma de pago</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="whitespace-nowrap">Fecha</TableHead>
+                      <TableHead className="whitespace-nowrap">Estado</TableHead>
+                      <TableHead className="whitespace-nowrap">Items</TableHead>
+                      <TableHead className="whitespace-nowrap">Forma de pago</TableHead>
+                      <TableHead className="whitespace-nowrap text-right">Total</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {sales.map((sale) => (
                       <TableRow key={sale.id}>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {formatDateTimeLocal(sale.closed_at || sale.created_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <Badge
                             variant={sale.status === 'closed' ? 'default' : 'secondary'}
                             className={
@@ -629,10 +630,10 @@ export default function Reports() {
                             {getSaleStatusLabel(sale.status)}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {sale.items?.length || 0} items
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <div
                               className="w-2 h-2 rounded-full"
@@ -641,7 +642,7 @@ export default function Reports() {
                             <span className="text-sm">{getSalePaymentMethodsLabel(sale)}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right font-medium">
+                        <TableCell className="whitespace-nowrap text-right font-medium">
                           {formatPrice(sale.total_amount ?? sale.total ?? 0, currentBusiness)}
                         </TableCell>
                         <TableCell>
