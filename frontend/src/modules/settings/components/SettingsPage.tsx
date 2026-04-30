@@ -81,9 +81,10 @@ const SALES_PERMISSION_LABELS = {
 // Excepción explícita de negocio: owner conserva acceso de superusuario para gestionar permisos.
 const OWNER_SUPERUSER_CAN_MANAGE_PERMISSIONS = true;
 
-function BusinessUserRow({ user, updatingUserId, handleUpdateRole }: { user: any, updatingUserId: number | null, handleUpdateRole: (id: number, role: string) => Promise<void> }) {
+export function BusinessUserRow({ user, updatingUserId, handleUpdateRole }: { user: any, updatingUserId: number | null, handleUpdateRole: (id: number, role: string) => Promise<void> }) {
   const [selectedRole, setSelectedRole] = useState(user.role);
   const isSaving = updatingUserId === user.id;
+  const isOwner = user.role === 'owner';
   const hasChanged = selectedRole !== user.role;
 
   useEffect(() => {
@@ -95,30 +96,30 @@ function BusinessUserRow({ user, updatingUserId, handleUpdateRole }: { user: any
       <td className="px-3 py-3 font-medium text-slate-900">{user.name}</td>
       <td className="px-3 py-3 text-slate-600">{user.email}</td>
       <td className="px-3 py-3">
-        <Badge variant="outline" className="capitalize">
-          {getRoleLabel(user.role)}
-        </Badge>
-      </td>
-      <td className="px-3 py-3">
-        <Select
-          value={selectedRole}
-          onValueChange={setSelectedRole}
-          disabled={isSaving}
-        >
-          <SelectTrigger className="h-8 w-[140px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="owner">Propietario</SelectItem>
-            <SelectItem value="admin">Administrador</SelectItem>
-            <SelectItem value="cashier">Cajero</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-1">
+          <Select
+            value={selectedRole}
+            onValueChange={setSelectedRole}
+            disabled={isSaving || isOwner}
+          >
+            <SelectTrigger className="h-8 w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {isOwner && <SelectItem value="owner">Propietario</SelectItem>}
+              <SelectItem value="admin">Administrador</SelectItem>
+              <SelectItem value="cashier">Cajero</SelectItem>
+            </SelectContent>
+          </Select>
+          {isOwner && (
+            <span className="text-[10px] text-slate-400 ml-1">Gestionado por DB</span>
+          )}
+        </div>
       </td>
       <td className="px-3 py-3 text-right">
         <Button
           size="sm"
-          disabled={!hasChanged || isSaving}
+          disabled={!hasChanged || isSaving || isOwner}
           onClick={() => handleUpdateRole(user.id, selectedRole)}
         >
           {isSaving ? (
@@ -1214,13 +1215,12 @@ export default function Settings() {
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full min-w-[600px] text-sm">
+                      <table className="w-full min-w-[500px] text-sm">
                         <thead>
                           <tr className="border-b">
                             <th className="px-3 py-2 text-left font-medium text-slate-600">Usuario</th>
                             <th className="px-3 py-2 text-left font-medium text-slate-600">Email</th>
-                            <th className="px-3 py-2 text-left font-medium text-slate-600">Rol actual</th>
-                            <th className="px-3 py-2 text-left font-medium text-slate-600">Nuevo rol</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Rol</th>
                             <th className="px-3 py-2 text-right font-medium text-slate-600">Acción</th>
                           </tr>
                         </thead>
