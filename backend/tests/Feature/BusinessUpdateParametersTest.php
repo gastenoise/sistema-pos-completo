@@ -119,6 +119,38 @@ class BusinessUpdateParametersTest extends TestCase
         ]);
     }
 
+    public function test_admin_cannot_update_business_settings(): void
+    {
+        [$adminUser, $business] = $this->createAuthenticatedAdmin();
+
+        Sanctum::actingAs($adminUser, ['front']);
+
+        $response = $this->withHeader('X-Business-Id', (string) $business->id)
+            ->putJson('/protected/business', [
+                'business_parameters' => [
+                    BusinessParameter::ENABLE_SEPA_ITEMS => true,
+                ],
+            ]);
+
+        $response->assertForbidden();
+    }
+
+    public function test_cashier_cannot_update_business_settings(): void
+    {
+        [$cashierUser, $business] = $this->createAuthenticatedCashier();
+
+        Sanctum::actingAs($cashierUser, ['front']);
+
+        $response = $this->withHeader('X-Business-Id', (string) $business->id)
+            ->putJson('/protected/business', [
+                'business_parameters' => [
+                    BusinessParameter::ENABLE_SEPA_ITEMS => true,
+                ],
+            ]);
+
+        $response->assertForbidden();
+    }
+
     private function createAuthenticatedOwner(): array
     {
         $user = User::factory()->create();
@@ -128,6 +160,32 @@ class BusinessUpdateParametersTest extends TestCase
         ]);
 
         $user->businesses()->attach($business->id, ['role' => 'owner']);
+
+        return [$user, $business];
+    }
+
+    private function createAuthenticatedAdmin(): array
+    {
+        $user = User::factory()->create();
+        $business = Business::create([
+            'name' => 'Negocio Test',
+            'currency' => 'ARS',
+        ]);
+
+        $user->businesses()->attach($business->id, ['role' => 'admin']);
+
+        return [$user, $business];
+    }
+
+    private function createAuthenticatedCashier(): array
+    {
+        $user = User::factory()->create();
+        $business = Business::create([
+            'name' => 'Negocio Test',
+            'currency' => 'ARS',
+        ]);
+
+        $user->businesses()->attach($business->id, ['role' => 'cashier']);
 
         return [$user, $business];
     }
