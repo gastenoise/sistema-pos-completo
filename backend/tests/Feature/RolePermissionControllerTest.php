@@ -119,6 +119,11 @@ class RolePermissionControllerTest extends TestCase
                     'permission_key' => PermissionCatalog::CASH_REGISTER_CLOSE,
                     'allowed' => false,
                 ],
+                [
+                    'role' => 'admin',
+                    'permission_key' => PermissionCatalog::SALES_VOID,
+                    'allowed' => true,
+                ],
             ],
         ];
 
@@ -127,12 +132,21 @@ class RolePermissionControllerTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.permissions.cash_register.1.allowed_by_role.cashier', true);
+            ->assertJsonPath('data.permissions.cash_register.1.allowed_by_role.cashier', true)
+            ->assertJsonPath('data.permissions.sales.0.permission_key', PermissionCatalog::SALES_VOID)
+            ->assertJsonPath('data.permissions.sales.0.allowed_by_role.admin', true);
 
         $this->assertDatabaseHas('business_role_permissions', [
             'business_id' => $business->id,
             'role' => 'cashier',
             'permission_key' => PermissionCatalog::CASH_REGISTER_OPEN,
+            'allowed' => true,
+        ]);
+
+        $this->assertDatabaseHas('business_role_permissions', [
+            'business_id' => $business->id,
+            'role' => 'admin',
+            'permission_key' => PermissionCatalog::SALES_VOID,
             'allowed' => true,
         ]);
     }

@@ -65,12 +65,16 @@ import { DEFAULT_ICON_NAME, getIconComponent, resolveIconId, resolveIconName } f
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { mapApiErrorMessage } from '@/api/errorMapping';
 import { getRoleLabel } from '@/lib/roleLabels';
-import { CASH_REGISTER_PERMISSION_KEYS, useRolePermissionsFlow } from '@/modules/settings/hooks/useRolePermissionsFlow';
+import { CASH_REGISTER_PERMISSION_KEYS, SALES_PERMISSION_KEYS, useRolePermissionsFlow } from '@/modules/settings/hooks/useRolePermissionsFlow';
 
 const CASH_REGISTER_PERMISSION_LABELS = {
   'cash_register.view': 'Ver caja',
   'cash_register.open': 'Abrir caja',
   'cash_register.close': 'Cerrar caja',
+};
+
+const SALES_PERMISSION_LABELS = {
+  'sales.void': 'Cancelar venta',
 };
 
 // Excepción explícita de negocio: owner conserva acceso de superusuario para gestionar permisos.
@@ -1116,7 +1120,7 @@ export default function Settings() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-xs text-slate-500">Esta matriz solo administra permisos de caja. El permiso <code>settings.permissions.manage</code> se conserva internamente para mantener consistencia del payload.</p>
+                  <p className="text-xs text-slate-500">Esta matriz administra permisos de caja y ventas. El permiso <code>settings.permissions.manage</code> se conserva internamente para mantener consistencia del payload.</p>
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[480px] text-sm">
                       <thead>
@@ -1127,6 +1131,11 @@ export default function Settings() {
                               {CASH_REGISTER_PERMISSION_LABELS[permissionKey]}
                             </th>
                           ))}
+                          {SALES_PERMISSION_KEYS.map((permissionKey) => (
+                            <th key={permissionKey} className="px-3 py-2 text-left font-medium text-slate-600">
+                              {SALES_PERMISSION_LABELS[permissionKey]}
+                            </th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
@@ -1134,6 +1143,14 @@ export default function Settings() {
                           <tr key={targetRole} className="border-b last:border-0">
                             <td className="px-3 py-3 font-medium text-slate-900">{getRoleLabel(targetRole)}</td>
                             {CASH_REGISTER_PERMISSION_KEYS.map((permissionKey) => (
+                              <td key={`${targetRole}-${permissionKey}`} className="px-3 py-3">
+                                <Switch
+                                  checked={Boolean(rolePermissions?.[targetRole]?.[permissionKey])}
+                                  onCheckedChange={(checked) => handleRolePermissionChange(targetRole, permissionKey, checked)}
+                                />
+                              </td>
+                            ))}
+                            {SALES_PERMISSION_KEYS.map((permissionKey) => (
                               <td key={`${targetRole}-${permissionKey}`} className="px-3 py-3">
                                 <Switch
                                   checked={Boolean(rolePermissions?.[targetRole]?.[permissionKey])}

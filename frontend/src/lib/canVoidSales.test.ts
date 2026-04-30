@@ -4,24 +4,35 @@ import assert from 'node:assert/strict';
 import { canVoidSales } from './canVoidSales';
 
 describe('canVoidSales', () => {
-it('devuelve true cuando el rol admin viene del contexto fresco del backend', () => {
-  const currentBusiness = { id: 7 };
-  const businesses = [{ id: 7, role: 'cashier' }];
-  const userContext = {
-    activeBusinessRole: 'admin',
-    businesses: [{ id: 7, pivot: { role: 'admin' } }],
-  };
+  it('devuelve true cuando el rol admin viene del contexto fresco del backend', () => {
+    const currentBusiness = { id: 7 };
+    const businesses = [{ id: 7, role: 'cashier' }];
+    const userContext = {
+      activeBusinessRole: 'admin',
+      businesses: [{ id: 7, pivot: { role: 'admin' } }],
+    };
 
-  assert.equal(canVoidSales(currentBusiness, businesses, userContext), true);
-});
+    assert.equal(canVoidSales(currentBusiness, businesses, userContext), true);
+  });
 
-it('devuelve false cuando no hay rol admin para el negocio activo', () => {
-  const currentBusiness = { business_id: 9 };
-  const businesses = [{ id: 9, pivot: { role: 'cashier' } }];
-  const userContext = {
-    businesses: [{ id: 9, pivot: { role: 'cashier' } }],
-  };
+  it('devuelve false cuando no hay rol admin para el negocio activo', () => {
+    const currentBusiness = { business_id: 9 };
+    const businesses = [{ id: 9, pivot: { role: 'cashier' } }];
+    const userContext = {
+      businesses: [{ id: 9, pivot: { role: 'cashier' } }],
+    };
 
-  assert.equal(canVoidSales(currentBusiness, businesses, userContext), false);
-});
+    assert.equal(canVoidSales(currentBusiness, businesses, userContext), false);
+  });
+
+  it('devuelve true cuando el usuario tiene permiso sales.void via rol admin en contexto', () => {
+    const currentBusiness = { id: 5 };
+    const businesses = [];
+    const userContext = {
+      activeBusinessRole: 'admin',
+      businesses: [{ id: 5, pivot: { role: 'admin' } }],
+    };
+
+    assert.equal(canVoidSales(currentBusiness, businesses, userContext), true);
+  });
 });
