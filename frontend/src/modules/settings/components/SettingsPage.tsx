@@ -931,11 +931,14 @@ export default function Settings() {
                       {paymentMethods.map((method) => {
                         const IconComponent = getPaymentMethodIcon(method.icon);
                         const isCash = (method.type || method.code) === 'cash';
+                        const isMercadoPago = (method.type || method.code) === 'mercado_pago';
+                        const isMpDisabled = isMercadoPago && method.enabled === false;
+
                         const isDefaultPayment = method.id === defaultPaymentId
                           || method.is_default
                           || method.preferred;
                         return (
-                          <div key={method.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                          <div key={method.id} className={`flex items-center justify-between p-4 bg-slate-50 rounded-lg ${isMpDisabled ? 'opacity-70' : ''}`}>
                             <div className="flex items-center gap-3">
                               <div 
                                 className="w-10 h-10 rounded-lg flex items-center justify-center"
@@ -947,25 +950,35 @@ export default function Settings() {
                                 />
                               </div>
                               <div>
-                                <span className="font-medium">{method.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{method.name}</span>
+                                  {isMpDisabled && (
+                                    <Badge variant="secondary" className="bg-gray-200 text-gray-600 text-[10px] h-4 px-1">
+                                      En desarrollo
+                                    </Badge>
+                                  )}
+                                </div>
                                 {/* <p className="text-xs text-slate-500 capitalize">{method.type}</p> */}
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
                               <button
-                                onClick={() => handleSetDefaultPayment(method.id)}
+                                onClick={() => !isMpDisabled && handleSetDefaultPayment(method.id)}
+                                disabled={isMpDisabled}
                                 className={`p-2 rounded transition-colors ${
                                   defaultPaymentId === method.id 
                                     ? 'text-yellow-500 hover:text-yellow-600' 
-                                    : 'text-slate-300 hover:text-slate-400'
+                                    : isMpDisabled
+                                      ? 'text-slate-200 cursor-not-allowed'
+                                      : 'text-slate-300 hover:text-slate-400'
                                 }`}
-                                title={defaultPaymentId === method.id ? 'Default payment method' : 'Set as default'}
+                                title={isMpDisabled ? 'No disponible' : (defaultPaymentId === method.id ? 'Default payment method' : 'Set as default')}
                               >
                                 <Star className="w-5 h-5" fill={defaultPaymentId === method.id ? 'currentColor' : 'none'} />
                               </button>
                               <Switch
-                                checked={isCash || isDefaultPayment || paymentStates[method.id] || false}
-                                disabled={isCash || isDefaultPayment}
+                                checked={(!isMpDisabled && (isCash || isDefaultPayment || paymentStates[method.id])) || false}
+                                disabled={isCash || isDefaultPayment || isMpDisabled}
                                 onCheckedChange={(checked) => 
                                   setPaymentStates(prev => ({ ...prev, [method.id]: checked }))
                                 }

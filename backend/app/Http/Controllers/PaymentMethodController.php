@@ -18,10 +18,15 @@ class PaymentMethodController extends Controller
      */
     public function index()
     {
-        $methods = PaymentMethod::all()->map(function (PaymentMethod $method) {
+        $isMpEnabled = config('mercadopago.enabled', false);
+
+        $methods = PaymentMethod::all()->map(function (PaymentMethod $method) use ($isMpEnabled) {
+            $isEnabled = $method->code !== 'mercado_pago' || $isMpEnabled;
+
             return array_merge($method->toArray(), [
                 'type' => $method->code,
                 'is_active' => true,
+                'enabled' => $isEnabled,
             ]);
         });
         return response()->json($methods);
@@ -49,11 +54,16 @@ class PaymentMethodController extends Controller
         $activeMethods = PaymentMethod::whereNotIn('id', $hiddenIds)->get();
         $preferredId = $this->resolvePreferredPaymentMethod($business, $activeMethods);
 
-        $methods = PaymentMethod::all()->map(function (PaymentMethod $method) use ($hiddenIds, $preferredId) {
+        $isMpEnabled = config('mercadopago.enabled', false);
+
+        $methods = PaymentMethod::all()->map(function (PaymentMethod $method) use ($hiddenIds, $preferredId, $isMpEnabled) {
+            $isEnabled = $method->code !== 'mercado_pago' || $isMpEnabled;
+
             return array_merge($method->toArray(), [
                 'type' => $method->code,
                 'is_active' => !$hiddenIds->contains($method->id),
                 'preferred' => $method->id === $preferredId,
+                'enabled' => $isEnabled,
             ]);
         });
 
@@ -104,6 +114,13 @@ class PaymentMethodController extends Controller
             return response()->json([
                 'error' => 'El método de pago en efectivo no se puede desactivar.',
                 'code' => 'CASH_METHOD_CANNOT_BE_DEACTIVATED'
+            ], 422);
+        }
+
+        if ($method->code === 'mercado_pago' && $active && !config('mercadopago.enabled', false)) {
+            return response()->json([
+                'error' => 'Mercado Pago no está disponible actualmente.',
+                'code' => 'MERCADO_PAGO_DISABLED'
             ], 422);
         }
 
@@ -241,6 +258,22 @@ class PaymentMethodController extends Controller
                 return response()->json([
                     'error' => 'El método preferido debe estar activo para seleccionarlo.',
                     'code' => 'PREFERRED_METHOD_MUST_BE_ACTIVE'
+                ], 422);
+            }
+        }
+
+        $mpMethod = PaymentMethod::where('code', 'mercado_pago')->first();
+        if ($mpMethod && array_key_exists((string) $mpMethod->id, $methodsData)) {
+            $mpActiveValue = filter_var(
+                $methodsData[(string) $mpMethod->id],
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            );
+
+            if ($mpActiveValue === true && !config('mercadopago.enabled', false)) {
+                return response()->json([
+                    'error' => 'Mercado Pago no está disponible actualmente.',
+                    'code' => 'MERCADO_PAGO_DISABLED'
                 ], 422);
             }
         }

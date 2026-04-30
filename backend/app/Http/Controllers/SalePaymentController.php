@@ -45,6 +45,20 @@ class SalePaymentController extends Controller
             'payments.*.transaction_reference' => 'nullable|string|max:255',
         ]);
 
+        if (!config('mercadopago.enabled', false)) {
+            $paymentMethodIds = collect($validated['payments'])->pluck('payment_method_id')->unique();
+            $mpMethods = \App\Models\PaymentMethod::whereIn('id', $paymentMethodIds)
+                ->where('code', 'mercado_pago')
+                ->exists();
+
+            if ($mpMethods) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mercado Pago is currently disabled',
+                ], 422);
+            }
+        }
+
         $businessId = app(BusinessContext::class)->getBusinessId();
 
         $sale = Sale::where('id', $saleId)

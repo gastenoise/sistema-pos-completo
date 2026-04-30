@@ -30,7 +30,8 @@ export default function DivisionStep({
   const isMultiple = paymentsDraft.length > 1;
   
   const availableMethods = paymentMethods.filter(m => 
-    !paymentsDraft.find(p => p.method.id === m.id)
+    !paymentsDraft.find(p => p.method.id === m.id) &&
+    (m.enabled !== false || (m.type || m.code) !== 'mercado_pago')
   );
 
   return (

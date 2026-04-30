@@ -175,6 +175,15 @@ export default function PaymentProcessModal({
   );
 
   const renderContent = () => {
+    if (payment.method?.enabled === false && (payment.method?.type || payment.method?.code) === 'mercado_pago') {
+      return (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <p className="text-red-800 font-medium">Mercado Pago no está disponible actualmente</p>
+          <Button variant="outline" className="mt-4" onClick={onClose}>Cerrar</Button>
+        </div>
+      );
+    }
+
     switch (payment.method?.type) {
       case 'mercado_pago':
         return renderMercadoPagoFlow();
