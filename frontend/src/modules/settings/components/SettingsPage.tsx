@@ -717,7 +717,7 @@ export default function Settings() {
                     <div>
                       <Label>Nombre</Label>
                       <Input
-                        disabled={!canEditBusinessSettings || true}
+                        disabled={!canEditBusinessSettings}
                         value={businessData.name}
                         onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
                       />
