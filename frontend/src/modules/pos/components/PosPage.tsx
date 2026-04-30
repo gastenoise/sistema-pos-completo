@@ -354,6 +354,7 @@ function POSContent() {
     lastNoMatchResolvedCodeRef.current = { code, resolvedAt: now };
 
     setPendingBarcodeForCreate(code);
+    setPendingSepaItemForPrice(null);
     setShowScanItemEditorModal(true);
   };
 
@@ -562,12 +563,50 @@ function POSContent() {
       queryClient.invalidateQueries({ queryKey: ['items', businessId] });
       setShowScanItemEditorModal(false);
       setPendingBarcodeForCreate('');
+      setPendingSepaItemForPrice(null);
     } catch (error) {
       toast.error(error?.message || TOAST_MESSAGES.items.saveError);
       throw error;
     } finally {
       setIsProcessingItemsAction(false);
     }
+  };
+
+  const handleItemEditorSave = async (itemData: any) => {
+    if (pendingSepaItemForPrice) {
+      setIsProcessingItemsAction(true);
+      try {
+        const nextPrice = Number(itemData?.price);
+        const updatedItem = await saveSepaItemPrice({
+          id: pendingSepaItemForPrice.id,
+          price: Number.isFinite(nextPrice) ? nextPrice : null,
+          category_id: itemData?.category_id ?? null,
+        });
+
+        const itemToAdd = {
+          ...pendingSepaItemForPrice,
+          ...updatedItem,
+          price: Number(updatedItem?.price ?? nextPrice ?? pendingSepaItemForPrice.price),
+          has_business_price: true,
+        };
+
+        recordRecentPosItem(businessId, user?.id, itemToAdd);
+        addToCart(itemToAdd);
+        toast.success(TOAST_MESSAGES.pos.itemAdded(itemToAdd.name));
+        queryClient.invalidateQueries({ queryKey: ['items', businessId] });
+        setShowScanItemEditorModal(false);
+        setPendingSepaItemForPrice(null);
+        setPendingBarcodeForCreate('');
+        return;
+      } catch (error: any) {
+        toast.error(error?.message || TOAST_MESSAGES.items.saveError);
+        throw error;
+      } finally {
+        setIsProcessingItemsAction(false);
+      }
+    }
+
+    await handleSaveItemFromScan(itemData);
   };
 
   const handleSyncOfflineQueue = async () => {
@@ -913,11 +952,12 @@ function POSContent() {
         onClose={() => {
           setShowScanItemEditorModal(false);
           setPendingBarcodeForCreate('');
+          setPendingSepaItemForPrice(null);
         }}
-        item={null}
+        item={pendingSepaItemForPrice}
         initialBarcode={pendingBarcodeForCreate}
         categories={categories}
-        onSave={handleSaveItemFromScan}
+        onSave={handleItemEditorSave}
         loading={isProcessingItemsAction}
       />
     </>
