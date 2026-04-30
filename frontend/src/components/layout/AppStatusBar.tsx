@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Clock, User, Shield, Wallet } from 'lucide-react';
+import { Clock, Store, Shield, Wallet } from 'lucide-react';
 import { StatusBarContext } from '@/routes/routeMeta';
 import { getRoleLabel } from '@/lib/roleLabels';
 
 interface AppStatusBarProps {
-  user?: any;
+  business?: any;
   role?: string | null;
   can?: (permission: string) => boolean;
   cashStatus?: any;
@@ -14,7 +14,7 @@ interface AppStatusBarProps {
 }
 
 export default function AppStatusBar({
-  user,
+  business,
   role,
   can,
   cashStatus,
@@ -32,7 +32,7 @@ export default function AppStatusBar({
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const userDisplayName = user?.name || user?.full_name || user?.email?.split('@')[0] || 'Usuario';
+  const businessDisplayName = business?.name || business?.business_name || 'Negocio';
   const roleDisplayName = getRoleLabel(role);
 
   const canViewCash = can ? can('view_cash_register') : false;
@@ -46,8 +46,8 @@ export default function AppStatusBar({
         {/* Left: Operational Info */}
         <div className="flex items-center gap-4 overflow-hidden">
           <div className="flex items-center gap-1.5 shrink-0">
-            <User className="h-3 w-3" />
-            <span className="truncate max-w-[80px] sm:max-w-[120px]">{userDisplayName}</span>
+            <Store className="h-3 w-3" />
+            <span className="truncate max-w-[80px] sm:max-w-[120px]">{businessDisplayName}</span>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
