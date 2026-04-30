@@ -22,7 +22,6 @@ export const useBusinessPermissions = (businessId) => {
     },
     enabled: !!normalizedBusinessId,
     staleTime: 1000 * 30,
-    refetchOnWindowFocus: true,
   });
 
   const permissions = data?.permissions ?? EMPTY_PERMISSIONS;

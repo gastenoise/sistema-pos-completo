@@ -14,7 +14,6 @@ export const useUserBusinessContext = (businessId) => {
       return normalizeListResponse(response, 'businesses');
     },
     staleTime: 1000 * 60,
-    refetchOnWindowFocus: true,
   });
 
   const activeBusinessRole = useMemo(() => {
