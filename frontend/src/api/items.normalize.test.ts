@@ -8,7 +8,7 @@ it('soporta Laravel Resource Collection (data + links + meta)', () => {
     data: {
       data: [
         { id: 11, name: 'Yerba', category_id: '5', list_price: '1200.50', source: 'local' },
-        { id: 12, name: 'Azúcar', category_id: null, list_price: '900', source: 'sepa', sepa_item_id: '99' }
+        { id: 12, name: 'Azúcar', category_id: null, list_price: '900', source: 'sepa', sepa_item_id: '99', is_price_overridden: true }
       ],
       links: {
         first: 'http://api.test/items?page=1',
@@ -32,6 +32,7 @@ it('soporta Laravel Resource Collection (data + links + meta)', () => {
   assert.equal(result.items.length, 2);
   assert.equal(result.items[0].category_id, 5);
   assert.equal(result.items[1].sepa_item_id, 99);
+  assert.equal(result.items[1].has_business_price, true);
   assert.deepEqual(result.pagination, {
     current_page: 2,
     last_page: 3,

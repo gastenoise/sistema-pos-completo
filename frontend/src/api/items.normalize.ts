@@ -67,7 +67,10 @@ export const normalizeItem = (item) => ({
   list_price: toNumberOrNull(item?.list_price),
   source: item?.source || 'local',
   sepa_item_id: toNumberOrNull(item?.sepa_item_id),
-  is_price_overridden: Boolean(item?.is_price_overridden)
+  is_price_overridden: Boolean(item?.is_price_overridden),
+  has_business_price: item?.has_business_price !== undefined
+    ? Boolean(item?.has_business_price)
+    : Boolean(item?.is_price_overridden),
 });
 
 export const normalizeItemsPage = (response) => {

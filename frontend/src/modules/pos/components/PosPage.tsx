@@ -412,8 +412,10 @@ function POSContent() {
   }, [cartItems]);
 
   const handleItemClick = (item) => {
+    const sepaHasBusinessPrice = Boolean(item?.has_business_price ?? item?.is_price_overridden);
+
     // Check if SEPA item without business price - require price setup before adding to cart
-    if (item?.source === 'sepa' && !item?.has_business_price) {
+    if (item?.source === 'sepa' && !sepaHasBusinessPrice) {
       setPendingSepaItemForPrice(item);
       setShowScanItemEditorModal(true);
       return;
