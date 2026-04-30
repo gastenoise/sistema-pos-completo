@@ -1,1 +1,35 @@
-Nothing should be ignored based on the provided file changes. The only modified file is a source code file (`frontend/src/components/pos/TopNav.tsx`) which should not be ignored.
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Dependencies / build artifacts
+**/node_modules/
+**/vendor/
+**/dist/
+**/build/
+
+# Environment and local overrides
+**/.env
+**/.env.*
+!**/.env.example
+
+# Common secret-bearing file formats
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+*.kubeconfig
+
+# Dumps and local exports that can accidentally include sensitive data
+dump_codigo_completo_*.txt
+*.sql.gz
+*.sqlite
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
