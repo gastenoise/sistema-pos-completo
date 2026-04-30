@@ -29,6 +29,7 @@ class AuthMeContractTest extends TestCase
                 'success',
                 'data' => [
                     'user' => [
+                        'id',
                         'name',
                         'email',
                         'phone',
@@ -37,7 +38,6 @@ class AuthMeContractTest extends TestCase
                     ],
                 ],
             ])
-            ->assertJsonMissingPath('data.user.id')
             ->assertJsonMissingPath('data.user.password')
             ->assertJsonMissingPath('data.user.remember_token');
     }

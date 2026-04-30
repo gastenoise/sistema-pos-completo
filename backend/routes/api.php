@@ -3,6 +3,7 @@
 use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\BusinessUserController;
 use App\Http\Controllers\InformationController;
 use App\Http\Controllers\MercadoPagoController;
 use App\Http\Controllers\NavigationEventController;
@@ -60,6 +61,8 @@ Route::prefix('protected')->group(function () {
                 Route::put('/', [BusinessController::class, 'update']);
                 Route::get('role-permissions', [RolePermissionController::class, 'index']);
                 Route::put('role-permissions', [RolePermissionController::class, 'update']);
+                Route::get('users', [BusinessUserController::class, 'index']);
+                Route::put('users/{user}', [BusinessUserController::class, 'update']);
             });
 
             Route::get('api-keys', [ApiKeyController::class, 'index'])
