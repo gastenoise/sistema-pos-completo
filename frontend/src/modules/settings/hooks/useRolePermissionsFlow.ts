@@ -11,8 +11,13 @@ export const CASH_REGISTER_PERMISSION_KEYS = [
   'cash_register.close',
 ];
 
+export const SALES_PERMISSION_KEYS = [
+  'sales.void',
+];
+
 export const ROLE_PERMISSIONS_MATRIX_KEYS = [
   ...CASH_REGISTER_PERMISSION_KEYS,
+  ...SALES_PERMISSION_KEYS,
   'settings.permissions.manage',
 ];
 
@@ -53,12 +58,20 @@ export function useRolePermissionsFlow({
         const response = await getRolePermissions();
         if (requestId !== loadRequestIdRef.current) return;
         const cashRegisterRows = response?.permissions?.cash_register ?? [];
+        const salesRows = response?.permissions?.sales ?? [];
 
         const nextPermissions = { admin: {}, cashier: {} };
 
         cashRegisterRows.forEach((item) => {
           const key = item?.permission_key;
           if (!CASH_REGISTER_PERMISSION_KEYS.includes(key)) return;
+          nextPermissions.admin[key] = Boolean(item?.allowed_by_role?.admin);
+          nextPermissions.cashier[key] = Boolean(item?.allowed_by_role?.cashier);
+        });
+
+        salesRows.forEach((item) => {
+          const key = item?.permission_key;
+          if (!SALES_PERMISSION_KEYS.includes(key)) return;
           nextPermissions.admin[key] = Boolean(item?.allowed_by_role?.admin);
           nextPermissions.cashier[key] = Boolean(item?.allowed_by_role?.cashier);
         });

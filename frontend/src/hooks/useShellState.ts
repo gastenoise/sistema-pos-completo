@@ -33,13 +33,13 @@ export function useShellState(currentPageName: string) {
   }), [user, logout, meta.label, currentBusiness, can]);
 
   const statusBarProps = useMemo(() => ({
-    user,
+    business: currentBusiness,
     role,
     can,
     cashStatus,
     context: meta.statusBarContext,
     visible: meta.showStatusBar,
-  }), [user, role, can, cashStatus, meta.statusBarContext, meta.showStatusBar]);
+  }), [currentBusiness, role, can, cashStatus, meta.statusBarContext, meta.showStatusBar]);
 
   const layoutFlags = useMemo(() => ({
     contentWidth: meta.contentWidth,
