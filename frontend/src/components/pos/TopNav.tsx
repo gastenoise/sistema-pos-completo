@@ -128,7 +128,7 @@ export default function TopNav({
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2">
                   <div className="w-7 h-7 bg-slate-200 rounded-full flex items-center justify-center">
-                    <Settings className="w-4 h-4 text-slate-600" />
+                    <User className="w-4 h-4 text-slate-600" />
                   </div>
                   <span className="hidden sm:block text-sm">{user?.name || user?.full_name || user?.email}</span>
                 </Button>
