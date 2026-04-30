@@ -77,6 +77,14 @@ export default function PaymentCard({
       return <Badge className="bg-green-600">Confirmado</Badge>;
     }
 
+    if (payment.method?.enabled === false && paymentMethodType === 'mercado_pago') {
+      return (
+        <div className="bg-red-50 border border-red-200 rounded-md p-3 text-center">
+          <p className="text-red-800 text-sm font-medium">Método deshabilitado temporalmente</p>
+        </div>
+      );
+    }
+
     switch (paymentMethodType) {
       case 'cash':
         return (
@@ -174,7 +182,7 @@ export default function PaymentCard({
             className="bg-blue-600 hover:bg-blue-700"
           >
             <MethodIcon className="w-4 h-4 mr-2" style={{ color }} />
-            {loading ? 'Confirming...' : 'Confirm Card Payment'}
+            {loading ? 'Confirmando...' : 'Confirmar pago con tarjeta'}
           </Button>
         );
 
@@ -185,7 +193,7 @@ export default function PaymentCard({
             onClick={() => confirmPayment('confirmed')}
             disabled={loading}
           >
-            {loading ? 'Confirming...' : 'Confirm Payment'}
+            {loading ? 'Confirmando...' : 'Confirmar pago'}
           </Button>
         );
     }

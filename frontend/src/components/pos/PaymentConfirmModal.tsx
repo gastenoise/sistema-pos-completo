@@ -93,7 +93,7 @@ export default function PaymentConfirmModal({
           <div className="space-y-2">
             <Label>Payment Method</Label>
             <div className="grid grid-cols-2 gap-2">
-              {paymentMethods.filter(m => m.is_active).map((method) => {
+              {paymentMethods.filter(m => m.is_active && (m.enabled !== false || (m.type || m.code) !== 'mercado_pago')).map((method) => {
                 const Icon = getPaymentMethodIcon(method.icon);
                 return (
                   <button

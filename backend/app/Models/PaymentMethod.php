@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PaymentMethod extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = [
         'code',
         'name',

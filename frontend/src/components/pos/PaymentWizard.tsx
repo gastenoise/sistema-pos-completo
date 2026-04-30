@@ -33,7 +33,8 @@ export default function PaymentWizard({
 
   useEffect(() => {
     if (open && paymentMethods.length > 0) {
-      const defaultMethod = paymentMethods.find((m) => m.is_default) || paymentMethods[0];
+      const availableMethods = paymentMethods.filter(m => m.enabled !== false || (m.type || m.code) !== 'mercado_pago');
+      const defaultMethod = availableMethods.find((m) => m.is_default) || availableMethods[0] || paymentMethods[0];
       setPaymentsDraft([
         {
           id: Date.now(),
