@@ -7,7 +7,7 @@ import { useCashStatusQuery } from '@/modules/cash-register/hooks/useCashRegiste
 
 export function useShellState(currentPageName: string) {
   const { user, logout } = useAuth();
-  const { currentBusiness, businesses, selectBusiness, businessId } = useBusiness();
+  const { currentBusiness, businessId } = useBusiness();
   const { role, can } = useAuthorization();
 
   const meta = useMemo(() => getRouteMeta(currentPageName), [currentPageName]);
@@ -29,10 +29,8 @@ export function useShellState(currentPageName: string) {
     onLogout: logout,
     currentPage: meta.label,
     currentBusiness,
-    businesses,
-    selectBusiness,
     can,
-  }), [user, logout, meta.label, currentBusiness, businesses, selectBusiness, can]);
+  }), [user, logout, meta.label, currentBusiness, can]);
 
   const statusBarProps = useMemo(() => ({
     user,

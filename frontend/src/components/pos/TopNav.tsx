@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { 
-  Menu, X, ChevronDown, Store, LogOut, Settings, 
+  Menu, X, Store, LogOut, Settings,
   BarChart3, Package, ShoppingCart,
   CreditCard, User
 } from 'lucide-react';
@@ -22,8 +22,6 @@ export default function TopNav({
   onLogout,
   currentPage,
   currentBusiness,
-  businesses = [],
-  selectBusiness,
   can
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -46,13 +44,6 @@ export default function TopNav({
     return currentPage === itemName || (itemName === 'Settings' && currentPage === 'Settings');
   };
 
-  const handleBusinessSwitch = (business) => {
-    if (selectBusiness) {
-      selectBusiness(business);
-      window.location.reload(); // Reload to refresh business-scoped data
-    }
-  };
-
   return (
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
@@ -64,42 +55,19 @@ export default function TopNav({
               <span className="font-bold text-slate-900 hidden sm:block">OpenVenta</span>
             </Link>
 
-            {currentBusiness && businesses.length > 0 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="gap-2 text-sm flex items-center">
-                    <Store
-                      className="w-6 h-6 mr-2"
-                      style={{
-                        color:
-                          currentBusiness.color && /^#([A-Fa-f0-9]{6})$/.test(currentBusiness.color)
-                            ? currentBusiness.color
-                            : '#2563EB'
-                      }}
-                    />
-                    <span className="max-w-[150px] truncate">{currentBusiness.name}</span>
-                    <ChevronDown className="w-4 h-4 ml-1" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
-                  {businesses.map((business) => {
-                    const iconColor =
-                      business.color && /^#([A-Fa-f0-9]{6})$/.test(business.color)
-                        ? business.color
-                        : '#2563EB';
-                    return (
-                      <DropdownMenuItem 
-                        key={business.id}
-                        onClick={() => handleBusinessSwitch(business)}
-                        className={currentBusiness?.id === business.id ? 'bg-blue-50' : ''}
-                      >
-                        <Store className="w-4 h-4 mr-2" style={{ color: iconColor }} />
-                        {business.name}
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
+            {currentBusiness && (
+              <div className="px-3 h-9 gap-2 text-sm flex items-center bg-slate-50 border border-slate-100 rounded-md">
+                <Store
+                  className="w-5 h-5"
+                  style={{
+                    color:
+                      currentBusiness.color && /^#([A-Fa-f0-9]{6})$/.test(currentBusiness.color)
+                        ? currentBusiness.color
+                        : '#2563EB'
+                  }}
+                />
+                <span className="max-w-[150px] truncate font-medium text-slate-700">{currentBusiness.name}</span>
+              </div>
             )}
           </div>
 
