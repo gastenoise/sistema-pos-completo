@@ -71,7 +71,6 @@ export const BusinessProvider = ({ children }) => {
     queryFn: getSmtpStatus,
     enabled: !!businessId,
     staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: 1,
   });
