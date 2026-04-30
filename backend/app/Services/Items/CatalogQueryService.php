@@ -185,8 +185,7 @@ class CatalogQueryService
                         ->whereRaw('COALESCE(sibp.price, sepa_items.list_price, sepa_items.price) > sepa_items.list_price');
                 });
             } else {
-                $query->whereNotNull('items.list_price')
-                    ->whereColumn('items.price', '>', 'items.list_price');
+                $query->whereNotNull('items.price');
             }
         }
 
