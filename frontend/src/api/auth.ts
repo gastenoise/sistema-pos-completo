@@ -74,14 +74,16 @@ export const login = async (email, password) => {
 
 export const fetchMe = async () => {
   const response = await apiClient.get('/protected/auth/me');
-  const user = response?.user ?? normalizeEntityResponse(response);
+  const normalized = normalizeEntityResponse(response);
+  const user = response?.user ?? normalized?.user ?? normalized;
   setToken(Boolean(user));
   return normalizeUserProfile(user);
 };
 
 export const updateMe = async (updates) => {
   const response = await apiClient.put('/protected/auth/me', updates);
-  const user = response?.user ?? normalizeEntityResponse(response);
+  const normalized = normalizeEntityResponse(response);
+  const user = response?.user ?? normalized?.user ?? normalized;
   return normalizeUserProfile(user);
 };
 
