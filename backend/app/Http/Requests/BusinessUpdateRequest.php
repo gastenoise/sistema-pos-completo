@@ -12,7 +12,7 @@ class BusinessUpdateRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->userBelongsToCurrentBusiness(['owner', 'admin']);
+        return $this->userBelongsToCurrentBusiness(['owner']);
     }
 
     public function rules(): array

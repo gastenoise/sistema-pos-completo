@@ -140,6 +140,10 @@ export default function Settings() {
   const { role, can } = useBusinessPermissions(businessId);
   const [activeTab, setActiveTab] = useState('business');
   
+  // Solo el propietario puede modificar la configuración del negocio
+  const isOwner = role === 'owner';
+  const canEditBusinessSettings = isOwner;
+  
   const [businessData, setBusinessData] = useState({
     name: '',
     business_email: '',
@@ -690,6 +694,18 @@ export default function Settings() {
 
           {/* Business Tab */}
           <TabsContent value="business" className="space-y-4">
+            {!canEditBusinessSettings && (
+              <Card className="bg-amber-50 border-amber-200">
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-3">
+                    <Lock className="w-5 h-5 text-amber-600" />
+                    <p className="text-sm font-medium text-amber-800">
+                      Solo el propietario puede modificar esta sección
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             <Card>
               <CardHeader>
                 <CardTitle>Información del negocio</CardTitle>
@@ -701,7 +717,7 @@ export default function Settings() {
                     <div>
                       <Label>Nombre</Label>
                       <Input
-                        disabled
+                        disabled={!canEditBusinessSettings || true}
                         value={businessData.name}
                         onChange={(e) => setBusinessData({ ...businessData, name: e.target.value })}
                       />
@@ -709,7 +725,7 @@ export default function Settings() {
                     <div>
                       <Label>E-mail</Label>
                       <Input
-                        disabled
+                        disabled={!canEditBusinessSettings || true}
                         type="email"
                         value={businessData.business_email}
                         onChange={(e) => setBusinessData({ ...businessData, business_email: e.target.value })}
@@ -719,6 +735,7 @@ export default function Settings() {
                     <div className="col-span-2">
                       <Label>Dirección</Label>
                       <Input
+                        disabled={!canEditBusinessSettings}
                         value={businessData.address}
                         onChange={(e) => setBusinessData({ ...businessData, address: e.target.value })}
                       />
@@ -726,6 +743,7 @@ export default function Settings() {
                     <div>
                       <Label>Teléfono</Label>
                       <Input
+                        disabled={!canEditBusinessSettings}
                         value={businessData.phone}
                         onChange={(e) => setBusinessData({ ...businessData, phone: e.target.value })}
                       />
@@ -733,6 +751,7 @@ export default function Settings() {
                     <div>
                       <Label>CUIT</Label>
                       <Input
+                        disabled={!canEditBusinessSettings}
                         value={businessData.tax_id}
                         onChange={(e) => setBusinessData({ ...businessData, tax_id: e.target.value })}
                       />
@@ -743,11 +762,12 @@ export default function Settings() {
                         label="Color característico"
                         value={businessData.color}
                         onChange={(color) => setBusinessData({ ...businessData, color })}
+                        disabled={!canEditBusinessSettings}
                       />
                     </div>
                   </div>
 
-                  <Button type="submit" disabled={savingBusinessInfo}>
+                  <Button type="submit" disabled={!canEditBusinessSettings || savingBusinessInfo}>
                     {savingBusinessInfo ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : (
@@ -815,6 +835,7 @@ export default function Settings() {
                           <p className="text-xs text-slate-500">{parameter.description}</p>
                         </div>
                         <Switch
+                          disabled={!canEditBusinessSettings}
                           checked={Boolean(businessData.business_parameters?.[parameter.id])}
                           onCheckedChange={(checked) => setBusinessData((prev) => ({
                             ...prev,
@@ -835,6 +856,7 @@ export default function Settings() {
                       </div>
                       <div className="flex-shrink-0">
                         <Select
+                          disabled={!canEditBusinessSettings}
                           value={businessData.currency}
                           onValueChange={(v) => setBusinessData({ ...businessData, currency: v })}
                         >
@@ -850,7 +872,7 @@ export default function Settings() {
                     </div>
                   </div>
 
-                  <Button type="submit" disabled={savingBusinessParameters}>
+                  <Button type="submit" disabled={!canEditBusinessSettings || savingBusinessParameters}>
                     {savingBusinessParameters ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : (
