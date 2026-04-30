@@ -106,4 +106,48 @@ class BusinessUserManagementTest extends TestCase
             BusinessUser::where('business_id', $business->id)->where('user_id', $owner1->id)->first()->role
         );
     }
+
+    public function test_cannot_promote_to_owner()
+    {
+        $business = Business::create(['name' => 'Test Business']);
+        $owner = User::factory()->create();
+        $admin = User::factory()->create();
+
+        $business->users()->attach($owner->id, ['role' => BusinessUser::ROLE_OWNER]);
+        $business->users()->attach($admin->id, ['role' => BusinessUser::ROLE_ADMIN]);
+
+        $this->actingAs($owner);
+
+        $response = $this->withHeaders(['X-Business-Id' => $business->id])
+            ->putJson("/protected/business/users/{$admin->id}", [
+                'role' => BusinessUser::ROLE_OWNER,
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', 'El rol propietario solo puede asignarse manualmente por base de datos');
+
+        $this->assertEquals(
+            BusinessUser::ROLE_ADMIN,
+            BusinessUser::where('business_id', $business->id)->where('user_id', $admin->id)->first()->role
+        );
+    }
+
+    public function test_cannot_update_with_invalid_role()
+    {
+        $business = Business::create(['name' => 'Test Business']);
+        $owner = User::factory()->create();
+        $admin = User::factory()->create();
+
+        $business->users()->attach($owner->id, ['role' => BusinessUser::ROLE_OWNER]);
+        $business->users()->attach($admin->id, ['role' => BusinessUser::ROLE_ADMIN]);
+
+        $this->actingAs($owner);
+
+        $response = $this->withHeaders(['X-Business-Id' => $business->id])
+            ->putJson("/protected/business/users/{$admin->id}", [
+                'role' => 'invalid_role',
+            ]);
+
+        $response->assertStatus(422);
+    }
 }

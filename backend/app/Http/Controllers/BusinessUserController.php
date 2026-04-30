@@ -48,8 +48,15 @@ class BusinessUserController extends Controller
             return response()->json(['success' => false, 'message' => 'Business not selected'], 403);
         }
 
+        if ($request->input('role') === BusinessUser::ROLE_OWNER) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El rol propietario solo puede asignarse manualmente por base de datos',
+            ], 422);
+        }
+
         $validated = $request->validate([
-            'role' => ['required', 'string', Rule::in(BusinessUser::roles())],
+            'role' => ['required', 'string', Rule::in([BusinessUser::ROLE_ADMIN, BusinessUser::ROLE_CASHIER])],
         ]);
 
         $pivot = BusinessUser::where('business_id', $businessId)

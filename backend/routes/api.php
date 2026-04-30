@@ -28,7 +28,6 @@ Route::post('system/sepa-sync', [SystemController::class, 'runSepaSync']);
 Route::prefix('protected')->group(function () {
     Route::prefix('auth')->middleware('web')->group(function () {
         Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login')->name('login');
-        Route::post('register', [AuthController::class, 'register']);
     });
 
     Route::get('mercadopago/test', [MercadoPagoController::class, 'testConfig']);
