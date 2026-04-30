@@ -1151,34 +1151,28 @@ export default function Settings() {
                         </SelectContent>
                       </Select>
                     </div>
-                    {/* Sender info grouped in a small card */}
+                    {/* Sender info separated visually */}
                     <div className="col-span-2">
-                      <Card className="border border-slate-200 bg-slate-50">
-                        <CardHeader className="py-2 px-3">
-                          <CardTitle className="text-sm font-semibold text-slate-700">Remitente</CardTitle>
-                        </CardHeader>
-                        <CardContent className="px-3 pb-3 pt-0">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                              <Label>Nombre</Label>
-                              <Input
-                                value={smtpData.from_name}
-                                onChange={(e) => setSmtpData({ ...smtpData, from_name: e.target.value })}
-                                placeholder={currentBusiness?.name || 'My Business'}
-                              />
-                            </div>
-                            <div>
-                              <Label>E-mail</Label>
-                              <Input
-                                type="email"
-                                value={smtpData.from_email}
-                                onChange={(e) => setSmtpData({ ...smtpData, from_email: e.target.value })}
-                                placeholder={currentBusiness?.email || currentBusiness?.business_email || 'noreply@example.com'}
-                              />
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <hr className="my-3 border-slate-200" />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 rounded-md">
+                        <div>
+                          <Label className="font-medium text-slate-700">Nombre (Remitente)</Label>
+                          <Input
+                            value={smtpData.from_name}
+                            onChange={(e) => setSmtpData({ ...smtpData, from_name: e.target.value })}
+                            placeholder={currentBusiness?.name || 'My Business'}
+                          />
+                        </div>
+                        <div>
+                          <Label className="font-medium text-slate-700">E-mail (Remitente)</Label>
+                          <Input
+                            type="email"
+                            value={smtpData.from_email}
+                            onChange={(e) => setSmtpData({ ...smtpData, from_email: e.target.value })}
+                            placeholder={currentBusiness?.email || currentBusiness?.business_email || 'noreply@example.com'}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-3">

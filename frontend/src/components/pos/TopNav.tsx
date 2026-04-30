@@ -21,7 +21,6 @@ export default function TopNav({
   user,
   onLogout,
   currentPage,
-  currentBusiness,
   can
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -48,48 +47,35 @@ export default function TopNav({
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between h-14">
-          {/* Logo & Business Selector */}
+          {/* Left side: Logo + Divider + Desktop menu */}
           <div className="flex items-center gap-4">
             <Link to={createPageUrl('POS')} className="flex items-center gap-2">
               <img src="/logo.svg" alt="logo" className="w-8 h-8" />
               <span className="font-bold text-slate-900 hidden sm:block">OpenVenta</span>
             </Link>
-
-            {currentBusiness && (
-              <div className="px-3 h-9 gap-2 text-sm flex items-center bg-slate-50 border border-slate-100 rounded-md">
-                <Store
-                  className="w-5 h-5"
-                  style={{
-                    color:
-                      currentBusiness.color && /^#([A-Fa-f0-9]{6})$/.test(currentBusiness.color)
-                        ? currentBusiness.color
-                        : '#2563EB'
-                  }}
-                />
-                <span className="max-w-[150px] truncate font-medium text-slate-700">{currentBusiness.name}</span>
+            {/* Vertical divider and nav only on desktop */}
+            <div className="hidden md:flex items-center">
+              <span className="mx-4 h-7 border-l border-slate-200" />
+              <div className="flex items-center gap-1">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
+                      isCurrentPage(item.name) 
+                        ? 'bg-blue-100 text-blue-700' 
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    {item.name}
+                  </Link>
+                ))}
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${
-                  isCurrentPage(item.name) 
-                    ? 'bg-blue-100 text-blue-700' 
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <item.icon className="w-4 h-4" />
-                {item.name}
-              </Link>
-            ))}
-          </div>
-
-          {/* Right side */}
+          {/* Right side: User dropdown and mobile menu button */}
           <div className="flex items-center gap-3">
             {/* User menu */}
             <DropdownMenu>
@@ -136,6 +122,7 @@ export default function TopNav({
           </div>
         </div>
       </div>
+ 
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
