@@ -66,6 +66,7 @@ import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { mapApiErrorMessage } from '@/api/errorMapping';
 import { getRoleLabel } from '@/lib/roleLabels';
 import { CASH_REGISTER_PERMISSION_KEYS, SALES_PERMISSION_KEYS, useRolePermissionsFlow } from '@/modules/settings/hooks/useRolePermissionsFlow';
+import { useBusinessUsersFlow } from '@/modules/settings/hooks/useBusinessUsersFlow';
 
 const CASH_REGISTER_PERMISSION_LABELS = {
   'cash_register.view': 'Ver caja',
@@ -79,6 +80,58 @@ const SALES_PERMISSION_LABELS = {
 
 // Excepción explícita de negocio: owner conserva acceso de superusuario para gestionar permisos.
 const OWNER_SUPERUSER_CAN_MANAGE_PERMISSIONS = true;
+
+function BusinessUserRow({ user, updatingUserId, handleUpdateRole }: { user: any, updatingUserId: number | null, handleUpdateRole: (id: number, role: string) => Promise<void> }) {
+  const [selectedRole, setSelectedRole] = useState(user.role);
+  const isSaving = updatingUserId === user.id;
+  const hasChanged = selectedRole !== user.role;
+
+  useEffect(() => {
+    setSelectedRole(user.role);
+  }, [user.role]);
+
+  return (
+    <tr key={user.id} className="border-b last:border-0">
+      <td className="px-3 py-3 font-medium text-slate-900">{user.name}</td>
+      <td className="px-3 py-3 text-slate-600">{user.email}</td>
+      <td className="px-3 py-3">
+        <Badge variant="outline" className="capitalize">
+          {getRoleLabel(user.role)}
+        </Badge>
+      </td>
+      <td className="px-3 py-3">
+        <Select
+          value={selectedRole}
+          onValueChange={setSelectedRole}
+          disabled={isSaving}
+        >
+          <SelectTrigger className="h-8 w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="owner">Propietario</SelectItem>
+            <SelectItem value="admin">Administrador</SelectItem>
+            <SelectItem value="cashier">Cajero</SelectItem>
+          </SelectContent>
+        </Select>
+      </td>
+      <td className="px-3 py-3 text-right">
+        <Button
+          size="sm"
+          disabled={!hasChanged || isSaving}
+          onClick={() => handleUpdateRole(user.id, selectedRole)}
+        >
+          {isSaving ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Save className="h-3 w-3 mr-1" />
+          )}
+          {isSaving ? 'Guardando...' : 'Guardar'}
+        </Button>
+      </td>
+    </tr>
+  );
+}
 
 export default function Settings() {
   const { businessId, currentBusiness, refreshCurrentBusiness } = useBusiness();
@@ -550,6 +603,13 @@ export default function Settings() {
     onSaveSuccess: handleRolePermissionsSaveSuccess,
   });
 
+  const {
+    users: businessUsers,
+    isLoading: loadingBusinessUsers,
+    updatingUserId,
+    handleUpdateRole,
+  } = useBusinessUsersFlow(businessId);
+
 
   const openEditCategory = (category) => {
     setEditingCategory(category);
@@ -592,7 +652,7 @@ export default function Settings() {
                 <SelectItem value="payments">Cobros y Pagos</SelectItem>
                 <SelectItem value="integrations">Integraciones</SelectItem>
                 {canManageRolePermissions && (
-                  <SelectItem value="permissions">Permisos</SelectItem>
+                  <SelectItem value="permissions">Usuarios</SelectItem>
                 )}
                 <SelectItem value="modules">Módulos</SelectItem>
               </SelectContent>
@@ -619,7 +679,7 @@ export default function Settings() {
             {canManageRolePermissions && (
               <TabsTrigger value="permissions" className="gap-2">
                 <Lock className="w-4 h-4" />
-                Permisos
+                Usuarios
               </TabsTrigger>
             )}
             <TabsTrigger value="modules" className="gap-2">
@@ -1111,7 +1171,47 @@ export default function Settings() {
           </TabsContent>
 
           {canManageRolePermissions && (
-            <TabsContent value="permissions">
+            <TabsContent value="permissions" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gestión de usuarios</CardTitle>
+                  <CardDescription>
+                    Administrá los usuarios asociados a tu negocio y sus roles.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loadingBusinessUsers ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[600px] text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Usuario</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Email</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Rol actual</th>
+                            <th className="px-3 py-2 text-left font-medium text-slate-600">Nuevo rol</th>
+                            <th className="px-3 py-2 text-right font-medium text-slate-600">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {businessUsers.map((u: any) => (
+                            <BusinessUserRow
+                              key={u.id}
+                              user={u}
+                              updatingUserId={updatingUserId}
+                              handleUpdateRole={handleUpdateRole}
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Permisos por perfil</CardTitle>
