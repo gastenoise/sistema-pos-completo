@@ -52,7 +52,11 @@ function POSContent() {
     setCategoryFilter,
     onlyPriceUpdated,
     setOnlyPriceUpdated,
-  } = useItemFilters();
+    hasActiveFilters,
+    resetFilters,
+  } = useItemFilters({
+    storageKey: businessId ? `pos:filters:business:${businessId}` : null,
+  });
   const [showWizard, setShowWizard] = useState(false);
   const [showCashOpenModal, setShowCashOpenModal] = useState(false);
   const [isOpeningCashRegister, setIsOpeningCashRegister] = useState(false);
@@ -452,9 +456,7 @@ function POSContent() {
   };
 
   const handleClearCatalogFilters = () => {
-    setCategoryFilter('all');
-    setSourceFilter('all');
-    setOnlyPriceUpdated(false);
+    resetFilters();
   };
 
   const getItemIcon = (item) => {
@@ -489,6 +491,7 @@ function POSContent() {
             onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
             onApplyFilters={handleApplyCatalogFilters}
             onClearFilters={handleClearCatalogFilters}
+            hasActiveFilters={hasActiveFilters}
             categories={categories}
             inputClassName="h-12"
             searchInputClassName="flex-1 min-w-[240px]"

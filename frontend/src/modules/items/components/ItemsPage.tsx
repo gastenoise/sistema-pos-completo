@@ -59,7 +59,12 @@ export default function Items() {
     setOnlyPriceUpdated,
     page,
     setPage,
-  } = useItemFilters({ withPagination: true });
+    hasActiveFilters,
+    resetFilters,
+  } = useItemFilters({
+    withPagination: true,
+    storageKey: businessId ? `items:filters:business:${businessId}` : null,
+  });
   const [selectedItems, setSelectedItems] = useState([]);
   const [showEditorModal, setShowEditorModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -456,9 +461,7 @@ export default function Items() {
   };
 
   const handleClearCatalogFilters = () => {
-    setCategoryFilter('all');
-    setSourceFilter('all');
-    setOnlyPriceUpdated(false);
+    resetFilters();
   };
 
   const focusAndHighlightBarcodeInput = () => {
@@ -549,6 +552,7 @@ export default function Items() {
             onOnlyPriceUpdatedChange={setOnlyPriceUpdated}
             onApplyFilters={handleApplyCatalogFilters}
             onClearFilters={handleClearCatalogFilters}
+            hasActiveFilters={hasActiveFilters}
             categories={categories}
             searchInputClassName="flex-1 min-w-[240px]"
             barcodeInputClassName="sm:w-44 md:w-52"

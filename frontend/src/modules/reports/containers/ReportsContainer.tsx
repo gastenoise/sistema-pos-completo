@@ -43,6 +43,8 @@ import {
 import { getPaymentMethodIcon } from '@/utils/paymentMethodIcons';
 import { getIconComponent } from '@/lib/iconCatalog';
 import { getSaleStatusLabel } from '@/lib/saleStatus';
+import { hasNonDefaultFilters } from '@/lib/filterStorage';
+import { SlidersHorizontal } from 'lucide-react';
 import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/layout/PageHeader';
 import PageSection from '@/components/layout/PageSection';
@@ -74,18 +76,29 @@ export default function Reports() {
   // Keep yyyy-MM-dd for API compatibility; dates are computed from the browser local day.
   const today = getTodayISODateLocal();
   const tomorrow = getTomorrowISODateLocal();
+
+  const REPORT_DEFAULT_FILTERS = {
+    paymentMethod: 'all',
+    category: 'all',
+  };
+
   const [dateFrom, setDateFrom] = useState(today);
   const [dateTo, setDateTo] = useState(tomorrow);
   const [dateMode, setDateMode] = useState('today'); // 'today', 'week', 'month', 'custom'
   const [tempDateFrom, setTempDateFrom] = useState(today);
   const [tempDateTo, setTempDateTo] = useState(tomorrow);
   const [selectedSale, setSelectedSale] = useState(null);
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [draftPaymentMethodFilter, setDraftPaymentMethodFilter] = useState('all');
-  const [draftCategoryFilter, setDraftCategoryFilter] = useState('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState(REPORT_DEFAULT_FILTERS.paymentMethod);
+  const [categoryFilter, setCategoryFilter] = useState(REPORT_DEFAULT_FILTERS.category);
+  const [draftPaymentMethodFilter, setDraftPaymentMethodFilter] = useState(REPORT_DEFAULT_FILTERS.paymentMethod);
+  const [draftCategoryFilter, setDraftCategoryFilter] = useState(REPORT_DEFAULT_FILTERS.category);
   const [isMoreFiltersOpen, setIsMoreFiltersOpen] = useState(false);
   const [statusTab, setStatusTab] = useState('closed');
+
+  const hasActiveMoreFilters = hasNonDefaultFilters(
+    { paymentMethod: paymentMethodFilter, category: categoryFilter },
+    REPORT_DEFAULT_FILTERS
+  );
   const selectedPaymentMethod = paymentMethodFilter !== 'all' ? paymentMethodFilter : null;
   const selectedCategory = categoryFilter !== 'all' ? categoryFilter : null;
 
@@ -198,10 +211,10 @@ export default function Reports() {
 
   const clearFilters = () => {
     setQuickDate('today');
-    setPaymentMethodFilter('all');
-    setCategoryFilter('all');
-    setDraftPaymentMethodFilter('all');
-    setDraftCategoryFilter('all');
+    setPaymentMethodFilter(REPORT_DEFAULT_FILTERS.paymentMethod);
+    setCategoryFilter(REPORT_DEFAULT_FILTERS.category);
+    setDraftPaymentMethodFilter(REPORT_DEFAULT_FILTERS.paymentMethod);
+    setDraftCategoryFilter(REPORT_DEFAULT_FILTERS.category);
   };
 
   const handleOpenMoreFilters = (open) => {
@@ -221,10 +234,10 @@ export default function Reports() {
 
   const handleClearMoreFilters = () => {
     // Reportes: limpiamos método/categoría y mantenemos el rango de fechas vigente.
-    setDraftPaymentMethodFilter('all');
-    setDraftCategoryFilter('all');
-    setPaymentMethodFilter('all');
-    setCategoryFilter('all');
+    setDraftPaymentMethodFilter(REPORT_DEFAULT_FILTERS.paymentMethod);
+    setDraftCategoryFilter(REPORT_DEFAULT_FILTERS.category);
+    setPaymentMethodFilter(REPORT_DEFAULT_FILTERS.paymentMethod);
+    setCategoryFilter(REPORT_DEFAULT_FILTERS.category);
     setIsMoreFiltersOpen(false);
   };
 
@@ -389,8 +402,15 @@ export default function Reports() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleOpenMoreFilters(true)}
+                  className="relative"
                 >
+                  <SlidersHorizontal className="w-4 h-4 mr-2" />
                   Más Filtros
+                  {hasActiveMoreFilters && (
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="relative inline-flex h-3 w-3 rounded-full bg-blue-500 border-2 border-white" />
+                    </span>
+                  )}
                 </Button>
                 <Button
                   type="button"

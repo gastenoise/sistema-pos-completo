@@ -39,6 +39,7 @@ export default function ItemsFiltersDialog({
   inputClassName = '',
   searchInputClassName = '',
   barcodeInputClassName = '',
+  hasActiveFilters = false,
 }) {
   const [open, setOpen] = useState(false);
   const [draftCategory, setDraftCategory] = useState(String(categoryValue));
@@ -117,9 +118,14 @@ export default function ItemsFiltersDialog({
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button type="button" variant="outline">
+            <Button type="button" variant="outline" className="relative">
               <SlidersHorizontal className="w-4 h-4 mr-2" />
               Más filtros
+              {hasActiveFilters && (
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-blue-500 border-2 border-white" />
+                </span>
+              )}
             </Button>
           </DialogTrigger>
           <DialogContent>
