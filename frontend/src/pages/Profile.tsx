@@ -39,7 +39,7 @@ export default function Profile() {
       setUser(u);
       setUserData({
         full_name: u?.name || '',
-        email: u.email || '',
+        email: u?.email || '',
         phone: u.phone || ''
       });
       setLoading(false);
