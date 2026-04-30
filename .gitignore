@@ -1,35 +1,52 @@
-# OS / editor
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
-
-# Dependencies / build artifacts
-**/node_modules/
-**/vendor/
-**/dist/
-**/build/
-
-# Environment and local overrides
-**/.env
-**/.env.*
-!**/.env.example
-
-# Common secret-bearing file formats
-*.pem
-*.key
-*.p12
-*.pfx
-id_rsa
-id_ed25519
-*.kubeconfig
-
-# Dumps and local exports that can accidentally include sensitive data
-dump_codigo_completo_*.txt
-*.sql.gz
-*.sqlite
+# Dependencies
+vendor/
 
 # Logs and temp files
 *.log
 *.tmp
-*.swp
+
+# Environment
+.env
+.env.local
+.env.*
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Tests
+.phpunit.result.cache
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Build artifacts
+dist/
+build/
+*.phar
+
+# Cache
+.cache/
+.cargo/
+.npm/
+.yarn/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Sensitive files
+config/database.php
+storage/*.key
+*.key
+
+# Legacy
+.svn/
+.git/
