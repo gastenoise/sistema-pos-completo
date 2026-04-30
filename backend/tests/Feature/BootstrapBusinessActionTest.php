@@ -30,6 +30,7 @@ class BootstrapBusinessActionTest extends TestCase
             'Servicio',
             'Comisión',
             'Otros',
+            'Indumentaria',
         ];
 
         foreach ($expectedCategories as $categoryName) {

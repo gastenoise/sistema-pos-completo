@@ -24,6 +24,7 @@ class BootstrapBusinessAction
             ['name' => 'Servicio',   'color' => '#3B82F6', 'icon' => 9],  // Wrench
             ['name' => 'Comisión',   'color' => '#F59E0B', 'icon' => 26], // Tag
             ['name' => 'Otros',      'color' => '#EF4444', 'icon' => 24], // Star
+            ['name' => 'Indumentaria', 'color' => '#EC4899', 'icon' => 5], // Shirt
         ];
 
         foreach ($defaultCategories as $category) {
