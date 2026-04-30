@@ -762,7 +762,6 @@ export default function Settings() {
                         label="Color característico"
                         value={businessData.color}
                         onChange={(color) => setBusinessData({ ...businessData, color })}
-                        disabled={!canEditBusinessSettings}
                       />
                     </div>
                   </div>

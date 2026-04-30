@@ -36,6 +36,6 @@ export const getRolePermissions = async () => normalizeEntityResponse(await apiC
 
 export const updateRolePermissions = async (payload) => normalizeEntityResponse(await apiClient.put('/protected/business/role-permissions', payload));
 
-export const getBusinessUsers = async () => normalizeListResponse(await apiClient.get('/protected/business/users'));
+export const getBusinessUsers = async () => normalizeListResponse(await apiClient.get('/protected/business/users'), 'users');
 
 export const updateBusinessUserRole = async (userId: number, role: string) => normalizeEntityResponse(await apiClient.put(`/protected/business/users/${userId}`, { role }));
