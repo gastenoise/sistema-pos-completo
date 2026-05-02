@@ -1,3 +1,5 @@
+import { getPosItemByBarcode } from '../api';
+
 export const findExactItemMatch = (code: string, list: any[] = []) => {
   const normalizedCode = String(code ?? '').trim().toLowerCase();
   if (!normalizedCode) {
@@ -17,22 +19,18 @@ export const findExactItemMatch = (code: string, list: any[] = []) => {
   return matches[0];
 };
 
-export const handlePosScanComplete = ({
+export const handlePosScanComplete = async ({
   rawCode,
   hasPaymentDialogOpen,
   items,
-  setBarcodeOrSkuQuery,
-  setPendingScannedCode,
   addScannedItem,
-  invalidateItems,
+  onNoMatchFound,
 }: {
   rawCode: string;
   hasPaymentDialogOpen: boolean;
   items: any[];
-  setBarcodeOrSkuQuery: (code: string) => void;
-  setPendingScannedCode: (code: string | null) => void;
   addScannedItem: (code: string, item: any) => boolean;
-  invalidateItems: () => void;
+  onNoMatchFound?: (code: string, item?: any) => void;
 }) => {
   if (hasPaymentDialogOpen) {
     return;
@@ -43,117 +41,56 @@ export const handlePosScanComplete = ({
     return;
   }
 
-  setBarcodeOrSkuQuery(code);
   const localMatch = findExactItemMatch(code, items);
 
   if (localMatch) {
     addScannedItem(code, localMatch);
-    setPendingScannedCode(null);
     return;
   }
 
-  setPendingScannedCode(code);
-  invalidateItems();
-};
-
-export const handlePendingPosScanResolution = ({
-  pendingScannedCode,
-  items,
-  addScannedItem,
-  setPendingScannedCode,
-  onNoMatchFound,
-}: {
-  pendingScannedCode: string | null;
-  items: any[];
-  addScannedItem: (code: string, item: any) => boolean;
-  setPendingScannedCode: (code: string | null) => void;
-  onNoMatchFound?: (code: string) => void;
-}) => {
-  if (!pendingScannedCode) {
-    return;
-  }
-
-  const exactMatch = findExactItemMatch(pendingScannedCode, items);
-  if (!exactMatch) {
-    setPendingScannedCode(null);
-    onNoMatchFound?.(pendingScannedCode);
-    return;
-  }
-
-  const wasAdded = addScannedItem(pendingScannedCode, exactMatch);
-  if (wasAdded) {
-    setPendingScannedCode(null);
+  // If not in current list, try an exact lookup via API
+  try {
+    const apiItem = await getPosItemByBarcode(code);
+    if (apiItem) {
+      addScannedItem(code, apiItem);
+    } else {
+      onNoMatchFound?.(code);
+    }
+  } catch (error) {
+    onNoMatchFound?.(code);
   }
 };
 
-export const handleItemsScanComplete = ({
+export const handleItemsScanComplete = async ({
   rawCode,
   items,
-  setPendingScannedCode,
-  hasOffsetPagination,
-  currentPage,
-  setBarcodeOrSkuQuery,
-  setSearchQuery,
-  setPage,
-  focusAndHighlightBarcodeInput,
-  invalidateItems,
+  onMatchFound,
+  onNoMatchFound,
 }: {
   rawCode: string;
   items: any[];
-  setPendingScannedCode: (code: string | null) => void;
-  hasOffsetPagination: boolean;
-  currentPage: number;
-  setBarcodeOrSkuQuery: (code: string) => void;
-  setSearchQuery: (value: string) => void;
-  setPage: (page: number) => void;
-  focusAndHighlightBarcodeInput: () => void;
-  invalidateItems: () => void;
+  onMatchFound: (item: any) => void;
+  onNoMatchFound: (code: string) => void;
 }) => {
   const code = String(rawCode ?? '').trim();
   if (!code) {
     return;
   }
 
-  setBarcodeOrSkuQuery(code);
-  setSearchQuery('');
-
-  if (hasOffsetPagination && currentPage > 1) {
-    setPage(1);
-  }
-
   const localMatch = findExactItemMatch(code, items);
   if (localMatch) {
-    setPendingScannedCode(null);
-    focusAndHighlightBarcodeInput();
+    onMatchFound(localMatch);
     return;
   }
 
-  setPendingScannedCode(code);
-  invalidateItems();
-  focusAndHighlightBarcodeInput();
-};
-
-export const handlePendingItemsScanResolution = ({
-  pendingScannedCode,
-  items,
-  setPendingScannedCode,
-  onNoMatchFound,
-}: {
-  pendingScannedCode: string | null;
-  items: any[];
-  setPendingScannedCode: (code: string | null) => void;
-  onNoMatchFound?: (code: string) => void;
-}) => {
-  if (!pendingScannedCode) {
-    return;
+  try {
+    const apiItem = await getPosItemByBarcode(code);
+    if (apiItem) {
+      onMatchFound(apiItem);
+    } else {
+      onNoMatchFound(code);
+    }
+  } catch (error) {
+    onNoMatchFound(code);
   }
-
-  const exactMatch = findExactItemMatch(pendingScannedCode, items);
-  if (!exactMatch) {
-    setPendingScannedCode(null);
-    onNoMatchFound?.(pendingScannedCode);
-    return;
-  }
-
-  setPendingScannedCode(null);
 };

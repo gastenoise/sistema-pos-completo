@@ -65,6 +65,25 @@ export const confirmSalePayment = async (saleId, paymentId, payload) => normaliz
 ));
 export const createItem = async (payload) => normalizeEntityResponse(await apiClient.post('/protected/items', payload));
 
+export const getPosItemByBarcode = async (barcode: string) => {
+  const query = new URLSearchParams();
+  query.set('barcode_or_sku', barcode);
+  query.set('source', 'all');
+  query.set('per_page', '5');
+
+  const response = await apiClient.get(`/protected/items?${query.toString()}`);
+  const items = mapCatalogIsActive(normalizeListResponse(response, 'items')).map((item: any) => ({
+    ...item,
+    category_id: item.category_id !== null && item.category_id !== undefined ? Number(item.category_id) : null
+  }));
+
+  const normalizedBarcode = barcode.trim().toLowerCase();
+  return items.find((item: any) =>
+    String(item.barcode || '').trim().toLowerCase() === normalizedBarcode ||
+    String(item.sku || '').trim().toLowerCase() === normalizedBarcode
+  ) || null;
+};
+
 export const extractSaleId = (response) => (
   response?.id
   || response?.sale?.id
