@@ -19,7 +19,7 @@ import { getIconComponent } from '@/lib/iconCatalog';
 import { TOAST_MESSAGES } from '@/lib/toastMessages';
 import { useAuthorization } from '@/components/auth/AuthorizationContext';
 import { useKeyboardScanner } from '@/components/scanner/useKeyboardScanner';
-import { handlePendingPosScanResolution, handlePosScanComplete } from '@/modules/pos/utils/scannerHandlers';
+import { handlePosScanComplete } from '@/modules/pos/utils/scannerHandlers';
 import { loadRecentPosItemKeys, recordRecentPosItem, sortItemsByRecentUsage } from '@/modules/pos/utils/recentPosItems';
 
 import { useBusiness } from '@/components/pos/BusinessContext';
@@ -344,7 +344,7 @@ function POSContent() {
     });
   };
 
-  const handleNoMatchFoundAfterRefresh = (code: string) => {
+  const handleNoMatchFound = (code: string) => {
     const now = Date.now();
     const lastNoMatch = lastNoMatchResolvedCodeRef.current;
     if (lastNoMatch && lastNoMatch.code === code && now - lastNoMatch.resolvedAt < 400) {
@@ -353,9 +353,11 @@ function POSContent() {
 
     lastNoMatchResolvedCodeRef.current = { code, resolvedAt: now };
 
-    setPendingBarcodeForCreate(code);
-    setPendingSepaItemForPrice(null);
-    setShowScanItemEditorModal(true);
+    if (autoOpenCreateOnUnknownBarcodeEnabled) {
+      setPendingBarcodeForCreate(code);
+      setPendingSepaItemForPrice(null);
+      setShowScanItemEditorModal(true);
+    }
   };
 
   useKeyboardScanner({
@@ -369,25 +371,11 @@ function POSContent() {
         rawCode,
         hasPaymentDialogOpen,
         items,
-        setBarcodeOrSkuQuery,
-        setPendingScannedCode,
         addScannedItem,
-        invalidateItems: () => {
-          queryClient.invalidateQueries({ queryKey: ['items', businessId] });
-        },
+        onNoMatchFound: handleNoMatchFound,
       });
     },
   });
-
-  useEffect(() => {
-    handlePendingPosScanResolution({
-      pendingScannedCode,
-      items,
-      addScannedItem,
-      setPendingScannedCode,
-      onNoMatchFound: autoOpenCreateOnUnknownBarcodeEnabled ? handleNoMatchFoundAfterRefresh : undefined,
-    });
-  }, [autoOpenCreateOnUnknownBarcodeEnabled, items, pendingScannedCode]);
 
   useEffect(() => {
     setRecentItemKeysSnapshot(loadRecentPosItemKeys(businessId, user?.id));
@@ -412,10 +400,26 @@ function POSContent() {
   }, [cartItems]);
 
   const handleItemClick = (item) => {
+    const isSepaEnabled = currentBusinessParameters[BUSINESS_PARAMETER_IDS.ENABLE_SEPA_ITEMS] === true;
+    const isSepaSource = item?.source === 'sepa';
     const sepaHasBusinessPrice = Boolean(item?.has_business_price ?? item?.is_price_overridden);
 
+    // If item is SEPA but business has SEPA disabled, we must treat it as a new local item
+    // However, if the item was already found as SEPA, it means the API returned it.
+    // The requirement says: "si el producto no está en SEPA o está pero el negocio no usa SEPA debe abrir el diálogo de cargar nuevo producto"
+    // If the API returns it as SEPA, and SEPA is disabled, we should probably not have found it or we should convert it.
+    // But since handlePosScanComplete/getPosItemByBarcode returns what the backend finds (which includes SEPA if it's in the sepa_items table),
+    // we handle the business logic here.
+
+    if (isSepaSource && !isSepaEnabled) {
+      setPendingBarcodeForCreate(item.barcode || '');
+      setPendingSepaItemForPrice(null);
+      setShowScanItemEditorModal(true);
+      return;
+    }
+
     // Check if SEPA item without business price - require price setup before adding to cart
-    if (item?.source === 'sepa' && !sepaHasBusinessPrice) {
+    if (isSepaSource && !sepaHasBusinessPrice) {
       setPendingSepaItemForPrice(item);
       setShowScanItemEditorModal(true);
       return;

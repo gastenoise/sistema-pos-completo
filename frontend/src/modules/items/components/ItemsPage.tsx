@@ -39,7 +39,7 @@ import { useItemFilters } from '@/modules/items/hooks/useItemFilters';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useKeyboardScanner } from '@/components/scanner/useKeyboardScanner';
 import { BUSINESS_PARAMETER_IDS, normalizeBusinessParameters } from '@/lib/businessParameters';
-import { handleItemsScanComplete, handlePendingItemsScanResolution } from '@/modules/pos/utils/scannerHandlers';
+import { handleItemsScanComplete } from '@/modules/pos/utils/scannerHandlers';
 
 export default function Items() {
   const { businessId, currentBusiness, businesses } = useBusiness();
@@ -478,6 +478,30 @@ export default function Items() {
     return () => window.clearTimeout(timeout);
   }, [barcodeInputHighlighted]);
 
+  const handleItemScanMatch = (item: any) => {
+    const isSepaEnabled = currentBusinessParameters[BUSINESS_PARAMETER_IDS.ENABLE_SEPA_ITEMS] === true;
+    const isSepaSource = item?.source === 'sepa';
+
+    if (isSepaSource && !isSepaEnabled) {
+      setEditingItem(null);
+      setPendingScannedCode(item.barcode || '');
+      setShowEditorModal(true);
+      return;
+    }
+
+    setEditingItem(item);
+    setShowEditorModal(true);
+  };
+
+  const handleItemScanNoMatch = (code: string) => {
+    if (autoOpenCreateOnUnknownBarcodeEnabled) {
+      setEditingItem(null);
+      // We pass the barcode to the modal via initialBarcode prop, not via filter state.
+      setPendingScannedCode(code);
+      setShowEditorModal(true);
+    }
+  };
+
   useKeyboardScanner({
     enabled: scannerEnabled,
     contextId: 'Items',
@@ -488,34 +512,11 @@ export default function Items() {
       handleItemsScanComplete({
         rawCode,
         items,
-        setPendingScannedCode,
-        hasOffsetPagination,
-        currentPage,
-        setBarcodeOrSkuQuery,
-        setSearchQuery,
-        setPage,
-        focusAndHighlightBarcodeInput,
-        invalidateItems: () => {
-          queryClient.invalidateQueries({ queryKey: ['items', businessId] });
-        },
+        onMatchFound: handleItemScanMatch,
+        onNoMatchFound: handleItemScanNoMatch,
       });
     },
   });
-
-  useEffect(() => {
-    handlePendingItemsScanResolution({
-      pendingScannedCode,
-      items,
-      setPendingScannedCode,
-      onNoMatchFound: autoOpenCreateOnUnknownBarcodeEnabled
-        ? (code: string) => {
-            setBarcodeOrSkuQuery(code);
-            setEditingItem(null);
-            setShowEditorModal(true);
-          }
-        : undefined,
-    });
-  }, [autoOpenCreateOnUnknownBarcodeEnabled, items, pendingScannedCode, setBarcodeOrSkuQuery]);
 
   return (
     <>
@@ -679,9 +680,13 @@ export default function Items() {
       {/* Modals */}
       <ItemEditorModal
         open={showEditorModal}
-        onClose={() => { setShowEditorModal(false); setEditingItem(null); }}
+        onClose={() => {
+          setShowEditorModal(false);
+          setEditingItem(null);
+          setPendingScannedCode(null);
+        }}
         item={editingItem}
-        initialBarcode={!editingItem ? barcodeOrSkuQuery : ''}
+        initialBarcode={!editingItem ? (pendingScannedCode || '') : ''}
         categories={categories}
         onSave={handleSaveItem}
         loading={savingItem}
